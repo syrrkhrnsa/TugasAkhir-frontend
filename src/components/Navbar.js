@@ -8,7 +8,7 @@ const Navbar = () => {
         <NavLink
           to="/"
           className={({ isActive }) =>
-            `text-xl font-medium ${
+            `text-xs font-medium ${
               isActive ? "text-hijau border-b-2 border-kuning" : "text-hijau"
             } hover:text-green-600`
           }
@@ -18,7 +18,7 @@ const Navbar = () => {
         <NavLink
           to="/tentang-kami"
           className={({ isActive }) =>
-            `text-xl font-medium ${
+            `text-xs font-medium ${
               isActive ? "text-hijau border-b-2 border-kuning" : "text-hijau"
             } hover:text-green-600`
           }
@@ -28,7 +28,7 @@ const Navbar = () => {
         <NavLink
           to="/lihat-data-wakaf"
           className={({ isActive }) =>
-            `text-xl font-medium ${
+            `text-xs font-medium ${
               isActive ? "text-hijau border-b-2 border-kuning" : "text-hijau"
             } hover:text-green-600`
           }
@@ -38,7 +38,7 @@ const Navbar = () => {
         <NavLink
           to="/login"
           className={({ isActive }) =>
-            `text-xl font-medium ${
+            `text-xs font-medium ${
               isActive ? "text-hijau border-b-2 border-kuning" : "text-hijau"
             } hover:text-green-600`
           }

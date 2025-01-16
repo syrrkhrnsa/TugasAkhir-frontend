@@ -36,16 +36,16 @@ const Login = () => {
         {/* Konten Kiri */}
         <div className="flex flex-col justify-center items-center w-full lg:w-1/2 px-10 lg:px-20 bg-white">
           {/* Logo dan Teks */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-1">
             {/* Logo */}
-            <img src={logo} alt="Logo" className="w-23 h-auto" />
+            <img src={logo} alt="Logo" className="w-20 h-auto" />
             {/* Teks */}
             <div>
               <div className="flex items-center space-x-2">
-                <h1 className="text-5xl font-bold text-hijau">Waqaf</h1>
-                <h1 className="text-5xl font-bold text-kuning">Management</h1>
+                <h1 className="text-3xl font-bold text-hijau">Waqaf</h1>
+                <h1 className="text-3xl font-bold text-kuning">Management</h1>
               </div>
-              <h2 className="text-4xl font-bold text-hijau mt-2">
+              <h2 className="text-2xl font-bold text-hijau">
                 PC Persis Banjaran
               </h2>
             </div>
@@ -53,37 +53,37 @@ const Login = () => {
         </div>
 
         {/* Konten Kanan */}
-        <div className="flex justify-center items-center w-full lg:w-1/2 px-8 lg:px-16">
+        <div className="flex justify-center items-center w-full lg:w-1/2 px-4 lg:px-6">
           <div
-            className="bg-white rounded-3xl p-8 w-full max-w-lg"
+            className="bg-white rounded-2xl p-8 w-full max-w-xs"
             style={{
               boxShadow:
                 "0px -20px 40px rgba(0, 0, 0, 0.1), 20px 0px 40px rgba(0, 0, 0, 0.1)", // Shadow di atas dan kanan
             }}
           >
             {/* Header */}
-            <h1 className="text-5xl font-bold text-left text-hijau">Login</h1>
-            <p className="text-left text-gray-500 mt-2">
+            <h1 className="text-3xl font-bold text-left text-hijau">Login</h1>
+            <p className="text-left text-xs text-gray-500 mt-1">
               We are very happy to see you back!
             </p>
 
             {/* Error Message */}
             {error && (
-              <p className="text-red-500 text-sm mt-2 text-center">{error}</p>
+              <p className="text-red-500 text-xs mt-1 text-center">{error}</p>
             )}
 
             {/* Login Form */}
-            <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+            <form onSubmit={handleSubmit} className="mt-3 space-y-2">
               {/* Email Input */}
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-xs font-medium text-gray-700">
                   Email
                 </label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full px-5 py-3 mt-2 border border-gray-300 rounded-lg shadow-md focus:ring focus:ring-hijaulogin focus:outline-none"
+                  className="block w-full px-3 py-1.5 mt-1 border border-gray-300 rounded-lg shadow-sm focus:ring focus:ring-hijaulogin focus:outline-none text-xs"
                   placeholder="pimpinan@gmail.com"
                   required
                 />
@@ -91,23 +91,26 @@ const Login = () => {
 
               {/* Password Input */}
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-xs font-medium text-gray-700">
                   Password
                 </label>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full px-5 py-3 mt-2 border border-gray-300 rounded-lg shadow-md focus:ring focus:ring-hijaulogin focus:outline-none"
+                  className="block w-full px-3 py-1.5 mt-1 border border-gray-300 rounded-lg shadow-sm focus:ring focus:ring-hijaulogin focus:outline-none text-xs"
                   placeholder="Enter your password"
                   required
                 />
               </div>
 
               {/* Remember Me & Forgot Password */}
-              <div className="flex items-center justify-between text-sm mt-2">
-                <label className="flex items-center text-fontlogin space-x-2">
-                  <input type="checkbox" className="rounded border-gray-300" />
+              <div className="flex items-center justify-between text-[10px] mt-1">
+                <label className="flex items-center text-fontlogin space-x-1">
+                  <input
+                    type="checkbox"
+                    className="w-3 h-3 rounded border-gray-300"
+                  />
                   <span>Remember Me</span>
                 </label>
                 <a href="#" className="text-fontlogin hover:underline">
@@ -118,16 +121,16 @@ const Login = () => {
               {/* Login Button */}
               <button
                 type="submit"
-                className="w-full py-3 text-lg font-medium text-white bg-hijaulogin hover:bg-green-700 rounded-lg shadow-md"
+                className="w-full py-2 text-xs font-medium text-white bg-hijaulogin hover:bg-green-700 rounded-lg shadow-md"
               >
                 Login
               </button>
             </form>
 
             {/* Divider */}
-            <div className="flex items-center py-5">
+            <div className="flex items-center py-3">
               <div className="flex-grow border-t border-gray-300"></div>
-              <span className="px-3 text-fontlogin">OR</span>
+              <span className="px-2 text-fontlogin text-xs">OR</span>
               <div className="flex-grow border-t border-gray-300"></div>
             </div>
 
@@ -135,14 +138,14 @@ const Login = () => {
             <div className="flex justify-center">
               <button
                 type="button"
-                className="inline-flex items-center px-6 py-3 border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-50"
+                className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-50"
               >
                 <img
                   src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
                   alt="Google"
-                  className="w-5 h-5 mr-3"
+                  className="w-4 h-4 mr-2"
                 />
-                <span className="text-sm font-medium text-fontlogin">
+                <span className="text-xs font-medium text-fontlogin">
                   Login with Google
                 </span>
               </button>
