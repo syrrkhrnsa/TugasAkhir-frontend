@@ -36,7 +36,7 @@ const Sidebar = () => {
 
       {/* Menu Section */}
       <div
-        className={`w-full mx-auto p-4 flex items-center  mb-4 cursor-pointer ${
+        className={`w-full mx-auto p-4 flex items-center mb-4 cursor-pointer ${
           activeMenu === "Dashboard"
             ? "bg-kuning rounded-l-full rounded-r-[100px] shadow-lg"
             : "bg-transparent"
@@ -60,7 +60,7 @@ const Sidebar = () => {
       </div>
 
       <div
-        className={`w-full mx-auto p-4 flex items-center justify-start mb-4 cursor-pointer ${
+        className={`w-full mx-auto p-4 flex items-center mb-4 cursor-pointer ${
           activeMenu === "Pemetaan"
             ? "bg-kuning rounded-l-full rounded-r-[100px] shadow-lg"
             : "bg-transparent"
@@ -84,7 +84,7 @@ const Sidebar = () => {
       </div>
 
       <div
-        className={`w-full mx-auto p-4 flex items-center justify-start mb-4 cursor-pointer ${
+        className={`w-full mx-auto p-4 flex items-center mb-4 cursor-pointer ${
           activeMenu === "Sertifikasi"
             ? "bg-kuning rounded-l-full rounded-r-[100px] shadow-lg"
             : "bg-transparent"
@@ -109,7 +109,7 @@ const Sidebar = () => {
 
       {/* Logout Section */}
       <div
-        className="w-full mx-auto p-4 flex items-center justify-start mt-auto cursor-pointer bg-transparent"
+        className="w-full mx-auto p-4 flex items-center mt-auto cursor-pointer bg-transparent"
         onClick={handleLogout}
       >
         <div className="flex items-center ml-7 space-x-3">
