@@ -5,7 +5,7 @@ const Layout = ({ children }) => {
   return (
     <div className="flex h-screen">
       {/* Sider */}
-      <div className="bg-white w-16 border-r"></div>
+      <div className="bg-white w-48 border-r"></div>
 
       {/* Main Content */}
       <div className="flex flex-col flex-1">
