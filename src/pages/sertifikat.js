@@ -25,24 +25,27 @@ const Sertifikat = () => {
     } else if (currentPage >= totalPages - 2) {
       return [1, 2, "...", totalPages - 1, totalPages];
     } else {
-      return [1, "...", currentPage - 1, currentPage, currentPage + 1, "...", totalPages];
+      return [
+        1,
+        "...",
+        currentPage - 1,
+        currentPage,
+        currentPage + 1,
+        "...",
+        totalPages,
+      ];
     }
   };
 
   // Fungsi untuk navigasi ke Form Sertifikat
   const handleAddCertificate = () => {
-    navigate("/sertifikat/form"); 
+    navigate("/sertifikat/form");
   };
 
   return (
     <div className="relative">
-      {/* Sidebar */}
-      <div className="absolute top-0 left-0 z-50">
-        <Sidebar />
-      </div>
-
       {/* Layout */}
-      <Layout>
+      <Sidebar>
         <div className="relative mb-4 flex justify-between items-center">
           <div className="ml-5">
             <h2 className="text-xl font-medium">Sertifikasi Wakaf</h2>
@@ -55,7 +58,7 @@ const Sertifikat = () => {
               placeholder="Cari"
               className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none"
             />
-            <button 
+            <button
               className="bg-[#187556] text-white p-2 rounded-md hover:bg-[#146347]"
               onClick={handleAddCertificate} // Navigasi ke Form Sertifikat
             >
@@ -71,18 +74,29 @@ const Sertifikat = () => {
                 <thead>
                   <tr>
                     <th className="px-4 py-2 text-left font-medium">No</th>
-                    <th className="px-4 py-2 text-left font-medium">No Sertifikat</th>
-                    <th className="px-4 py-2 text-left font-medium">Nama Wakif</th>
+                    <th className="px-4 py-2 text-left font-medium">
+                      No Sertifikat
+                    </th>
+                    <th className="px-4 py-2 text-left font-medium">
+                      Nama Wakif
+                    </th>
                     <th className="px-4 py-2 text-left font-medium">Lokasi</th>
-                    <th className="px-4 py-2 text-left font-medium">Luas Tanah</th>
-                    <th className="px-4 py-2 text-left font-medium">Fasilitas</th>
+                    <th className="px-4 py-2 text-left font-medium">
+                      Luas Tanah
+                    </th>
+                    <th className="px-4 py-2 text-left font-medium">
+                      Fasilitas
+                    </th>
                     <th className="px-4 py-2 text-left font-medium">Status</th>
                     <th className="px-4 py-2 text-left font-medium">Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td colSpan="8" className="border-t border-gray-300 w-[95%] mx-auto"></td>
+                    <td
+                      colSpan="8"
+                      className="border-t border-gray-300 w-[95%] mx-auto"
+                    ></td>
                   </tr>
 
                   <tr>
@@ -92,14 +106,19 @@ const Sertifikat = () => {
                   </tr>
 
                   <tr>
-                    <td colSpan="8" className="border-t border-gray-300 w-[95%] mx-auto"></td>
+                    <td
+                      colSpan="8"
+                      className="border-t border-gray-300 w-[95%] mx-auto"
+                    ></td>
                   </tr>
                 </tbody>
               </table>
 
               <div className="pagination flex justify-left space-x-1 mt-4">
                 <button
-                  className={`border border-gray-300 rounded-md px-3 py-1 flex items-center ${currentPage === 1 ? 'text-gray-400 cursor-not-allowed' : ''}`}
+                  className={`border border-gray-300 rounded-md px-3 py-1 flex items-center ${
+                    currentPage === 1 ? "text-gray-400 cursor-not-allowed" : ""
+                  }`}
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
                 >
@@ -107,11 +126,15 @@ const Sertifikat = () => {
                 </button>
                 {getPageNumbers().map((page, index) =>
                   page === "..." ? (
-                    <span key={index} className="px-3 py -1">{page}</span>
+                    <span key={index} className="px-3 py -1">
+                      {page}
+                    </span>
                   ) : (
                     <button
                       key={index}
-                      className={`border border-gray-300 rounded-md px-3 py-1 font-medium ${currentPage === page ? 'bg-gray-300' : ''}`}
+                      className={`border border-gray-300 rounded-md px-3 py-1 font-medium ${
+                        currentPage === page ? "bg-gray-300" : ""
+                      }`}
                       onClick={() => handlePageChange(page)}
                     >
                       {page}
@@ -119,7 +142,11 @@ const Sertifikat = () => {
                   )
                 )}
                 <button
-                  className={`border border-gray-300 rounded-md px-3 py-1 flex items-center ${currentPage === totalPages ? 'text-gray-400 cursor-not-allowed' : ''}`}
+                  className={`border border-gray-300 rounded-md px-3 py-1 flex items-center ${
+                    currentPage === totalPages
+                      ? "text-gray-400 cursor-not-allowed"
+                      : ""
+                  }`}
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
                 >
@@ -129,7 +156,7 @@ const Sertifikat = () => {
             </div>
           </div>
         </div>
-      </Layout>
+      </Sidebar>
     </div>
   );
 };
