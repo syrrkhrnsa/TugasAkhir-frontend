@@ -13,25 +13,15 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post(
-        "http://127.0.0.1:8000/api/login",
-        {
-          email,
-          password,
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          withCredentials: true, // Pastikan jika backend membutuhkan credentials
-        }
-      );
+      const response = await axios.post("http://127.0.0.1:8000/api/login", {
+        email,
+        password,
+      });
 
-      // Simpan token di local storage
+      console.log("Token dari server:", response.data.token);
+
       localStorage.setItem("token", response.data.token);
 
-      // Redirect ke halaman dashboard
       navigate("/dashboard");
     } catch (err) {
       setError("Login failed. Please check your credentials.");
