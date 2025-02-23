@@ -7,6 +7,8 @@ import Sertifikat from "./pages/sertifikat.js";
 import Pemetaan from "./pages/pemetaan.js";
 import FormSertifikat from "./form/f_sertifikat.js";
 import ProtectedRoute from "./utils/ProtectedRoute"; // Import ProtectedRoute
+import CreateTanah from "./form/c_tanah.js";
+import EditTanah from "./form/e_tanah.js";
 
 function App() {
   return (
@@ -17,10 +19,14 @@ function App() {
 
         {/* Grouping Protected Routes */}
         <Route element={<ProtectedRoute />}>
-          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/sertifikat" element={<Sertifikat />} />
           <Route path="/pemetaan" element={<Pemetaan />} />
           <Route path="/sertifikat/form" element={<FormSertifikat />} />
+
+          {/* Route Tanah */}
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/tanah/create" element={<CreateTanah />} />
+          <Route path="/tanah/edit/:id" element={<EditTanah />} />
         </Route>
       </Routes>
     </Router>
