@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import axios from "axios";
 import logo from "../assets/logo.png";
 import user from "../assets/profile.png";
 import {
@@ -20,6 +21,40 @@ const DashboardLayout = ({ children }) => {
     { name: "Pemetaan", path: "/pemetaan", icon: <FaMapMarkedAlt /> },
     { name: "Sertifikasi", path: "/sertifikat", icon: <FaCertificate /> },
   ];
+
+  // Fungsi handleLogout
+  const handleLogout = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        console.error("Token tidak ditemukan!");
+        navigate("/login");
+        return;
+      }
+
+      console.log("Token yang dikirim untuk logout:", token);
+
+      await axios.post(
+        "http://127.0.0.1:8000/api/logout",
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        }
+      );
+
+      localStorage.removeItem("token");
+      navigate("/login");
+    } catch (error) {
+      console.error(
+        "Logout failed:",
+        error.response ? error.response.data : error.message
+      );
+    }
+  };
 
   return (
     <div className="flex w-full h-screen bg-gray-100 overflow-hidden">
@@ -85,7 +120,7 @@ const DashboardLayout = ({ children }) => {
         {/* LOGOUT */}
         <div
           className="w-full mx-auto p-3 flex items-center mt-auto cursor-pointer hover:bg-gray-200 rounded-xl"
-          onClick={() => navigate("/login")}
+          onClick={handleLogout}
         >
           <div className="flex items-center space-x-3">
             <FaSignOutAlt className="text-gray-500 text-lg" />
@@ -123,10 +158,7 @@ const DashboardLayout = ({ children }) => {
 
         {/* MAIN CONTENT & FOOTER */}
         <div className="flex-1 bg-white shadow-lg rounded-xl mt-4 p-4 md:p-6 flex flex-col justify-between h-full">
-          {/* Konten Utama */}
           <div className="flex-1 overflow-auto">{children}</div>
-
-          {/* Footer */}
           <footer className="text-center text-xs text-gray-600 mt-6">
             © 2025 PC Persis Banjaran
           </footer>
