@@ -1,22 +1,27 @@
 import React from "react";
 import user from "../assets/profile.png";
+import { FaBell } from "react-icons/fa";
+import message from "../assets/icon.png";
 
 const Layout = ({ children }) => {
   return (
     <div className="flex h-screen">
-      {/* Sider */}
+      {/* Sidebar */}
       <div className="bg-white w-48 border-r"></div>
 
       {/* Main Content */}
       <div className="flex flex-col flex-1">
         {/* Header */}
         <header className="bg-white border-b px-10 py-4 flex justify-between items-center">
-          <h1 className="text-lg font-bold text-gray-700"> </h1>
-          <div className="flex items-center gap-2">
+          <h1 className="text-lg font-bold text-gray-700"></h1>
+          <div className="flex items-center gap-4">
+            {/* Notifikasi */}
+            <img src={message} alt="Message" className="w-full h-full object-cover" />
+
             <span className="text-yellow-500 font-semibold">Hi,</span>
             <span className="text-green-600 font-semibold">User!</span>
-            <div className="w-8 h-8 flex items-center justify-center">
-                <img src={user} alt="Profile" className="w-full h-full object-cover" />
+            <div className="w-8 h-8 overflow-hidden rounded-full">
+              <img src={user} alt="Profile" className="w-full h-full object-cover" />
             </div>
           </div>
         </header>
