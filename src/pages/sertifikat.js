@@ -89,7 +89,7 @@ const Legalitas = () => {
   };
 
   const filteredTanah = tanahList.filter((tanah) =>
-    tanah.NamaTanah.toLowerCase().includes(search.toLowerCase())
+    tanah.NamaPimpinanJamaah.toLowerCase().includes(search.toLowerCase())
   );
 
   const paginatedData = filteredTanah.slice(
@@ -187,20 +187,23 @@ const Legalitas = () => {
                       <th className="px-4 py-2 text-left font-medium">
                         Pimpinan Jamaah
                       </th>
-                      <th className="px-4 py-2 text-left font-medium">
+                      <th className="px-4 py-2 text-center font-medium">
                         Nama Wakif
                       </th>
-                      <th className="px-4 py-2 text-left font-medium">
+                      <th className="px-4 py-2 text-center font-medium">
                         Lokasi
                       </th>
-                      <th className="px-4 py-2 text-left font-medium">
+                      <th className="px-4 py-2 text-center font-medium">
                         Luas Tanah
                       </th>
                       <th className="px-4 py-2 text-center font-medium">
-                        Aksi
+                        Status
                       </th>
-                      <th className="px-4 py-2 text-left font-medium">
+                      <th className="px-4 py-2 text-center font-medium">
                         Legalitas
+                      </th>
+                      <th className="px-4 py-2 text-center font-medium">
+                        Aksi
                       </th>
                     </tr>
                   </thead>
@@ -211,22 +214,54 @@ const Legalitas = () => {
                           key={tanah.id_tanah}
                           className="border-b border-gray-300"
                         >
-                          <td className="text-xs px-4 py-4 whitespace-nowrap">
+                          <td className="text-sm px-4 py-4 whitespace-nowrap font-semibold">
                             {(currentPage - 1) * itemsPerPage + index + 1}
                           </td>
-                          <td className="text-xs px-4 py-4 whitespace-nowrap">
-                            {tanah.NamaTanah}
+                          <td className="text-sm text-center px-4 py-4 whitespace-nowrap font-semibold">
+                            {tanah.NamaPimpinanJamaah}
                           </td>
-                          <td className="text-xs px-4 py-4 whitespace-nowrap">
+                          <td className="text-sm text-center px-4 py-4 whitespace-nowrap font-semibold">
                             {tanah.NamaWakif}
                           </td>
-                          <td className="text-xs px-4 py-4 whitespace-nowrap">
+                          <td className="text-sm text-center px-4 py-4 whitespace-nowrap font-semibold">
                             {tanah.lokasi}
                           </td>
-                          <td className="text-xs px-4 py-4 whitespace-nowrap">
+                          <td className="text-sm text-center px-4 py-4 whitespace-nowrap font-semibold">
                             {tanah.luasTanah}
                           </td>
-                          <td className="text-xs px-4 py-4 flex gap-3 justify-center">
+                          <td className="text-sm text-center px-4 py-2 whitespace-nowrap font-semibold">
+                            <div
+                              className={`inline-block px-4 py-2 rounded-[30px] ${
+                                tanah.status.toLowerCase() === "disetujui"
+                                  ? "bg-[#AFFEB5] text-[#187556]"
+                                  : tanah.status.toLowerCase() === "ditolak"
+                                  ? "bg-[#FEC5D0] text-[#D80027]"
+                                  : tanah.status.toLowerCase() === "ditinjau"
+                                  ? "bg-[#FFEFBA] text-[#FECC23]"
+                                  : ""
+                              }`}
+                            >
+                              {tanah.status}
+                            </div>
+                          </td>
+                          <td className="text-sm text-center px-4 py-2 whitespace-nowrap font-semibold">
+                            <div
+                              className={`inline-block px-4 py-2 rounded-[30px] ${
+                                tanah.legalitas.toLowerCase() === "n/a"
+                                  ? "bg-[#FEC5D0] text-[#D80027]"
+                                  : tanah.legalitas.toLowerCase() === "bastw"
+                                  ? "bg-[#E0E2E5] text-[#667085]"
+                                  : tanah.legalitas.toLowerCase() === "aiw"
+                                  ? "bg-[#FFEFBA] text-[#FECC23]"
+                                  : tanah.legalitas.toLowerCase() === "sertifikat wakaf"
+                                  ? "bg-[#AFFEB5] text-[#187556]"
+                                  : ""
+                              }`}
+                            >
+                              {tanah.legalitas}
+                            </div>
+                          </td>
+                          <td className="text-xs text-center px-4 py-4 flex gap-3 justify-center">
                             <button onClick={() => console.log("Pemetaan clicked")}>
                               <FaMap className="text-gray-400 text-lg" />
                             </button>
@@ -246,7 +281,7 @@ const Legalitas = () => {
                       <tr>
                         <td
                           colSpan="6"
-                          className="text-center py-4 text-gray-500"
+                          className="text-center text-center py-4 text-gray-500"
                         >
                           Data Tidak Tersedia
                         </td>
