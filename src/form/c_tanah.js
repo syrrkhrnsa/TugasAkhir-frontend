@@ -7,6 +7,7 @@ const CreateTanah = () => {
   const [namaTanah, setNamaTanah] = useState("");
   const [namaWakif, setNamaWakif] = useState("");
   const [lokasi, setLokasi] = useState("");
+  const [detailLokasi, setDetailLokasi] = useState(""); // State untuk Detail Lokasi
   const [luasTanah, setLuasTanah] = useState("");
   const navigate = useNavigate();
 
@@ -23,7 +24,7 @@ const CreateTanah = () => {
     try {
       await axios.post(
         "http://127.0.0.1:8000/api/tanah",
-        { NamaTanah: namaTanah, NamaWakif: namaWakif, lokasi, luasTanah },
+        { NamaTanah: namaTanah, NamaWakif: namaWakif, lokasi, detailLokasi, luasTanah }, // Tambahkan detailLokasi
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -65,7 +66,7 @@ const CreateTanah = () => {
                 {/* Kolom kiri */}
                 <div className="flex flex-col items-left">
                   <label className="block text-sm font-medium text-gray-400">
-                    Nama Tanah
+                    Pimpinan Jamaah
                   </label>
                   <input
                     type="text"
@@ -83,6 +84,18 @@ const CreateTanah = () => {
                     className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
                     value={lokasi}
                     onChange={(e) => setLokasi(e.target.value)}
+                    required
+                  />
+
+                  {/* Field Detail Lokasi */}
+                  <label className="block text-sm font-medium text-gray-400 mt-6">
+                    Detail Lokasi
+                  </label>
+                  <input
+                    type="text"
+                    className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
+                    value={detailLokasi}
+                    onChange={(e) => setDetailLokasi(e.target.value)}
                     required
                   />
                 </div>
@@ -112,7 +125,47 @@ const CreateTanah = () => {
                   />
                 </div>
               </div>
-
+            {/* Tabel */}
+            <div className="mt-10">
+              <table className="min-w-full border-collapse border border-gray-300">
+                <thead className="bg-gray-200">
+                  <tr>
+                    <th className="border border-gray-300 p-2">No.</th>
+                    <th className="border border-gray-300 p-2">No Dokumen</th>
+                    <th className="border border-gray-300 p-2">Status</th>
+                    <th className="border border-gray-300 p-2">Tanggal</th>
+                    <th className="border border-gray-300 p-2">Dokumen</th>
+                    <th className="border border-gray-300 p-2">Keterangan</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="bg-white hover:bg-gray-100">
+                    <td className="border border-gray-300 p-2">1</td>
+                    <td className="border border-gray-300 p-2">001</td>
+                    <td className="border border-gray-300 p-2">Aktif</td>
+                    <td className="border border-gray-300 p-2">2023-10-01</td>
+                    <td className="border border-gray-300 p-2">BASTW</td>
+                    <td className="border border-gray-300 p-2">Keterangan 1</td>
+                  </tr>
+                  <tr className="bg-gray-50 hover:bg-gray-100">
+                    <td className="border border-gray-300 p-2">2</td>
+                    <td className="border border-gray-300 p-2">002</td>
+                    <td className="border border-gray-300 p-2">Aktif</td>
+                    <td className="border border-gray-300 p-2">2023-10-02</td>
+                    <td className="border border-gray-300 p-2">AIW</td>
+                    <td className="border border-gray-300 p-2">Keterangan 2</td>
+                  </tr>
+                  <tr className="bg-white hover:bg-gray-100">
+                    <td className="border border-gray-300 p-2">3</td>
+                    <td className="border border-gray-300 p-2">003</td>
+                    <td className="border border-gray-300 p-2">Aktif</td>
+                    <td className="border border-gray-300 p-2">2023-10-03</td>
+                    <td className="border border-gray-300 p-2">SW</td>
+                    <td className="border border-gray-300 p-2">Keterangan 3</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
               {/* Tombol Simpan */}
               <div className="flex justify-center mt-8">
                 <button

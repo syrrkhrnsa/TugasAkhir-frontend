@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import logo from "../assets/logo.png";
 import user from "../assets/profile.png";
+import message from "../assets/icon.png";
 import {
   FaTh,
   FaMapMarkedAlt,
@@ -19,7 +20,7 @@ const DashboardLayout = ({ children }) => {
   const menuItems = [
     { name: "Dashboard", path: "/dashboard", icon: <FaTh /> },
     { name: "Pemetaan", path: "/pemetaan", icon: <FaMapMarkedAlt /> },
-    { name: "Sertifikasi", path: "/sertifikat", icon: <FaCertificate /> },
+    { name: "Legalitas", path: "/sertifikat", icon: <FaCertificate /> },
   ];
 
   // Fungsi handleLogout
@@ -79,7 +80,7 @@ const DashboardLayout = ({ children }) => {
           <img src={logo} alt="Logo" className="w-8 h-10" />
           <div className="ml-3">
             <h1 className="text-sm font-bold">
-              <span className="text-hijau">Waqaf</span>{" "}
+              <span className="text-hijau">Waqf</span>{" "}
               <span className="text-kuning">Management</span>
             </h1>
             <p className="text-xs font-bold text-hijau">PC Persis Banjaran</p>
@@ -144,6 +145,10 @@ const DashboardLayout = ({ children }) => {
         <header className="bg-white rounded-xl shadow-md px-6 py-3 md:px-10 md:py-4 flex justify-between items-center">
           <h1 className="text-lg font-bold text-gray-700"></h1>
           <div className="flex items-center gap-2">
+            {/* Tambahkan event onClick pada gambar message */}
+            <button onClick={() => navigate("/notifikasi")} className="focus:outline-none">
+              <img src={message} alt="Message" className="w-6 h-6 object-cover cursor-pointer" />
+            </button>
             <span className="text-yellow-500 font-semibold">Hi,</span>
             <span className="text-green-600 font-semibold">User!</span>
             <div className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center bg-gray-200 rounded-full">
