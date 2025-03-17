@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import logo from "../assets/logo.png";
 import Navbar from "../components/Navbar";
+import { setAuthData } from "../utils/Auth";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -17,17 +18,47 @@ const Login = () => {
         email,
         password,
       });
-
+  
       console.log("Token dari server:", response.data.token);
-
+  
+      // Simpan token ke localStorage
       localStorage.setItem("token", response.data.token);
-
+  
+      // Panggil fungsi untuk menyimpan user_id dan role_id
+      storeUserData(response.data);
+  
+      // Cek di console log
+      console.log("Data lengkap dari server:", response.data);
+  
       navigate("/dashboard");
     } catch (err) {
       setError("Login failed. Please check your credentials.");
     }
   };
-
+  
+  // Fungsi untuk mengambil user_id dan role_id dari response dan menyimpannya ke localStorage
+  const storeUserData = (data) => {
+    if (data.user) {
+      const userId = data.user.id;
+      const roleId = data.user.role?.id;
+  
+      if (userId) {
+        localStorage.setItem("user_id", userId);
+        console.log("User ID:", userId);
+      }
+  
+      if (roleId) {
+        localStorage.setItem("role_id", roleId);
+        console.log("Role ID:", roleId);
+      }
+  
+      // Simpan di variabel statis
+      setAuthData(userId, roleId);
+    } else {
+      console.warn("User ID atau Role ID tidak ditemukan dalam response");
+    }
+  };
+  
   return (
     <>
       {/* Panggil Navbar */}
