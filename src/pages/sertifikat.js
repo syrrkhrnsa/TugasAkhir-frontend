@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import { FaPlus, FaMap, FaEdit, FaTrash, FaHistory } from "react-icons/fa"; // Importing icons
+import { getUserId, getRoleId } from "../utils/Auth";
 
 const Legalitas = () => {
   const [tanahList, setTanahList] = useState([]);
@@ -13,6 +14,9 @@ const Legalitas = () => {
   const totalPages = 10;
   const navigate = useNavigate();
   const itemsPerPage = 5;
+
+  const roleId = getRoleId();
+  const isPimpinanJamaah = roleId === "326f0dde-2851-4e47-ac5a-de6923447317";
 
   useEffect(() => {
     fetchData();
@@ -196,9 +200,11 @@ const Legalitas = () => {
                       <th className="px-4 py-2 text-center font-medium">
                         Luas Tanah
                       </th>
-                      <th className="px-4 py-2 text-center font-medium">
-                        Status
-                      </th>
+                      {isPimpinanJamaah && (
+                        <th className="px-4 py-2 text-center font-medium">
+                          Status
+                        </th>
+                      )}
                       <th className="px-4 py-2 text-center font-medium">
                         Legalitas
                       </th>
@@ -244,23 +250,23 @@ const Legalitas = () => {
                               {tanah.status}
                             </div>
                           </td>
-                          <td className="text-sm text-center px-4 py-2 whitespace-nowrap font-semibold">
-                            <div
-                              className={`inline-block px-4 py-2 rounded-[30px] ${
-                                tanah.legalitas.toLowerCase() === "n/a"
-                                  ? "bg-[#FEC5D0] text-[#D80027]"
-                                  : tanah.legalitas.toLowerCase() === "bastw"
-                                  ? "bg-[#E0E2E5] text-[#667085]"
-                                  : tanah.legalitas.toLowerCase() === "aiw"
-                                  ? "bg-[#FFEFBA] text-[#FECC23]"
-                                  : tanah.legalitas.toLowerCase() === "sertifikat wakaf"
-                                  ? "bg-[#AFFEB5] text-[#187556]"
-                                  : ""
-                              }`}
-                            >
-                              {tanah.legalitas}
-                            </div>
-                          </td>
+                          {isPimpinanJamaah && (
+                            <td className="text-sm text-center px-4 py-2 whitespace-nowrap font-semibold">
+                              <div
+                                className={`inline-block px-4 py-2 rounded-[30px] ${
+                                  tanah.status.toLowerCase() === "disetujui"
+                                    ? "bg-[#AFFEB5] text-[#187556]"
+                                    : tanah.status.toLowerCase() === "ditolak"
+                                    ? "bg-[#FEC5D0] text-[#D80027]"
+                                    : tanah.status.toLowerCase() === "ditinjau"
+                                    ? "bg-[#FFEFBA] text-[#FECC23]"
+                                    : ""
+                                }`}
+                              >
+                                {tanah.status}
+                              </div>
+                            </td>
+                          )}
                           <td className="text-xs text-center px-4 py-4 flex gap-3 justify-center">
                             <button onClick={() => console.log("Pemetaan clicked")}>
                               <FaMap className="text-gray-400 text-lg" />
