@@ -7,8 +7,8 @@ const EditTanah = () => {
   const { id } = useParams(); // Ambil ID dari URL
   const navigate = useNavigate();
 
-  const [namaTanah, setNamaTanah] = useState("");
-  const [namaWakif, setNamaWakif] = useState("");
+  const [NamaPimpinanJamaah, setNamaPimpinanJamaah] = useState("");
+  const [NamaWakif, setNamaWakif] = useState("");
   const [lokasi, setLokasi] = useState("");
   const [luasTanah, setLuasTanah] = useState("");
   const [loading, setLoading] = useState(true);
@@ -43,7 +43,7 @@ const EditTanah = () => {
       const tanah = response.data.data || response.data;
 
       if (tanah) {
-        setNamaTanah(tanah.NamaTanah || "");
+        setNamaPimpinanJamaah(tanah.NamaPimpinanJamaah || "");
         setNamaWakif(tanah.NamaWakif || "");
         setLokasi(tanah.lokasi || "");
         setLuasTanah(tanah.luasTanah || "");
@@ -68,7 +68,7 @@ const EditTanah = () => {
     try {
       await axios.put(
         `http://127.0.0.1:8000/api/tanah/${id}`,
-        { NamaTanah: namaTanah, NamaWakif: namaWakif, lokasi, luasTanah },
+        { NamaPimpinanJamaah, NamaWakif, lokasi, luasTanah },
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -84,8 +84,8 @@ const EditTanah = () => {
         tanah.id_tanah === id
           ? {
               ...tanah,
-              NamaTanah: namaTanah,
-              NamaWakif: namaWakif,
+              NamaPimpinanJamaah,
+              NamaWakif,
               lokasi,
               luasTanah,
             }
@@ -128,13 +128,13 @@ const EditTanah = () => {
                   {/* Kolom kiri */}
                   <div className="flex flex-col items-left">
                     <label className="block text-sm font-medium text-gray-400">
-                      Nama Tanah
+                      Pimpinan Jamaah
                     </label>
                     <input
                       type="text"
                       className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                      value={namaTanah}
-                      onChange={(e) => setNamaTanah(e.target.value)}
+                      value={NamaPimpinanJamaah}
+                      onChange={(e) => setNamaPimpinanJamaah(e.target.value)}
                       required
                     />
 
@@ -158,7 +158,7 @@ const EditTanah = () => {
                     <input
                       type="text"
                       className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                      value={namaWakif}
+                      value={NamaWakif}
                       onChange={(e) => setNamaWakif(e.target.value)}
                       required
                     />
