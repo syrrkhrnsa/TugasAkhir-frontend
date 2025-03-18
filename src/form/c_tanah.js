@@ -11,7 +11,7 @@ const CreateTanah = () => {
   const [kecamatan, setKecamatan] = useState("");
   const [kelurahan, setKelurahan] = useState("");
   const [lokasi, setLokasi] = useState("");
-  const [detailLokasi, setDetailLokasi] = useState("");
+  const [detailLokasi, setDetailLokasi] = useState(""); // State untuk Detail Lokasi
   const [luasTanah, setLuasTanah] = useState("");
   const [users, setUsers] = useState([]);
   const [provinsiList, setProvinsiList] = useState([]);
@@ -50,8 +50,13 @@ const CreateTanah = () => {
     try {
       await axios.post(
         "http://127.0.0.1:8000/api/tanah",
-        { NamaPimpinanJamaah: pimpinanJamaah, NamaWakif: namaWakif, lokasi, detailLokasi, luasTanah },
-        { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" } }
+        { NamaTanah: namaTanah, NamaWakif: namaWakif, lokasi, detailLokasi, luasTanah }, // Tambahkan detailLokasi
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        }
       );
       alert("Data berhasil ditambahkan!");
       navigate("/dashboard");
@@ -109,6 +114,7 @@ const CreateTanah = () => {
                     onChange={(e) => setLokasi(e.target.value)}
                     required
                   />
+
                   {/* Field Detail Lokasi */}
                   <label className="block text-sm font-medium text-gray-400 mt-6">
                     Detail Lokasi
@@ -130,7 +136,7 @@ const CreateTanah = () => {
                   <input
                     type="text"
                     className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                    value={namaWakif}
+                    value={NamaWakif}
                     onChange={(e) => setNamaWakif(e.target.value)}
                     required
                   />
