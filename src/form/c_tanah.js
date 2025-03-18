@@ -4,10 +4,9 @@ import Sidebar from "../components/Sidebar";
 import axios from "axios";
 
 const CreateTanah = () => {
-  const [namaTanah, setNamaTanah] = useState("");
-  const [namaWakif, setNamaWakif] = useState("");
+  const [NamaPimpinanJamaah, setNamaPimpinanJamaah] = useState("");
+  const [NamaWakif, setNamaWakif] = useState("");
   const [lokasi, setLokasi] = useState("");
-  const [detailLokasi, setDetailLokasi] = useState(""); // State untuk Detail Lokasi
   const [luasTanah, setLuasTanah] = useState("");
   const navigate = useNavigate();
 
@@ -24,7 +23,7 @@ const CreateTanah = () => {
     try {
       await axios.post(
         "http://127.0.0.1:8000/api/tanah",
-        { NamaTanah: namaTanah, NamaWakif: namaWakif, lokasi, detailLokasi, luasTanah }, // Tambahkan detailLokasi
+        { NamaPimpinanJamaah, NamaWakif, lokasi, luasTanah },
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -71,8 +70,8 @@ const CreateTanah = () => {
                   <input
                     type="text"
                     className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                    value={namaTanah}
-                    onChange={(e) => setNamaTanah(e.target.value)}
+                    value={NamaPimpinanJamaah}
+                    onChange={(e) => setNamaPimpinanJamaah(e.target.value)}
                     required
                   />
 
@@ -86,18 +85,6 @@ const CreateTanah = () => {
                     onChange={(e) => setLokasi(e.target.value)}
                     required
                   />
-
-                  {/* Field Detail Lokasi */}
-                  <label className="block text-sm font-medium text-gray-400 mt-6">
-                    Detail Lokasi
-                  </label>
-                  <input
-                    type="text"
-                    className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                    value={detailLokasi}
-                    onChange={(e) => setDetailLokasi(e.target.value)}
-                    required
-                  />
                 </div>
 
                 {/* Kolom kanan */}
@@ -108,7 +95,7 @@ const CreateTanah = () => {
                   <input
                     type="text"
                     className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                    value={namaWakif}
+                    value={NamaWakif}
                     onChange={(e) => setNamaWakif(e.target.value)}
                     required
                   />

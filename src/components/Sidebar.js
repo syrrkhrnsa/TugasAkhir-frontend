@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import logo from "../assets/logo.png";
@@ -16,6 +16,7 @@ const DashboardLayout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(true); // Toggle sidebar
+  const [unreadCount, setUnreadCount] = useState(0); // State for unread notifications
 
   const menuItems = [
     { name: "Dashboard", path: "/dashboard", icon: <FaTh /> },
@@ -23,7 +24,45 @@ const DashboardLayout = ({ children }) => {
     { name: "Legalitas", path: "/sertifikat", icon: <FaCertificate /> },
   ];
 
-  // Fungsi handleLogout
+  // Fetch unread notifications count
+  const fetchUnreadNotificationsCount = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get("http://127.0.0.1:8000/api/notifications", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      });
+      setUnreadCount(response.data.data.length); // Set unread notifications count
+    } catch (error) {
+      console.error("Failed to fetch notifications:", error);
+    }
+  };
+
+  // Mark all notifications as read
+  const markAllAsRead = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.post("http://127.0.0.1:8000/api/notifications/mark-all-as-read", {}, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      });
+      if (response.status === 200) {
+        setUnreadCount(0); // Reset unread count
+      }
+    } catch (error) {
+      console.error("Failed to mark notifications as read:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchUnreadNotificationsCount(); // Fetch notifications on mount
+  }, []);
+
+  // Handle logout
   const handleLogout = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -33,8 +72,6 @@ const DashboardLayout = ({ children }) => {
         navigate("/login");
         return;
       }
-
-      console.log("Token yang dikirim untuk logout:", token);
 
       await axios.post(
         "http://127.0.0.1:8000/api/logout",
@@ -50,10 +87,7 @@ const DashboardLayout = ({ children }) => {
       localStorage.removeItem("token");
       navigate("/login");
     } catch (error) {
-      console.error(
-        "Logout failed:",
-        error.response ? error.response.data : error.message
-      );
+      console.error("Logout failed:", error.response ? error.response.data : error.message);
     }
   };
 
@@ -125,11 +159,7 @@ const DashboardLayout = ({ children }) => {
         >
           <div className="flex items-center space-x-3">
             <FaSignOutAlt className="text-gray-500 text-lg" />
-            <span
-              className={`text-gray-500 text-sm font-medium transition-all ${
-                isOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden"
-              }`}
-            >
+            <span className={`text-gray-500 text-sm font-medium transition-all ${isOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden"}`}>
               Keluar
             </span>
           </div>
@@ -145,12 +175,22 @@ const DashboardLayout = ({ children }) => {
         <header className="bg-white rounded-xl shadow-md px-6 py-3 md:px-10 md:py-4 flex justify-between items-center">
           <h1 className="text-lg font-bold text-gray-700"></h1>
           <div className="flex items-center gap-2">
-            {/* Tambahkan event onClick pada gambar message */}
-            <button onClick={() => navigate("/notifikasi")} className="focus:outline-none">
-              <img src={message} alt="Message" className="w-6 h-6 object-cover cursor-pointer" />
-            </button>
+            <div 
+              className="relative cursor-pointer" 
+              onClick={() => {
+                markAllAsRead(); // Mark notifications as read on click
+                navigate("/notifikasi"); // Navigate to notifications page
+              }}
+            >
+              <img src={message} alt="Message" className="w-6 h-6 object-cover" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-1">
+                  {unreadCount}
+                </span>
+              )}
+            </div>
             <span className="text-yellow-500 font-semibold">Hi,</span>
-            <span className="text-green-600 font-semibold">User!</span>
+            <span className="text-green-600 font-semibold">User   !</span>
             <div className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center bg-gray-200 rounded-full">
               <img
                 src={user}
