@@ -18,47 +18,55 @@ const Login = () => {
         email,
         password,
       });
-  
+
       console.log("Token dari server:", response.data.token);
-  
+
       // Simpan token ke localStorage
       localStorage.setItem("token", response.data.token);
-  
+
       // Panggil fungsi untuk menyimpan user_id dan role_id
       storeUserData(response.data);
-  
+
       // Cek di console log
       console.log("Data lengkap dari server:", response.data);
-  
+
       navigate("/dashboard");
     } catch (err) {
       setError("Login failed. Please check your credentials.");
     }
   };
-  
+
   // Fungsi untuk mengambil user_id dan role_id dari response dan menyimpannya ke localStorage
   const storeUserData = (data) => {
     if (data.user) {
       const userId = data.user.id;
       const roleId = data.user.role?.id;
-  
+      const userName = data.user.name;
+
       if (userId) {
         localStorage.setItem("user_id", userId);
         console.log("User ID:", userId);
       }
-  
+
       if (roleId) {
         localStorage.setItem("role_id", roleId);
         console.log("Role ID:", roleId);
       }
-  
+
+      if (userName) {
+        localStorage.setItem("user_name", userName); // Simpan nama pengguna
+        console.log("User Name:", userName);
+      }
+
       // Simpan di variabel statis
       setAuthData(userId, roleId);
     } else {
-      console.warn("User ID atau Role ID tidak ditemukan dalam response");
+      console.warn(
+        "User ID, Role ID, atau User Name tidak ditemukan dalam response"
+      );
     }
   };
-  
+
   return (
     <>
       {/* Panggil Navbar */}
