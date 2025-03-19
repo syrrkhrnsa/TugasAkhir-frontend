@@ -1,4 +1,4 @@
-import React, { useState,  useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import axios from "axios";
@@ -11,7 +11,7 @@ const CreateTanah = () => {
   const [kecamatan, setKecamatan] = useState("");
   const [kelurahan, setKelurahan] = useState("");
   const [lokasi, setLokasi] = useState("");
-  const [detailLokasi, setDetailLokasi] = useState(""); // State untuk Detail Lokasi
+  const [detailLokasi, setDetailLokasi] = useState("");
   const [luasTanah, setLuasTanah] = useState("");
   const [users, setUsers] = useState([]);
   const [provinsiList, setProvinsiList] = useState([]);
@@ -20,6 +20,7 @@ const CreateTanah = () => {
   const [kelurahanList, setKelurahanList] = useState([]);
   const navigate = useNavigate();
 
+  // Ambil data pengguna
   useEffect(() => {
     const fetchUsers = async () => {
       const token = localStorage.getItem("token");
@@ -40,6 +41,7 @@ const CreateTanah = () => {
     fetchUsers();
   }, []);
 
+  // Handle submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem("token");
@@ -50,13 +52,18 @@ const CreateTanah = () => {
     try {
       await axios.post(
         "http://127.0.0.1:8000/api/tanah",
-        { NamaTanah: namaTanah, NamaWakif: namaWakif, lokasi, detailLokasi, luasTanah }, // Tambahkan detailLokasi
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-          },
-        }
+          "NamaPimpinanJamaah": pimpinanJamaah,
+          "NamaWakif": namaWakif,
+          // provinsi,
+          // kota,
+          // kecamatan,
+          // kelurahan,
+          "lokasi": detailLokasi,
+          // "detailLokasi": "",
+          "luasTanah": luasTanah,
+        },
+        { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" } }
       );
       alert("Data berhasil ditambahkan!");
       navigate("/dashboard");
@@ -90,32 +97,24 @@ const CreateTanah = () => {
               <div className="grid grid-cols-2 gap-8 justify-center">
                 {/* Kolom kiri */}
                 <div className="flex flex-col items-left">
-                <label className="block text-sm font-medium text-gray-400">
-                  Pimpinan Jamaah
-                </label>
-                <select
-                  className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                  value={pimpinanJamaah}
-                  onChange={(e) => setPimpinanJamaah(e.target.value)}
-                  required
-                >
-                  <option value="" disabled>Pilih Pimpinan Jamaah</option>
-                  {users.map((user) => (
-                    <option key={user.id} value={user.name}>
-                      {user.name}
-                    </option>
-                  ))}
-                </select>
-                <label>Lokasi</label>
-                  <input
-                    type="text"
+                  <label className="block text-sm font-medium text-gray-400">
+                    Pimpinan Jamaah
+                  </label>
+                  <select
                     className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                    value={lokasi}
-                    onChange={(e) => setLokasi(e.target.value)}
+                    value={pimpinanJamaah}
+                    onChange={(e) => setPimpinanJamaah(e.target.value)}
                     required
-                  />
-
-                  {/* Field Detail Lokasi */}
+                  >
+                    <option value="" disabled>
+                      Pilih Pimpinan Jamaah
+                    </option>
+                    {users.map((user) => (
+                      <option key={user.id} value={user.name}>
+                        {user.name}
+                      </option>
+                    ))}
+                  </select>
                   <label className="block text-sm font-medium text-gray-400 mt-6">
                     Detail Lokasi
                   </label>
@@ -126,9 +125,7 @@ const CreateTanah = () => {
                     onChange={(e) => setDetailLokasi(e.target.value)}
                     required
                   />
-                </div>
-
-                {/* Kolom kanan */}
+                   </div>
                 <div className="flex flex-col items-left">
                   <label className="block text-sm font-medium text-gray-400">
                     Nama Wakif
@@ -136,7 +133,7 @@ const CreateTanah = () => {
                   <input
                     type="text"
                     className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                    value={NamaWakif}
+                    value={namaWakif}
                     onChange={(e) => setNamaWakif(e.target.value)}
                     required
                   />
@@ -153,47 +150,7 @@ const CreateTanah = () => {
                   />
                 </div>
               </div>
-            {/* Tabel */}
-            <div className="mt-10">
-              <table className="min-w-full border-collapse border border-gray-300">
-                <thead className="bg-gray-200">
-                  <tr>
-                    <th className="border border-gray-300 p-2">No.</th>
-                    <th className="border border-gray-300 p-2">No Dokumen</th>
-                    <th className="border border-gray-300 p-2">Status</th>
-                    <th className="border border-gray-300 p-2">Tanggal</th>
-                    <th className="border border-gray-300 p-2">Dokumen</th>
-                    <th className="border border-gray-300 p-2">Keterangan</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="bg-white hover:bg-gray-100">
-                    <td className="border border-gray-300 p-2">1</td>
-                    <td className="border border-gray-300 p-2">001</td>
-                    <td className="border border-gray-300 p-2">Aktif</td>
-                    <td className="border border-gray-300 p-2">2023-10-01</td>
-                    <td className="border border-gray-300 p-2">BASTW</td>
-                    <td className="border border-gray-300 p-2">Keterangan 1</td>
-                  </tr>
-                  <tr className="bg-gray-50 hover:bg-gray-100">
-                    <td className="border border-gray-300 p-2">2</td>
-                    <td className="border border-gray-300 p-2">002</td>
-                    <td className="border border-gray-300 p-2">Aktif</td>
-                    <td className="border border-gray-300 p-2">2023-10-02</td>
-                    <td className="border border-gray-300 p-2">AIW</td>
-                    <td className="border border-gray-300 p-2">Keterangan 2</td>
-                  </tr>
-                  <tr className="bg-white hover:bg-gray-100">
-                    <td className="border border-gray-300 p-2">3</td>
-                    <td className="border border-gray-300 p-2">003</td>
-                    <td className="border border-gray-300 p-2">Aktif</td>
-                    <td className="border border-gray-300 p-2">2023-10-03</td>
-                    <td className="border border-gray-300 p-2">SW</td>
-                    <td className="border border-gray-300 p-2">Keterangan 3</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+
               {/* Tombol Simpan */}
               <div className="flex justify-center mt-8">
                 <button
