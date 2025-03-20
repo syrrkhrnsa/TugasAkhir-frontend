@@ -10,7 +10,6 @@ const CreateTanah = () => {
   const [kota, setKota] = useState("");
   const [kecamatan, setKecamatan] = useState("");
   const [kelurahan, setKelurahan] = useState("");
-  const [lokasi, setLokasi] = useState("");
   const [detailLokasi, setDetailLokasi] = useState("");
   const [luasTanah, setLuasTanah] = useState("");
   const [users, setUsers] = useState([]);
@@ -19,6 +18,8 @@ const CreateTanah = () => {
   const [kecamatanList, setKecamatanList] = useState([]);
   const [kelurahanList, setKelurahanList] = useState([]);
   const navigate = useNavigate();
+  const lokasiLengkap = `${provinsiList.find((p) => p.id === provinsi)?.name}, ${kotaList.find((k) => k.id === kota)?.name}, ${kecamatanList.find((k) => k.id === kecamatan)?.name}, ${kelurahanList.find((k) => k.id === kelurahan)?.name}, ${detailLokasi}`;
+
 
   // Ambil data pengguna
   useEffect(() => {
@@ -39,7 +40,69 @@ const CreateTanah = () => {
     };
 
     fetchUsers();
-  }, []);
+  }, 
+  []);
+
+  // Ambil data provinsi saat komponen dimuat
+    useEffect(() => {
+      const fetchProvinsi = async () => {
+        try {
+          const response = await axios.get("https://api.binderbyte.com/wilayah/provinsi?api_key=231b062a5d2c75a9f68a41107079fb6bba17c1251089b912ad92d9f572dd974d");
+          setProvinsiList(response.data.value);
+        } catch (error) {
+          console.error("Error fetching provinsi:", error);
+        }
+      };
+
+      fetchProvinsi();
+    }, []);
+
+    // Ambil data kabupaten saat provinsi dipilih
+    useEffect(() => {
+      if (provinsi) {
+        const fetchKota = async () => {
+          try {
+            const response = await axios.get(`https://api.binderbyte.com/wilayah/kabupaten?api_key=231b062a5d2c75a9f68a41107079fb6bba17c1251089b912ad92d9f572dd974d&id_provinsi=${provinsi}`);
+            setKotaList(response.data.value);
+          } catch (error) {
+            console.error("Error fetching kota:", error);
+          }
+        };
+
+        fetchKota();
+      }
+    }, [provinsi]);
+
+    // Fetch Kecamatan
+    useEffect(() => {
+      if (kota) {
+        const fetchKecamatan = async () => {
+          try {
+            const response = await axios.get(`https://api.binderbyte.com/wilayah/kecamatan?api_key=231b062a5d2c75a9f68a41107079fb6bba17c1251089b912ad92d9f572dd974d&id_kabupaten=${kota}`);
+            setKecamatanList(response.data.value || []);
+          } catch (error) {
+            console.error("Error fetching kecamatan:", error);
+          }
+        };
+        fetchKecamatan();
+      }
+    }, [kota]);
+
+    // Fetch Kelurahan
+    useEffect(() => {
+      if (kecamatan) {
+        const fetchKelurahan = async () => {
+          try {
+            const response = await axios.get(`https://api.binderbyte.com/wilayah/kelurahan?api_key=231b062a5d2c75a9f68a41107079fb6bba17c1251089b912ad92d9f572dd974d&id_kecamatan=${kecamatan}`);
+            setKelurahanList(response.data.value || []);
+          } catch (error) {
+            console.error("Error fetching kelurahan:", error);
+          }
+        };
+        fetchKelurahan();
+      }
+    }, [kecamatan]);
+
 
   // Handle submit form
   const handleSubmit = async (e) => {
@@ -55,12 +118,7 @@ const CreateTanah = () => {
         {
           "NamaPimpinanJamaah": pimpinanJamaah,
           "NamaWakif": namaWakif,
-          // provinsi,
-          // kota,
-          // kecamatan,
-          // kelurahan,
-          "lokasi": detailLokasi,
-          // "detailLokasi": "",
+          "lokasi": lokasiLengkap,
           "luasTanah": luasTanah,
         },
         { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" } }
@@ -115,16 +173,81 @@ const CreateTanah = () => {
                       </option>
                     ))}
                   </select>
-                  <label className="block text-sm font-medium text-gray-400 mt-6">
-                    Detail Lokasi
-                  </label>
-                  <input
-                    type="text"
-                    className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                    value={detailLokasi}
-                    onChange={(e) => setDetailLokasi(e.target.value)}
-                    required
-                  />
+                 {/* Dropdown Provinsi */}
+                    <label className="block text-sm font-medium text-gray-400 mt-6">
+                      Provinsi
+                    </label>
+                    <select
+                      className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
+                      value={provinsi}
+                      onChange={(e) => setProvinsi(e.target.value)}
+                      required
+                    >
+                      <option value="" disabled>Pilih Provinsi</option>
+                      {provinsiList.map((prov) => (
+                        <option key={prov.id} value={prov.id}>{prov.name}</option>
+                      ))}
+                    </select>
+
+                    {/* Dropdown Kabupaten (Muncul setelah provinsi dipilih) */}
+                    {provinsi && (
+                      <>
+                        <label className="block text-sm font-medium text-gray-400 mt-6">
+                          Kabupaten/Kota
+                        </label>
+                        <select
+                          className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
+                          value={kota}
+                          onChange={(e) => setKota(e.target.value)}
+                          required
+                        >
+                          <option value="" disabled>Pilih Kabupaten/Kota</option>
+                          {kotaList.map((kab) => (
+                            <option key={kab.id} value={kab.id}>{kab.name}</option>
+                          ))}
+                        </select>
+                      </>
+                    )}
+
+                    {/* Dropdown Kecamatan (Muncul setelah kabupaten dipilih) */}
+                    {kota && (
+                      <>
+                        <label className="block text-sm font-medium text-gray-400 mt-6">
+                          Kecamatan
+                        </label>
+                        <select
+                          className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
+                          value={kecamatan}
+                          onChange={(e) => setKecamatan(e.target.value)}
+                          required
+                        >
+                          <option value="" disabled>Pilih Kecamatan</option>
+                          {kecamatanList.map((kec) => (
+                            <option key={kec.id} value={kec.id}>{kec.name}</option>
+                          ))}
+                        </select>
+                      </>
+                    )}
+
+                    {/* Dropdown Kelurahan (Muncul setelah kecamatan dipilih) */}
+                    {kecamatan && (
+                      <>
+                        <label className="block text-sm font-medium text-gray-400 mt-6">
+                          Kelurahan/Desa
+                        </label>
+                        <select
+                          className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
+                          value={kelurahan}
+                          onChange={(e) => setKelurahan(e.target.value)}
+                          required
+                        >
+                          <option value="" disabled>Pilih Kelurahan/Desa</option>
+                          {kelurahanList.map((kel) => (
+                            <option key={kel.id} value={kel.id}>{kel.name}</option>
+                          ))}
+                        </select>
+                      </>
+                    )}
                    </div>
                 <div className="flex flex-col items-left">
                   <label className="block text-sm font-medium text-gray-400">
@@ -150,7 +273,26 @@ const CreateTanah = () => {
                   />
                 </div>
               </div>
-
+              {/* Input Detail Lokasi */}
+              <label className="block text-sm font-medium text-gray-400 mt-6">
+                      Detail Lokasi
+                    </label>
+                    <input
+                      type="text"
+                      className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
+                      value={detailLokasi}
+                      onChange={(e) => setDetailLokasi(e.target.value)}
+                      required
+                    />
+              {/* Preview Lokasi */}
+             
+                <div className="bg-gray-100 p-4 rounded-md mt-8 shadow-md">
+                  <h3 className="text-lg font-semibold text-gray-700">Preview Lokasi:</h3>
+                  <p className="text-gray-600 mt-2">
+                    {`${provinsiList.find((p) => p.id === provinsi)?.name}, ${kotaList.find((k) => k.id === kota)?.name}, ${kecamatanList.find((k) => k.id === kecamatan)?.name}, ${kelurahanList.find((k) => k.id === kelurahan)?.name}, ${detailLokasi}`}
+                  </p>
+                </div>
+              
               {/* Tombol Simpan */}
               <div className="flex justify-center mt-8">
                 <button
