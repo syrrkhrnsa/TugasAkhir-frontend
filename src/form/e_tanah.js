@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import axios from "axios";
 import { FaEye, FaPlus, FaEdit } from "react-icons/fa";
+import { getUserId, getRoleId } from "../utils/Auth";
 
 const EditTanah = () => {
   const { id } = useParams(); // Ambil ID dari URL
@@ -15,6 +16,10 @@ const EditTanah = () => {
   const [loading, setLoading] = useState(true);
   const [sertifikatList, setSertifikatList] = useState([]);
   const [roleUser, setRoleUser] = useState("");
+  const sertifikatId = sertifikatList[0]?.id_sertifikat;
+
+  const roleId = getRoleId();
+  const isPimpinanJamaah = roleId === "326f0dde-2851-4e47-ac5a-de6923447317";
 
   useEffect(() => {
     fetchTanah();
@@ -157,9 +162,12 @@ const EditTanah = () => {
     // Implementasi logika untuk membuat legalitas baru
   };
 
-  const handleUpdateLegalitas = () => {
-    console.log("Tombol update diklik");
-    // Implementasi logika untuk membuat legalitas baru
+  const handleUpdateLegalitas = (sertifikatId) => {
+    if (sertifikatId) {
+      navigate(`/sertifikat/edit/${sertifikatId}`);
+    } else {
+      alert("Tidak ada sertifikat yang dapat diupdate.");
+    }
   };
 
   return (
@@ -237,7 +245,17 @@ const EditTanah = () => {
                       />
                     </div>
                   </div>
+                  {/* Tombol Simpan */}
+                  <div className="flex justify-center mt-8">
+                    <button
+                      type="submit"
+                      className="bg-[#3B82F6] text-white px-6 py-2 rounded-md hover:bg-[#2563EB]"
+                    >
+                      Simpan
+                    </button>
+                  </div>
                 </form>
+
                 {/* Tabel Sertifikat */}
                 <div className="mt-10">
                   <div className="flex justify-between items-center mb-4">
@@ -251,8 +269,13 @@ const EditTanah = () => {
                         Create
                       </button>
                       <button
-                        onClick={handleUpdateLegalitas}
+                        onClick={() =>
+                          handleUpdateLegalitas(
+                            sertifikatList[0]?.id_sertifikat
+                          )
+                        } // Gunakan ID sertifikat yang sudah ada
                         className="bg-[#F59E0B] text-white text-xs px-2 py-2 rounded-md hover:bg-[#D97706] flex items-center"
+                        disabled={!sertifikatList.length} // Nonaktifkan tombol jika tidak ada sertifikat
                       >
                         <FaEdit className="mr-2 text-xs" />
                         Update
@@ -275,9 +298,8 @@ const EditTanah = () => {
                         <th className="py-2 px-4 font-medium border-b-2">
                           Dokumen Legalitas
                         </th>
-                        {roleUser ===
-                          "326f0dde-2851-4e47-ac5a-de6923447317" && (
-                          <th className="py-2 px-4 font-medium border-b-2">
+                        {isPimpinanJamaah && (
+                          <th className="px-4 py-2 text-center font-medium">
                             Status
                           </th>
                         )}
@@ -287,61 +309,99 @@ const EditTanah = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {sertifikatList.map((sertifikat, index) => {
-                        const keterangan = calculateDayDifference(
-                          sertifikat.created_at
-                        ); // Hitung selisih hari
-                        return (
-                          <tr key={sertifikat.id_sertifikat}>
-                            <td className="py-2 px-4 border-b text-center">
-                              {index + 1}
-                            </td>
-                            <td className="py-2 px-4 border-b text-center">
-                              {sertifikat.noDokumenBastw ||
-                                sertifikat.noDokumenAIW ||
-                                sertifikat.noDokumenSW}
-                            </td>
-                            <td className="py-2 px-4 border-b text-center">
-                              {sertifikat.legalitas}
-                            </td>
-                            <td className="py-2 px-4 border-b text-center">
-                              {new Date(
-                                sertifikat.created_at
-                              ).toLocaleDateString()}
-                            </td>
-                            <td className="py-5 flex items-center justify-center">
-                              <button
-                                onClick={() =>
-                                  handlePreviewDokumen(sertifikat.dokBastw)
-                                }
-                                className="text-blue-500 hover:text-blue-700 flex items-center justify-center"
-                              >
-                                <FaEye />
-                              </button>
-                            </td>
-                            {roleUser ===
-                              "326f0dde-2851-4e47-ac5a-de6923447317" && (
-                              <td className="py-2 px-4 border-b text-center">
-                                {sertifikat.status}
-                              </td>
+                      {sertifikatList.length > 0 ? (
+                        <tr key={sertifikatList[0].id_sertifikat}>
+                          <td className="py-2 px-4 border-b text-center">1</td>
+                          <td className="py-2 px-4 border-b text-center">
+                            {sertifikatList[0].noDokumenBastw ||
+                              sertifikatList[0].noDokumenAIW ||
+                              sertifikatList[0].noDokumenSW}
+                          </td>
+                          <td className="py-2 px-4 border-b text-center">
+                            <div
+                              className={`inline-block px-8 py-2 rounded-[30px] ${
+                                sertifikatList[0]?.legalitas?.toLowerCase() ===
+                                "BASTW Terbit"
+                                  ? "bg-[#AFFEB5] text-[#187556]"
+                                  : sertifikatList[0]?.legalitas?.toLowerCase() ===
+                                    "AIW Terbit"
+                                  ? "bg-[#AFFEB5] text-[#187556]"
+                                  : sertifikatList[0]?.legalitas?.toLowerCase() ===
+                                    "Sertifikat Terbit"
+                                  ? "bg-[#AFFEB5] text-[#187556]"
+                                  : sertifikatList[0]?.legalitas?.toLowerCase() ===
+                                    "AIW ditolak"
+                                  ? "bg-[#FEC5D0] text-[#D80027]"
+                                  : sertifikatList[0]?.legalitas?.toLowerCase() ===
+                                    "Sertifikat ditolak"
+                                  ? "bg-[#FEC5D0] text-[#D80027]"
+                                  : sertifikatList[0]?.legalitas
+                                      ?.trim()
+                                      .toLowerCase() === "Proses BASTW"
+                                  ? "bg-[#FFEFBA] text-[#FECC23]"
+                                  : sertifikatList[0]?.legalitas?.toLowerCase() ===
+                                    "Proses AIW"
+                                  ? "bg-[#FFEFBA] text-[#FECC23]"
+                                  : sertifikatList[0]?.legalitas?.toLowerCase() ===
+                                    "Proses Sertifikat"
+                                  ? "bg-[#FFEFBA] text-[#FECC23]"
+                                  : ""
+                              }`}
+                            >
+                              {sertifikatList[0].legalitas}
+                            </div>
+                          </td>
+                          <td className="py-2 px-4 border-b text-center">
+                            {new Date(
+                              sertifikatList[0].created_at
+                            ).toLocaleDateString()}
+                          </td>
+                          <td className="py-5 flex items-center justify-center">
+                            <button
+                              onClick={() =>
+                                handlePreviewDokumen(sertifikatList[0].dokBastw)
+                              }
+                              className="text-blue-500 hover:text-blue-700 flex items-center justify-center"
+                            >
+                              <FaEye />
+                            </button>
+                          </td>
+                          <td className="text-xs text-center px-4 py-2 whitespace-nowrap font-semibold">
+                            <div
+                              className={`inline-block px-4 py-2 rounded-[30px] ${
+                                sertifikatList[0]?.status?.toLowerCase() ===
+                                "disetujui"
+                                  ? "bg-[#AFFEB5] text-[#187556]"
+                                  : sertifikatList[0]?.status?.toLowerCase() ===
+                                    "ditolak"
+                                  ? "bg-[#FEC5D0] text-[#D80027]"
+                                  : sertifikatList[0]?.status?.toLowerCase() ===
+                                    "ditinjau"
+                                  ? "bg-[#FFEFBA] text-[#FECC23]"
+                                  : ""
+                              }`}
+                            >
+                              {sertifikatList[0].status}
+                            </div>
+                          </td>
+                          <td className="py-2 px-4 border-b text-center">
+                            {calculateDayDifference(
+                              sertifikatList[0].created_at
                             )}
-                            <td className="py-2 px-4 border-b text-center">
-                              {keterangan} {/* Tampilkan selisih hari */}
-                            </td>
-                          </tr>
-                        );
-                      })}
+                          </td>
+                        </tr>
+                      ) : (
+                        <tr>
+                          <td
+                            colSpan="7"
+                            className="py-2 px-4 border-b text-center"
+                          >
+                            Tidak ada data sertifikat.
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
-                </div>
-                {/* Tombol Simpan */}
-                <div className="flex justify-center mt-8">
-                  <button
-                    type="submit"
-                    className="bg-[#3B82F6] text-white px-6 py-2 rounded-md hover:bg-[#2563EB]"
-                  >
-                    Simpan
-                  </button>
                 </div>
               </>
             )}

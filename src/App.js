@@ -10,6 +10,7 @@ import CreateTanah from "./form/c_tanah.js";
 import EditTanah from "./form/e_tanah.js";
 import RiwayatTanah from "./log/log_tanah.js";
 import PesanPerubahan from "./pages/approval.js";
+import EditSertifikat from "./form/e_sertifikat.js";
 
 function App() {
   return (
@@ -21,7 +22,9 @@ function App() {
         {/* Grouping Protected Routes */}
         <Route element={<ProtectedRoute />}>
           <Route path="/pemetaan" element={<Pemetaan />} />
+
           <Route path="/sertifikat" element={<Sertifikat />} />
+          <Route path="/sertifikat/edit/:id" element={<EditSertifikat />} />
 
           {/* Route Tanah */}
           <Route path="/dashboard" element={<Dashboard />} />
@@ -33,7 +36,6 @@ function App() {
 
           {/* Pesan Perubahan*/}
           <Route path="/notifikasi" element={<PesanPerubahan />} />
-
         </Route>
       </Routes>
     </Router>
