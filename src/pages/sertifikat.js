@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import { FaPlus, FaMap, FaEdit, FaTrash, FaHistory } from "react-icons/fa"; // Importing icons
+import { getUserId, getRoleId } from "../utils/Auth";
 
 const Legalitas = () => {
-  const [tanahList, setTanahList] = useState([]);
+  const [dataList, setDataList] = useState([]); // Mengganti tanahList menjadi dataList
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
@@ -13,6 +14,9 @@ const Legalitas = () => {
   const totalPages = 10;
   const navigate = useNavigate();
   const itemsPerPage = 5;
+
+  const roleId = getRoleId();
+  const isPimpinanJamaah = roleId === "326f0dde-2851-4e47-ac5a-de6923447317";
 
   useEffect(() => {
     fetchData();
@@ -29,31 +33,41 @@ const Legalitas = () => {
     }
 
     try {
-      const response = await axios.get("http://127.0.0.1:8000/api/tanah/", {
+      // Ambil data dari API tanah
+      const tanahResponse = await axios.get("http://127.0.0.1:8000/api/tanah/", {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",
         },
       });
 
-      console.log("Response dari API:", response.data);
+      // Ambil data dari API approval
+      const approvalResponse = await axios.get("http://127.0.0.1:8000/api/approvals/type/tanah", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      });
 
-      if (Array.isArray(response.data.data)) {
-        setTanahList(response.data.data);
-      } else {
-        console.error("Data dari API bukan array:", response.data);
-        setError("Data tidak valid");
-      }
+      console.log("Response dari API tanah:", tanahResponse.data);
+      console.log("Response dari API approval:", approvalResponse.data);
 
+      // Gabungkan data dari kedua API
+      const combinedData = [
+        ...(Array.isArray(tanahResponse.data.data) ? tanahResponse.data.data : []),
+        ...(Array.isArray(approvalResponse.data.data) ? approvalResponse.data.data : []),
+      ];
+
+      setDataList(combinedData); // Set data gabungan ke state
       setLoading(false);
     } catch (error) {
-      console.error("Gagal mengambil data tanah:", error);
+      console.error("Gagal mengambil data:", error);
       setError("Unauthorized: Token tidak valid atau sudah kedaluwarsa.");
       setLoading(false);
     }
   };
 
-  const handleDelete = async (idTanah) => {
+  const handleDelete = async (id) => {
     const token = localStorage.getItem("token");
 
     if (!token) {
@@ -69,7 +83,8 @@ const Legalitas = () => {
     if (!confirmDelete) return;
 
     try {
-      await axios.delete(`http://127.0.0.1:8000/api/tanah/${idTanah}`, {
+      // Coba hapus dari API tanah
+      await axios.delete(`http://127.0.0.1:8000/api/tanah/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",
@@ -77,8 +92,8 @@ const Legalitas = () => {
       });
 
       // Perbarui state dengan menghapus item yang dihapus
-      setTanahList((prevList) =>
-        prevList.filter((tanah) => tanah.id_tanah !== idTanah)
+      setDataList((prevList) =>
+        prevList.filter((item) => item.id_tanah !== id && item.id !== id)
       );
 
       alert("Data berhasil dihapus!");
@@ -88,11 +103,19 @@ const Legalitas = () => {
     }
   };
 
-  const filteredTanah = tanahList.filter((tanah) =>
-    tanah.NamaPimpinanJamaah.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredData = dataList.filter((item) => {
+    try {
+      console.info(item)
+      const pimpinanJamaah = item?.NamaPimpinanJamaah || item?.pimpinan_jamaah || "";
+      return pimpinanJamaah.toLowerCase().includes(search.toLowerCase());
+    } catch (e) {
+      console.error("Failed to parse item data:", e);
+    }
+    return[]
+  });
+  
 
-  const paginatedData = filteredTanah.slice(
+  const paginatedData = filteredData.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
@@ -196,9 +219,11 @@ const Legalitas = () => {
                       <th className="px-4 py-2 text-center font-medium">
                         Luas Tanah
                       </th>
-                      <th className="px-4 py-2 text-center font-medium">
-                        Status
-                      </th>
+                      {isPimpinanJamaah && (
+                        <th className="px-4 py-2 text-center font-medium">
+                          Status
+                        </th>
+                      )}
                       <th className="px-4 py-2 text-center font-medium">
                         Legalitas
                       </th>
@@ -209,66 +234,66 @@ const Legalitas = () => {
                   </thead>
                   <tbody>
                     {paginatedData.length > 0 ? (
-                      paginatedData.map((tanah, index) => (
+                      paginatedData.map((item, index) => (
                         <tr
-                          key={tanah.id_tanah}
+                          key={item.id_tanah || item.id}
                           className="border-b border-gray-300"
                         >
                           <td className="text-sm px-4 py-4 whitespace-nowrap font-semibold">
                             {(currentPage - 1) * itemsPerPage + index + 1}
                           </td>
                           <td className="text-sm text-center px-4 py-4 whitespace-nowrap font-semibold">
-                            {tanah.NamaPimpinanJamaah}
+                            {item.NamaPimpinanJamaah || item.pimpinan_jamaah}
                           </td>
                           <td className="text-sm text-center px-4 py-4 whitespace-nowrap font-semibold">
-                            {tanah.NamaWakif}
+                            {item.NamaWakif || item.nama_wakif}
                           </td>
                           <td className="text-sm text-center px-4 py-4 whitespace-nowrap font-semibold">
-                            {tanah.lokasi}
+                            {item.lokasi || item.lokasi_tanah}
                           </td>
                           <td className="text-sm text-center px-4 py-4 whitespace-nowrap font-semibold">
-                            {tanah.luasTanah}
+                            {item.luasTanah || item.luas_tanah}
                           </td>
                           <td className="text-sm text-center px-4 py-2 whitespace-nowrap font-semibold">
                             <div
                               className={`inline-block px-4 py-2 rounded-[30px] ${
-                                tanah.status.toLowerCase() === "disetujui"
+                                item?.status?.toLowerCase() === "disetujui"
                                   ? "bg-[#AFFEB5] text-[#187556]"
-                                  : tanah.status.toLowerCase() === "ditolak"
+                                  : item?.status?.toLowerCase() === "ditolak"
                                   ? "bg-[#FEC5D0] text-[#D80027]"
-                                  : tanah.status.toLowerCase() === "ditinjau"
+                                  : item?.status?.toLowerCase() === "ditinjau"
                                   ? "bg-[#FFEFBA] text-[#FECC23]"
                                   : ""
                               }`}
                             >
-                              {tanah.status}
+                              {item.status}
                             </div>
                           </td>
-                          <td className="text-sm text-center px-4 py-2 whitespace-nowrap font-semibold">
-                            <div
-                              className={`inline-block px-4 py-2 rounded-[30px] ${
-                                tanah.legalitas.toLowerCase() === "n/a"
-                                  ? "bg-[#FEC5D0] text-[#D80027]"
-                                  : tanah.legalitas.toLowerCase() === "bastw"
-                                  ? "bg-[#E0E2E5] text-[#667085]"
-                                  : tanah.legalitas.toLowerCase() === "aiw"
-                                  ? "bg-[#FFEFBA] text-[#FECC23]"
-                                  : tanah.legalitas.toLowerCase() === "sertifikat wakaf"
-                                  ? "bg-[#AFFEB5] text-[#187556]"
-                                  : ""
-                              }`}
-                            >
-                              {tanah.legalitas}
-                            </div>
-                          </td>
+                          {isPimpinanJamaah && (
+                            <td className="text-sm text-center px-4 py-2 whitespace-nowrap font-semibold">
+                              <div
+                                className={`inline-block px-4 py-2 rounded-[30px] ${
+                                  item.status.toLowerCase() === "disetujui"
+                                    ? "bg-[#AFFEB5] text-[#187556]"
+                                    : item.status.toLowerCase() === "ditolak"
+                                    ? "bg-[#FEC5D0] text-[#D80027]"
+                                    : item.status.toLowerCase() === "ditinjau"
+                                    ? "bg-[#FFEFBA] text-[#FECC23]"
+                                    : ""
+                                }`}
+                              >
+                                {item.status}
+                              </div>
+                            </td>
+                          )}
                           <td className="text-xs text-center px-4 py-4 flex gap-3 justify-center">
                             <button onClick={() => console.log("Pemetaan clicked")}>
                               <FaMap className="text-gray-400 text-lg" />
                             </button>
-                            <button onClick={() => navigate(`/tanah/edit/${tanah.id_tanah}`)}>
+                            <button onClick={() => navigate(`/tanah/edit/${item.id_tanah || item.id}`)}>
                               <FaEdit className="text-gray-400 text-lg" />
                             </button>
-                            <button onClick={() => handleDelete(tanah.id_tanah)}>
+                            <button onClick={() => handleDelete(item.id_tanah || item.id)}>
                               <FaTrash className="text-gray-400 text-lg" />
                             </button>
                             <button onClick={() => console.log("Riwayat clicked")}>
