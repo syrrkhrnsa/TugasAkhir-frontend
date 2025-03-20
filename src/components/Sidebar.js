@@ -40,24 +40,6 @@ const DashboardLayout = ({ children }) => {
     }
   };
 
-  // Mark all notifications as read
-  const markAllAsRead = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.post("http://127.0.0.1:8000/api/notifications/mark-all-as-read", {}, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
-      if (response.status === 200) {
-        setUnreadCount(0); // Reset unread count
-      }
-    } catch (error) {
-      console.error("Failed to mark notifications as read:", error);
-    }
-  };
-
   useEffect(() => {
     fetchUnreadNotificationsCount(); // Fetch notifications on mount
   }, []);
@@ -178,7 +160,6 @@ const DashboardLayout = ({ children }) => {
             <div 
               className="relative cursor-pointer" 
               onClick={() => {
-                markAllAsRead(); // Mark notifications as read on click
                 navigate("/notifikasi"); // Navigate to notifications page
               }}
             >
