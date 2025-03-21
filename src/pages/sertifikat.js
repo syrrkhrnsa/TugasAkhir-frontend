@@ -21,6 +21,10 @@ const Legalitas = () => {
   useEffect(() => {
     fetchData();
   }, []);
+  
+  useEffect(() => {
+    console.log(roleId);
+  }, []);
 
   const fetchData = async () => {
     const token = localStorage.getItem("token");
@@ -269,23 +273,23 @@ const Legalitas = () => {
                               {item.status}
                             </div>
                           </td>
-                          {isPimpinanJamaah && (
+                          {isPimpinanJamaah ? (
                             <td className="text-sm text-center px-4 py-2 whitespace-nowrap font-semibold">
                               <div
                                 className={`inline-block px-4 py-2 rounded-[30px] ${
-                                  item.status.toLowerCase() === "disetujui"
+                                  item?.legalitas?.toLowerCase().includes("terbit")
                                     ? "bg-[#AFFEB5] text-[#187556]"
-                                    : item.status.toLowerCase() === "ditolak"
+                                    : item?.legalitas?.toLowerCase().includes("ditolak")
                                     ? "bg-[#FEC5D0] text-[#D80027]"
-                                    : item.status.toLowerCase() === "ditinjau"
+                                    : item?.legalitas?.toLowerCase().includes("proses")
                                     ? "bg-[#FFEFBA] text-[#FECC23]"
-                                    : ""
+                                    : "bg-[#D9D9D9] text-[#7E7E7E]"
                                 }`}
                               >
-                                {item.status}
+                                {item.legalitas}
                               </div>
                             </td>
-                          )}
+                          ): null}
                           <td className="text-xs text-center px-4 py-4 flex gap-3 justify-center">
                             <button onClick={() => console.log("Pemetaan clicked")}>
                               <FaMap className="text-gray-400 text-lg" />

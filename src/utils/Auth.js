@@ -15,5 +15,5 @@ export const setAuthData = (user, role, username) => {
 
 // Fungsi untuk get data
 export const getUserId = () => userId;
-export const getRoleId = () => roleId;
+export const getRoleId = () => localStorage.getItem('role_id');
 export const getUserName = () => userName;
