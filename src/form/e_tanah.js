@@ -292,29 +292,100 @@ const EditTanah = () => {
                   <div className="grid grid-cols-2 gap-8 justify-center">
                     {/* Kolom kiri */}
                     <div className="flex flex-col items-left">
-                      <label className="block text-sm font-medium text-gray-400">
-                        Pimpinan Jamaah
-                      </label>
-                      <input
-                        type="text"
-                        className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                        value={NamaPimpinanJamaah}
-                        onChange={(e) => setNamaPimpinanJamaah(e.target.value)}
-                        required
-                      />
+                    <label className="block text-sm font-medium text-gray-400">
+                    Pimpinan Jamaah
+                  </label>
+                    <select
+                      className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
+                      value={NamaPimpinanJamaah}
+                      onChange={(e) => setNamaPimpinanJamaah(e.target.value)}
+                      required
+                    >
+                      <option value="" disabled>
+                        Pilih Pimpinan Jamaah
+                      </option>
+                      {users.map((user) => (
+                        <option key={user.id} value={user.name}>
+                          {user.name}
+                        </option>
+                      ))}
+                    </select>
+                      {/* Dropdown Provinsi */}
+                    <label className="block text-sm font-medium text-gray-400 mt-6">
+                      Provinsi
+                    </label>
+                    <select
+                      className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
+                      value={provinsi}
+                      onChange={(e) => setProvinsi(e.target.value)}
+                      required
+                    >
+                      <option value="" disabled>Pilih Provinsi</option>
+                      {provinsiList.map((prov) => (
+                        <option key={prov.id} value={prov.id}>{prov.name}</option>
+                      ))}
+                    </select>
 
-                      <label className="block text-sm font-medium text-gray-400 mt-6">
-                        Lokasi
-                      </label>
-                      <input
-                        type="text"
-                        className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                        value={lokasi}
-                        onChange={(e) => setLokasi(e.target.value)}
-                        required
-                      />
-                    </div>
+                    {/* Dropdown Kabupaten (Muncul setelah provinsi dipilih) */}
+                    {provinsi && (
+                      <>
+                        <label className="block text-sm font-medium text-gray-400 mt-6">
+                          Kabupaten/Kota
+                        </label>
+                        <select
+                          className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
+                          value={kota}
+                          onChange={(e) => setKota(e.target.value)}
+                          required
+                        >
+                          <option value="" disabled>Pilih Kabupaten/Kota</option>
+                          {kotaList.map((kab) => (
+                            <option key={kab.id} value={kab.id}>{kab.name}</option>
+                          ))}
+                        </select>
+                      </>
+                    )}
 
+                    {/* Dropdown Kecamatan (Muncul setelah kabupaten dipilih) */}
+                    {kota && (
+                      <>
+                        <label className="block text-sm font-medium text-gray-400 mt-6">
+                          Kecamatan
+                        </label>
+                        <select
+                          className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
+                          value={kecamatan}
+                          onChange={(e) => setKecamatan(e.target.value)}
+                          required
+                        >
+                          <option value="" disabled>Pilih Kecamatan</option>
+                          {kecamatanList.map((kec) => (
+                            <option key={kec.id} value={kec.id}>{kec.name}</option>
+                          ))}
+                        </select>
+                      </>
+                    )}
+
+                    {/* Dropdown Kelurahan (Muncul setelah kecamatan dipilih) */}
+                    {kecamatan && (
+                      <>
+                        <label className="block text-sm font-medium text-gray-400 mt-6">
+                          Kelurahan/Desa
+                        </label>
+                        <select
+                          className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
+                          value={kelurahan}
+                          onChange={(e) => setKelurahan(e.target.value)}
+                          required
+                        >
+                          <option value="" disabled>Pilih Kelurahan/Desa</option>
+                          {kelurahanList.map((kel) => (
+                            <option key={kel.id} value={kel.id}>{kel.name}</option>
+                          ))}
+                        </select>
+                      </>
+                    )}
+                  </div>
                     {/* Kolom kanan */}
                     <div className="flex flex-col items-left">
                       <label className="block text-sm font-medium text-gray-400">
@@ -338,8 +409,25 @@ const EditTanah = () => {
                         onChange={(e) => setLuasTanah(e.target.value)}
                         required
                       />
+                      <label className="block text-sm font-medium text-gray-400 mt-6">
+                      Detail Lokasi
+                    </label>
+                    <input
+                      type="text"
+                      className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
+                      value={detailLokasi}
+                      onChange={(e) => setDetailLokasi(e.target.value)}
+                      required
+                    />
                     </div>
                   </div>
+                  {/* Preview Lokasi */}
+                    <div className="bg-gray-100 p-4 rounded-md mt-8 shadow-md">
+                      <h3 className="text-lg font-semibold text-gray-700">Preview Lokasi:</h3>
+                      <p className="text-gray-600 mt-2">
+                        {`${provinsiList.find((p) => p.id === provinsi)?.name}, ${kotaList.find((k) => k.id === kota)?.name}, ${kecamatanList.find((k) => k.id === kecamatan)?.name}, ${kelurahanList.find((k) => k.id === kelurahan)?.name}, ${detailLokasi}`}
+                      </p>
+                    </div>
                   {/* Tombol Simpan */}
                   <div className="flex justify-center mt-8">
                     <button
