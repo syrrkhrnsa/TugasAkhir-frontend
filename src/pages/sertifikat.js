@@ -346,29 +346,13 @@ const Legalitas = () => {
                           <td className="text-sm text-center px-4 py-4 whitespace-nowrap font-semibold">
                             {item.NamaWakif || item.nama_wakif}
                           </td>
-                          <td className="text-sm text-center px-4 py-4 whitespace-nowrap font-semibold">
+                          <td className="text-xs text-center px-4 py-4 font-semibold w-[200px] break-words whitespace-normal overflow-hidden overflow-ellipsis max-h-[100px] hover:max-h-none hover:whitespace-pre-wrap">
                             {item.lokasi || item.lokasi_tanah}
                           </td>
                           <td className="text-sm text-center px-4 py-4 whitespace-nowrap font-semibold">
                             {item.luasTanah || item.luas_tanah}
                           </td>
                           {isPimpinanJamaah ? (
-                          <td className="text-sm text-center px-4 py-2 whitespace-nowrap font-semibold">
-                            <div
-                              className={`inline-block px-4 py-2 rounded-[30px] ${
-                                item?.status?.toLowerCase() === "disetujui"
-                                  ? "bg-[#AFFEB5] text-[#187556]"
-                                  : item?.status?.toLowerCase() === "ditolak"
-                                  ? "bg-[#FEC5D0] text-[#D80027]"
-                                  : item?.status?.toLowerCase() === "ditinjau"
-                                  ? "bg-[#FFEFBA] text-[#FECC23]"
-                                  : ""
-                              }`}
-                            >
-                              {item.status}
-                            </div>
-                          </td>
-                        ): null}
                             <td className="text-sm text-center px-4 py-2 whitespace-nowrap font-semibold">
                               <div
                                 className={`inline-block px-4 py-2 rounded-[30px] ${
