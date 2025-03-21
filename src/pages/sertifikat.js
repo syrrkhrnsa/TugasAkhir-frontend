@@ -2,7 +2,14 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
-import { FaPlus, FaMap, FaEdit, FaTrash, FaHistory } from "react-icons/fa"; // Importing icons
+import {
+  FaPlus,
+  FaMap,
+  FaEdit,
+  FaTrash,
+  FaHistory,
+  FaEye,
+} from "react-icons/fa"; // Importing icons
 import { getUserId, getRoleId } from "../utils/Auth";
 
 const Legalitas = () => {
@@ -419,6 +426,15 @@ const Legalitas = () => {
                               }
                             >
                               <FaEdit className="text-gray-400 text-lg" />
+                            </button>
+                            <button
+                              onClick={() =>
+                                navigate(
+                                  `/tanah/detail/${item.id_tanah || item.id}`
+                                )
+                              }
+                            >
+                              <FaEye className="text-gray-400 text-lg" />
                             </button>
                             <button
                               onClick={() =>
