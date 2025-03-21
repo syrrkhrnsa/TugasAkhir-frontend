@@ -14,6 +14,13 @@ const Legalitas = () => {
   const totalPages = 10;
   const navigate = useNavigate();
   const itemsPerPage = 5;
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [legalitasOptions, setLegalitasOptions] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [legalitas, setLegalitas] = useState("");
+  const [newLegalitas, setNewLegalitas] = useState("");
+  const [selectedLegalitas, setSelectedLegalitas] = useState("");
 
   const roleId = getRoleId();
   const isPimpinanJamaah = roleId === "326f0dde-2851-4e47-ac5a-de6923447317";
@@ -21,7 +28,7 @@ const Legalitas = () => {
   useEffect(() => {
     fetchData();
   }, []);
-  
+
   useEffect(() => {
     console.log(roleId);
   }, []);
@@ -38,28 +45,38 @@ const Legalitas = () => {
 
     try {
       // Ambil data dari API tanah
-      const tanahResponse = await axios.get("http://127.0.0.1:8000/api/tanah/", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
+      const tanahResponse = await axios.get(
+        "http://127.0.0.1:8000/api/tanah/",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        }
+      );
 
       // Ambil data dari API approval
-      const approvalResponse = await axios.get("http://127.0.0.1:8000/api/approvals/type/tanah", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
+      const approvalResponse = await axios.get(
+        "http://127.0.0.1:8000/api/approvals/type/tanah",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        }
+      );
 
       console.log("Response dari API tanah:", tanahResponse.data);
       console.log("Response dari API approval:", approvalResponse.data);
 
       // Gabungkan data dari kedua API
       const combinedData = [
-        ...(Array.isArray(tanahResponse.data.data) ? tanahResponse.data.data : []),
-        ...(Array.isArray(approvalResponse.data.data) ? approvalResponse.data.data : []),
+        ...(Array.isArray(tanahResponse.data.data)
+          ? tanahResponse.data.data
+          : []),
+        ...(Array.isArray(approvalResponse.data.data)
+          ? approvalResponse.data.data
+          : []),
       ];
 
       setDataList(combinedData); // Set data gabungan ke state
@@ -109,15 +126,15 @@ const Legalitas = () => {
 
   const filteredData = dataList.filter((item) => {
     try {
-      console.info(item)
-      const pimpinanJamaah = item?.NamaPimpinanJamaah || item?.pimpinan_jamaah || "";
+      console.info(item);
+      const pimpinanJamaah =
+        item?.NamaPimpinanJamaah || item?.pimpinan_jamaah || "";
       return pimpinanJamaah.toLowerCase().includes(search.toLowerCase());
     } catch (e) {
       console.error("Failed to parse item data:", e);
     }
-    return[]
+    return [];
   });
-  
 
   const paginatedData = filteredData.slice(
     (currentPage - 1) * itemsPerPage,
@@ -159,6 +176,76 @@ const Legalitas = () => {
         totalPages,
       ];
     }
+  };
+
+  const handleUpdateLegalitas = async () => {
+    const token = localStorage.getItem("token");
+
+    if (!token || !selectedItem || !selectedLegalitas) {
+      alert("Unauthorized or no item selected or no legalitas chosen!");
+      return;
+    }
+
+    console.log("Selected Item:", selectedItem); // Untuk debug
+    console.log("ID Tanah:", selectedItem.id_tanah); // Pastikan ID yang dikirim benar
+    console.log("Legalitas Baru (Dari Dropdown):", selectedLegalitas); // Menampilkan pilihan yang dipilih
+
+    try {
+      // Kirim ID Tanah dan Legalitas yang dipilih ke API
+      await axios.put(
+        `http://127.0.0.1:8000/api/tanah/legalitas/${selectedItem.id_tanah}`,
+        { legalitas: selectedLegalitas }, // Pastikan menggunakan legalitas yang dipilih dari dropdown
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        }
+      );
+
+      alert("Legalitas berhasil diperbarui!");
+      fetchData(); // Ambil ulang data setelah update
+      closeModal();
+    } catch (error) {
+      console.error("Gagal mengupdate legalitas:", error);
+      alert("Terjadi kesalahan saat mengupdate legalitas.");
+    }
+  };
+
+  const openModal = async (item) => {
+    console.log("Opening modal for:", item);
+    setSelectedItem(item);
+    setIsModalOpen(true);
+    setIsLoading(true);
+
+    const token = localStorage.getItem("token");
+
+    try {
+      const response = await axios.get(
+        `http://127.0.0.1:8000/api/sertifikat/legalitas/${item.id_tanah}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data.status === "success") {
+        // Set legalitas options
+        const options = [response.data.data.legalitas]; // Misalnya data ada dalam bentuk array, atau bisa lebih
+        setLegalitasOptions(options);
+        setSelectedLegalitas(options[0]); // Menyimpan pilihan pertama sebagai default
+      }
+    } catch (error) {
+      console.error("Error fetching legalitas:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedItem(null);
   };
 
   return (
@@ -258,49 +345,76 @@ const Legalitas = () => {
                           <td className="text-sm text-center px-4 py-4 whitespace-nowrap font-semibold">
                             {item.luasTanah || item.luas_tanah}
                           </td>
-                          <td className="text-sm text-center px-4 py-2 whitespace-nowrap font-semibold">
-                            <div
-                              className={`inline-block px-4 py-2 rounded-[30px] ${
-                                item?.status?.toLowerCase() === "disetujui"
-                                  ? "bg-[#AFFEB5] text-[#187556]"
-                                  : item?.status?.toLowerCase() === "ditolak"
-                                  ? "bg-[#FEC5D0] text-[#D80027]"
-                                  : item?.status?.toLowerCase() === "ditinjau"
-                                  ? "bg-[#FFEFBA] text-[#FECC23]"
-                                  : ""
-                              }`}
-                            >
-                              {item.status}
-                            </div>
-                          </td>
                           {isPimpinanJamaah ? (
                             <td className="text-sm text-center px-4 py-2 whitespace-nowrap font-semibold">
                               <div
                                 className={`inline-block px-4 py-2 rounded-[30px] ${
-                                  item?.legalitas?.toLowerCase().includes("terbit")
+                                  item?.status?.toLowerCase() === "disetujui"
                                     ? "bg-[#AFFEB5] text-[#187556]"
-                                    : item?.legalitas?.toLowerCase().includes("ditolak")
+                                    : item?.status?.toLowerCase() === "ditolak"
                                     ? "bg-[#FEC5D0] text-[#D80027]"
-                                    : item?.legalitas?.toLowerCase().includes("proses")
+                                    : item?.status?.toLowerCase() === "ditinjau"
                                     ? "bg-[#FFEFBA] text-[#FECC23]"
-                                    : "bg-[#D9D9D9] text-[#7E7E7E]"
+                                    : ""
                                 }`}
                               >
-                                {item.legalitas}
+                                {item.status}
                               </div>
                             </td>
-                          ): null}
+                          ) : null}
+                          <td className="text-sm text-center px-4 py-2 whitespace-nowrap font-semibold">
+                            <div
+                              className={`inline-block px-4 py-2 rounded-[30px] ${
+                                item?.legalitas
+                                  ?.toLowerCase()
+                                  .includes("terbit")
+                                  ? "bg-[#AFFEB5] text-[#187556]"
+                                  : item?.legalitas
+                                      ?.toLowerCase()
+                                      .includes("ditolak")
+                                  ? "bg-[#FEC5D0] text-[#D80027]"
+                                  : item?.legalitas
+                                      ?.toLowerCase()
+                                      .includes("proses")
+                                  ? "bg-[#FFEFBA] text-[#FECC23]"
+                                  : "bg-[#D9D9D9] text-[#7E7E7E]"
+                              }`}
+                            >
+                              {item.legalitas}
+                            </div>
+                            <button
+                              className="ml-2 bg-kuning text-white px-2 py-1 rounded-md hover:bg-[#ffe58e] hover:text-[#000] text-xs"
+                              onClick={() => openModal(item)}
+                            >
+                              <FaEdit />
+                            </button>
+                          </td>
+
                           <td className="text-xs text-center px-4 py-4 flex gap-3 justify-center">
-                            <button onClick={() => console.log("Pemetaan clicked")}>
+                            <button
+                              onClick={() => console.log("Pemetaan clicked")}
+                            >
                               <FaMap className="text-gray-400 text-lg" />
                             </button>
-                            <button onClick={() => navigate(`/tanah/edit/${item.id_tanah || item.id}`)}>
+                            <button
+                              onClick={() =>
+                                navigate(
+                                  `/tanah/edit/${item.id_tanah || item.id}`
+                                )
+                              }
+                            >
                               <FaEdit className="text-gray-400 text-lg" />
                             </button>
-                            <button onClick={() => handleDelete(item.id_tanah || item.id)}>
+                            <button
+                              onClick={() =>
+                                handleDelete(item.id_tanah || item.id)
+                              }
+                            >
                               <FaTrash className="text-gray-400 text-lg" />
                             </button>
-                            <button onClick={() => console.log("Riwayat clicked")}>
+                            <button
+                              onClick={() => console.log("Riwayat clicked")}
+                            >
                               <FaHistory className="text-gray-400 text-lg" />
                             </button>
                           </td>
@@ -318,6 +432,45 @@ const Legalitas = () => {
                     )}
                   </tbody>
                 </table>
+              )}
+              {isModalOpen && (
+                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+                  <div className="bg-white p-6 rounded-lg shadow-lg w-96">
+                    <h2 className="text-xl font-semibold mb-4">
+                      Update Legalitas
+                    </h2>
+
+                    <label className="block text-sm font-medium text-gray-700">
+                      Status Legalitas:
+                    </label>
+                    <select
+                      value={selectedLegalitas} // Nilai yang dipilih saat ini
+                      onChange={(e) => setSelectedLegalitas(e.target.value)} // Mengupdate state dengan nilai yang dipilih
+                      className="border p-2 w-full"
+                    >
+                      {legalitasOptions.map((option, index) => (
+                        <option key={index} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+
+                    <div className="flex justify-end mt-4">
+                      <button
+                        className="bg-gray-500 text-white px-4 py-2 rounded-md mr-2"
+                        onClick={() => setIsModalOpen(false)}
+                      >
+                        Batal
+                      </button>
+                      <button
+                        className="bg-[#187556] text-white px-4 py-2 rounded-md"
+                        onClick={handleUpdateLegalitas}
+                      >
+                        Simpan
+                      </button>
+                    </div>
+                  </div>
+                </div>
               )}
               <div className="pagination flex justify-left space-x-1 mt-4">
                 <button
