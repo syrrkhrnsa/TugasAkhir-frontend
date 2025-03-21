@@ -30,8 +30,11 @@ const EditTanah = () => {
   const [kecamatanList, setKecamatanList] = useState([]);
   const [kelurahanList, setKelurahanList] = useState([]);
   const [detailLokasi, setDetailLokasi] = useState("");
-  const lokasiLengkap = `${provinsiList.find((p) => p.id === provinsi)?.name}, ${kotaList.find((k) => k.id === kota)?.name}, ${kecamatanList.find((k) => k.id === kecamatan)?.name}, ${kelurahanList.find((k) => k.id === kelurahan)?.name}, ${detailLokasi}`;
-
+  const lokasiLengkap = `${
+    provinsiList.find((p) => p.id === provinsi)?.name
+  }, ${kotaList.find((k) => k.id === kota)?.name}, ${
+    kecamatanList.find((k) => k.id === kecamatan)?.name
+  }, ${kelurahanList.find((k) => k.id === kelurahan)?.name}, ${detailLokasi}`;
 
   useEffect(() => {
     fetchTanah();
@@ -39,8 +42,8 @@ const EditTanah = () => {
     fetchUserRole();
   }, []);
 
-   // Ambil data pengguna
-   useEffect(() => {
+  // Ambil data pengguna
+  useEffect(() => {
     const fetchUsers = async () => {
       const token = localStorage.getItem("token");
       if (!token) {
@@ -48,9 +51,15 @@ const EditTanah = () => {
         return;
       }
       try {
-        const response = await axios.get("http://127.0.0.1:8000/api/data/user", {
-          headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
-        });
+        const response = await axios.get(
+          "http://127.0.0.1:8000/api/data/user",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: "application/json",
+            },
+          }
+        );
         setUsers(response.data.data || []);
       } catch (error) {
         console.error("Error fetching users:", error);
@@ -58,14 +67,15 @@ const EditTanah = () => {
     };
 
     fetchUsers();
-  }, 
-  []);
+  }, []);
 
   // Ambil data provinsi saat komponen dimuat
   useEffect(() => {
     const fetchProvinsi = async () => {
       try {
-        const response = await axios.get("https://api.binderbyte.com/wilayah/provinsi?api_key=231b062a5d2c75a9f68a41107079fb6bba17c1251089b912ad92d9f572dd974d");
+        const response = await axios.get(
+          "https://api.binderbyte.com/wilayah/provinsi?api_key=231b062a5d2c75a9f68a41107079fb6bba17c1251089b912ad92d9f572dd974d"
+        );
         setProvinsiList(response.data.value);
       } catch (error) {
         console.error("Error fetching provinsi:", error);
@@ -80,7 +90,9 @@ const EditTanah = () => {
     if (provinsi) {
       const fetchKota = async () => {
         try {
-          const response = await axios.get(`https://api.binderbyte.com/wilayah/kabupaten?api_key=231b062a5d2c75a9f68a41107079fb6bba17c1251089b912ad92d9f572dd974d&id_provinsi=${provinsi}`);
+          const response = await axios.get(
+            `https://api.binderbyte.com/wilayah/kabupaten?api_key=231b062a5d2c75a9f68a41107079fb6bba17c1251089b912ad92d9f572dd974d&id_provinsi=${provinsi}`
+          );
           setKotaList(response.data.value);
         } catch (error) {
           console.error("Error fetching kota:", error);
@@ -96,7 +108,9 @@ const EditTanah = () => {
     if (kota) {
       const fetchKecamatan = async () => {
         try {
-          const response = await axios.get(`https://api.binderbyte.com/wilayah/kecamatan?api_key=231b062a5d2c75a9f68a41107079fb6bba17c1251089b912ad92d9f572dd974d&id_kabupaten=${kota}`);
+          const response = await axios.get(
+            `https://api.binderbyte.com/wilayah/kecamatan?api_key=231b062a5d2c75a9f68a41107079fb6bba17c1251089b912ad92d9f572dd974d&id_kabupaten=${kota}`
+          );
           setKecamatanList(response.data.value || []);
         } catch (error) {
           console.error("Error fetching kecamatan:", error);
@@ -111,7 +125,9 @@ const EditTanah = () => {
     if (kecamatan) {
       const fetchKelurahan = async () => {
         try {
-          const response = await axios.get(`https://api.binderbyte.com/wilayah/kelurahan?api_key=231b062a5d2c75a9f68a41107079fb6bba17c1251089b912ad92d9f572dd974d&id_kecamatan=${kecamatan}`);
+          const response = await axios.get(
+            `https://api.binderbyte.com/wilayah/kelurahan?api_key=231b062a5d2c75a9f68a41107079fb6bba17c1251089b912ad92d9f572dd974d&id_kecamatan=${kecamatan}`
+          );
           setKelurahanList(response.data.value || []);
         } catch (error) {
           console.error("Error fetching kelurahan:", error);
@@ -120,7 +136,6 @@ const EditTanah = () => {
       fetchKelurahan();
     }
   }, [kecamatan]);
-
 
   const fetchTanah = async () => {
     const token = localStorage.getItem("token");
@@ -220,10 +235,10 @@ const EditTanah = () => {
         tanah.id_tanah === id
           ? {
               ...tanah,
-              "NamaPimpinanJamaah" : NamaPimpinanJamaah,
-              "NamaWakif" : NamaWakif,
-              "lokasi" : lokasiLengkap,
-              "luasTanah" : luasTanah,
+              NamaPimpinanJamaah: NamaPimpinanJamaah,
+              NamaWakif: NamaWakif,
+              lokasi: lokasiLengkap,
+              luasTanah: luasTanah,
             }
           : tanah
       );
@@ -265,6 +280,12 @@ const EditTanah = () => {
     }
   };
 
+  const dokumenTypes = [
+    { key: "noDokumenBastw", label: "BASTW", docKey: "dokBastw" },
+    { key: "noDokumenAIW", label: "AIW", docKey: "dokAiw" },
+    { key: "noDokumenSW", label: "SW", docKey: "dokSw" },
+  ];
+
   return (
     <div className="relative">
       <Sidebar>
@@ -292,100 +313,116 @@ const EditTanah = () => {
                   <div className="grid grid-cols-2 gap-8 justify-center">
                     {/* Kolom kiri */}
                     <div className="flex flex-col items-left">
-                    <label className="block text-sm font-medium text-gray-400">
-                    Pimpinan Jamaah
-                  </label>
-                    <select
-                      className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                      value={NamaPimpinanJamaah}
-                      onChange={(e) => setNamaPimpinanJamaah(e.target.value)}
-                      required
-                    >
-                      <option value="" disabled>
-                        Pilih Pimpinan Jamaah
-                      </option>
-                      {users.map((user) => (
-                        <option key={user.id} value={user.name}>
-                          {user.name}
+                      <label className="block text-sm font-medium text-gray-400">
+                        Pimpinan Jamaah
+                      </label>
+                      <select
+                        className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
+                        value={NamaPimpinanJamaah}
+                        onChange={(e) => setNamaPimpinanJamaah(e.target.value)}
+                        required
+                      >
+                        <option value="" disabled>
+                          Pilih Pimpinan Jamaah
                         </option>
-                      ))}
-                    </select>
+                        {users.map((user) => (
+                          <option key={user.id} value={user.name}>
+                            {user.name}
+                          </option>
+                        ))}
+                      </select>
                       {/* Dropdown Provinsi */}
-                    <label className="block text-sm font-medium text-gray-400 mt-6">
-                      Provinsi
-                    </label>
-                    <select
-                      className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                      value={provinsi}
-                      onChange={(e) => setProvinsi(e.target.value)}
-                      required
-                    >
-                      <option value="" disabled>Pilih Provinsi</option>
-                      {provinsiList.map((prov) => (
-                        <option key={prov.id} value={prov.id}>{prov.name}</option>
-                      ))}
-                    </select>
+                      <label className="block text-sm font-medium text-gray-400 mt-6">
+                        Provinsi
+                      </label>
+                      <select
+                        className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
+                        value={provinsi}
+                        onChange={(e) => setProvinsi(e.target.value)}
+                        required
+                      >
+                        <option value="" disabled>
+                          Pilih Provinsi
+                        </option>
+                        {provinsiList.map((prov) => (
+                          <option key={prov.id} value={prov.id}>
+                            {prov.name}
+                          </option>
+                        ))}
+                      </select>
 
-                    {/* Dropdown Kabupaten (Muncul setelah provinsi dipilih) */}
-                    {provinsi && (
-                      <>
-                        <label className="block text-sm font-medium text-gray-400 mt-6">
-                          Kabupaten/Kota
-                        </label>
-                        <select
-                          className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                          value={kota}
-                          onChange={(e) => setKota(e.target.value)}
-                          required
-                        >
-                          <option value="" disabled>Pilih Kabupaten/Kota</option>
-                          {kotaList.map((kab) => (
-                            <option key={kab.id} value={kab.id}>{kab.name}</option>
-                          ))}
-                        </select>
-                      </>
-                    )}
+                      {/* Dropdown Kabupaten (Muncul setelah provinsi dipilih) */}
+                      {provinsi && (
+                        <>
+                          <label className="block text-sm font-medium text-gray-400 mt-6">
+                            Kabupaten/Kota
+                          </label>
+                          <select
+                            className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
+                            value={kota}
+                            onChange={(e) => setKota(e.target.value)}
+                            required
+                          >
+                            <option value="" disabled>
+                              Pilih Kabupaten/Kota
+                            </option>
+                            {kotaList.map((kab) => (
+                              <option key={kab.id} value={kab.id}>
+                                {kab.name}
+                              </option>
+                            ))}
+                          </select>
+                        </>
+                      )}
 
-                    {/* Dropdown Kecamatan (Muncul setelah kabupaten dipilih) */}
-                    {kota && (
-                      <>
-                        <label className="block text-sm font-medium text-gray-400 mt-6">
-                          Kecamatan
-                        </label>
-                        <select
-                          className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                          value={kecamatan}
-                          onChange={(e) => setKecamatan(e.target.value)}
-                          required
-                        >
-                          <option value="" disabled>Pilih Kecamatan</option>
-                          {kecamatanList.map((kec) => (
-                            <option key={kec.id} value={kec.id}>{kec.name}</option>
-                          ))}
-                        </select>
-                      </>
-                    )}
+                      {/* Dropdown Kecamatan (Muncul setelah kabupaten dipilih) */}
+                      {kota && (
+                        <>
+                          <label className="block text-sm font-medium text-gray-400 mt-6">
+                            Kecamatan
+                          </label>
+                          <select
+                            className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
+                            value={kecamatan}
+                            onChange={(e) => setKecamatan(e.target.value)}
+                            required
+                          >
+                            <option value="" disabled>
+                              Pilih Kecamatan
+                            </option>
+                            {kecamatanList.map((kec) => (
+                              <option key={kec.id} value={kec.id}>
+                                {kec.name}
+                              </option>
+                            ))}
+                          </select>
+                        </>
+                      )}
 
-                    {/* Dropdown Kelurahan (Muncul setelah kecamatan dipilih) */}
-                    {kecamatan && (
-                      <>
-                        <label className="block text-sm font-medium text-gray-400 mt-6">
-                          Kelurahan/Desa
-                        </label>
-                        <select
-                          className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                          value={kelurahan}
-                          onChange={(e) => setKelurahan(e.target.value)}
-                          required
-                        >
-                          <option value="" disabled>Pilih Kelurahan/Desa</option>
-                          {kelurahanList.map((kel) => (
-                            <option key={kel.id} value={kel.id}>{kel.name}</option>
-                          ))}
-                        </select>
-                      </>
-                    )}
-                  </div>
+                      {/* Dropdown Kelurahan (Muncul setelah kecamatan dipilih) */}
+                      {kecamatan && (
+                        <>
+                          <label className="block text-sm font-medium text-gray-400 mt-6">
+                            Kelurahan/Desa
+                          </label>
+                          <select
+                            className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
+                            value={kelurahan}
+                            onChange={(e) => setKelurahan(e.target.value)}
+                            required
+                          >
+                            <option value="" disabled>
+                              Pilih Kelurahan/Desa
+                            </option>
+                            {kelurahanList.map((kel) => (
+                              <option key={kel.id} value={kel.id}>
+                                {kel.name}
+                              </option>
+                            ))}
+                          </select>
+                        </>
+                      )}
+                    </div>
                     {/* Kolom kanan */}
                     <div className="flex flex-col items-left">
                       <label className="block text-sm font-medium text-gray-400">
@@ -410,24 +447,32 @@ const EditTanah = () => {
                         required
                       />
                       <label className="block text-sm font-medium text-gray-400 mt-6">
-                      Detail Lokasi
-                    </label>
-                    <input
-                      type="text"
-                      className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                      value={detailLokasi}
-                      onChange={(e) => setDetailLokasi(e.target.value)}
-                      required
-                    />
+                        Detail Lokasi
+                      </label>
+                      <input
+                        type="text"
+                        className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
+                        value={detailLokasi}
+                        onChange={(e) => setDetailLokasi(e.target.value)}
+                        required
+                      />
                     </div>
                   </div>
                   {/* Preview Lokasi */}
-                    <div className="bg-gray-100 p-4 rounded-md mt-8 shadow-md">
-                      <h3 className="text-lg font-semibold text-gray-700">Preview Lokasi:</h3>
-                      <p className="text-gray-600 mt-2">
-                        {`${provinsiList.find((p) => p.id === provinsi)?.name}, ${kotaList.find((k) => k.id === kota)?.name}, ${kecamatanList.find((k) => k.id === kecamatan)?.name}, ${kelurahanList.find((k) => k.id === kelurahan)?.name}, ${detailLokasi}`}
-                      </p>
-                    </div>
+                  <div className="bg-gray-100 p-4 rounded-md mt-8 shadow-md">
+                    <h3 className="text-lg font-semibold text-gray-700">
+                      Preview Lokasi:
+                    </h3>
+                    <p className="text-gray-600 mt-2">
+                      {`${provinsiList.find((p) => p.id === provinsi)?.name}, ${
+                        kotaList.find((k) => k.id === kota)?.name
+                      }, ${
+                        kecamatanList.find((k) => k.id === kecamatan)?.name
+                      }, ${
+                        kelurahanList.find((k) => k.id === kelurahan)?.name
+                      }, ${detailLokasi}`}
+                    </p>
+                  </div>
                   {/* Tombol Simpan */}
                   <div className="flex justify-center mt-8">
                     <button
@@ -493,86 +538,86 @@ const EditTanah = () => {
                     </thead>
                     <tbody>
                       {sertifikatList.length > 0 ? (
-                        <tr key={sertifikatList[0].id_sertifikat}>
-                          <td className="py-2 px-4 border-b text-center">1</td>
-                          <td className="py-2 px-4 border-b text-center">
-                            {sertifikatList[0].noDokumenBastw ||
-                              sertifikatList[0].noDokumenAIW ||
-                              sertifikatList[0].noDokumenSW}
-                          </td>
-                          <td className="py-2 px-4 border-b text-center">
-                            <div
-                              className={`inline-block px-8 py-2 rounded-[30px] ${
-                                sertifikatList[0]?.legalitas?.toLowerCase() ===
-                                "BASTW Terbit"
-                                  ? "bg-[#AFFEB5] text-[#187556]"
-                                  : sertifikatList[0]?.legalitas?.toLowerCase() ===
-                                    "AIW Terbit"
-                                  ? "bg-[#AFFEB5] text-[#187556]"
-                                  : sertifikatList[0]?.legalitas?.toLowerCase() ===
-                                    "Sertifikat Terbit"
-                                  ? "bg-[#AFFEB5] text-[#187556]"
-                                  : sertifikatList[0]?.legalitas?.toLowerCase() ===
-                                    "AIW ditolak"
-                                  ? "bg-[#FEC5D0] text-[#D80027]"
-                                  : sertifikatList[0]?.legalitas?.toLowerCase() ===
-                                    "Sertifikat ditolak"
-                                  ? "bg-[#FEC5D0] text-[#D80027]"
-                                  : sertifikatList[0]?.legalitas
-                                      ?.trim()
-                                      .toLowerCase() === "Proses BASTW"
-                                  ? "bg-[#FFEFBA] text-[#FECC23]"
-                                  : sertifikatList[0]?.legalitas?.toLowerCase() ===
-                                    "Proses AIW"
-                                  ? "bg-[#FFEFBA] text-[#FECC23]"
-                                  : sertifikatList[0]?.legalitas?.toLowerCase() ===
-                                    "Proses Sertifikat"
-                                  ? "bg-[#FFEFBA] text-[#FECC23]"
-                                  : ""
-                              }`}
-                            >
-                              {sertifikatList[0].legalitas}
-                            </div>
-                          </td>
-                          <td className="py-2 px-4 border-b text-center">
-                            {new Date(
-                              sertifikatList[0].created_at
-                            ).toLocaleDateString()}
-                          </td>
-                          <td className="py-5 flex items-center justify-center">
-                            <button
-                              onClick={() =>
-                                handlePreviewDokumen(sertifikatList[0].dokBastw)
-                              }
-                              className="text-blue-500 hover:text-blue-700 flex items-center justify-center"
-                            >
-                              <FaEye />
-                            </button>
-                          </td>
-                          <td className="text-xs text-center px-4 py-2 whitespace-nowrap font-semibold">
-                            <div
-                              className={`inline-block px-4 py-2 rounded-[30px] ${
-                                sertifikatList[0]?.status?.toLowerCase() ===
-                                "disetujui"
-                                  ? "bg-[#AFFEB5] text-[#187556]"
-                                  : sertifikatList[0]?.status?.toLowerCase() ===
-                                    "ditolak"
-                                  ? "bg-[#FEC5D0] text-[#D80027]"
-                                  : sertifikatList[0]?.status?.toLowerCase() ===
-                                    "ditinjau"
-                                  ? "bg-[#FFEFBA] text-[#FECC23]"
-                                  : ""
-                              }`}
-                            >
-                              {sertifikatList[0].status}
-                            </div>
-                          </td>
-                          <td className="py-2 px-4 border-b text-center">
-                            {calculateDayDifference(
-                              sertifikatList[0].created_at
-                            )}
-                          </td>
-                        </tr>
+                        sertifikatList.map((sertifikat, index) =>
+                          dokumenTypes.map(
+                            (type, idx) =>
+                              sertifikat[type.key] && (
+                                <tr key={`${sertifikat.id_sertifikat}-${idx}`}>
+                                  <td className="py-2 px-4 border-b text-center">
+                                    {idx + 1}
+                                  </td>
+                                  <td className="py-2 px-4 border-b text-center">
+                                    {sertifikat[type.key]}
+                                  </td>
+                                  <td className="py-2 px-4 border-b text-center">
+                                    <div
+                                      className={`inline-block px-8 py-2 rounded-[30px] ${
+                                        sertifikat?.legalitas?.toLowerCase() ===
+                                          "bastw terbit" ||
+                                        sertifikat?.legalitas?.toLowerCase() ===
+                                          "aiw terbit" ||
+                                        sertifikat?.legalitas?.toLowerCase() ===
+                                          "sertifikat terbit"
+                                          ? "bg-[#AFFEB5] text-[#187556]"
+                                          : sertifikat?.legalitas?.toLowerCase() ===
+                                              "aiw ditolak" ||
+                                            sertifikat?.legalitas?.toLowerCase() ===
+                                              "sertifikat ditolak"
+                                          ? "bg-[#FEC5D0] text-[#D80027]"
+                                          : sertifikat?.legalitas
+                                              ?.toLowerCase()
+                                              .includes("proses")
+                                          ? "bg-[#FFEFBA] text-[#FECC23]"
+                                          : ""
+                                      }`}
+                                    >
+                                      {sertifikat.legalitas}
+                                    </div>
+                                  </td>
+                                  <td className="py-2 px-4 border-b text-center">
+                                    {new Date(
+                                      sertifikat.created_at
+                                    ).toLocaleDateString()}
+                                  </td>
+                                  <td className="py-5 flex items-center justify-center">
+                                    <button
+                                      onClick={() =>
+                                        handlePreviewDokumen(
+                                          sertifikat[type.docKey]
+                                        )
+                                      }
+                                      className="text-blue-500 hover:text-blue-700 flex items-center justify-center"
+                                    >
+                                      <FaEye />
+                                    </button>
+                                  </td>
+                                  <td className="text-xs text-center px-4 py-2 whitespace-nowrap font-semibold">
+                                    <div
+                                      className={`inline-block px-4 py-2 rounded-[30px] ${
+                                        sertifikat?.status?.toLowerCase() ===
+                                        "disetujui"
+                                          ? "bg-[#AFFEB5] text-[#187556]"
+                                          : sertifikat?.status?.toLowerCase() ===
+                                            "ditolak"
+                                          ? "bg-[#FEC5D0] text-[#D80027]"
+                                          : sertifikat?.status?.toLowerCase() ===
+                                            "ditinjau"
+                                          ? "bg-[#FFEFBA] text-[#FECC23]"
+                                          : ""
+                                      }`}
+                                    >
+                                      {sertifikat.status}
+                                    </div>
+                                  </td>
+                                  <td className="py-2 px-4 border-b text-center">
+                                    {calculateDayDifference(
+                                      sertifikat.created_at
+                                    )}
+                                  </td>
+                                </tr>
+                              )
+                          )
+                        )
                       ) : (
                         <tr>
                           <td
