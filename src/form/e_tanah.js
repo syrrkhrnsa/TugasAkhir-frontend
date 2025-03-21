@@ -197,8 +197,7 @@ const EditTanah = () => {
 
       setSertifikatList(response.data.data || response.data);
     } catch (error) {
-      console.error("Gagal mengambil data sertifikat:", error);
-      alert("Gagal mengambil data sertifikat.");
+      // test
     }
   };
 
@@ -591,24 +590,26 @@ const EditTanah = () => {
                                       <FaEye />
                                     </button>
                                   </td>
-                                  <td className="text-xs text-center px-4 py-2 whitespace-nowrap font-semibold">
-                                    <div
-                                      className={`inline-block px-4 py-2 rounded-[30px] ${
-                                        sertifikat?.status?.toLowerCase() ===
-                                        "disetujui"
-                                          ? "bg-[#AFFEB5] text-[#187556]"
-                                          : sertifikat?.status?.toLowerCase() ===
-                                            "ditolak"
-                                          ? "bg-[#FEC5D0] text-[#D80027]"
-                                          : sertifikat?.status?.toLowerCase() ===
-                                            "ditinjau"
-                                          ? "bg-[#FFEFBA] text-[#FECC23]"
-                                          : ""
-                                      }`}
-                                    >
-                                      {sertifikat.status}
-                                    </div>
-                                  </td>
+                                  {isPimpinanJamaah && (
+                                    <td className="text-xs text-center px-4 py-2 whitespace-nowrap font-semibold">
+                                      <div
+                                        className={`inline-block px-4 py-2 rounded-[30px] ${
+                                          sertifikat?.status?.toLowerCase() ===
+                                          "disetujui"
+                                            ? "bg-[#AFFEB5] text-[#187556]"
+                                            : sertifikat?.status?.toLowerCase() ===
+                                              "ditolak"
+                                            ? "bg-[#FEC5D0] text-[#D80027]"
+                                            : sertifikat?.status?.toLowerCase() ===
+                                              "ditinjau"
+                                            ? "bg-[#FFEFBA] text-[#FECC23]"
+                                            : ""
+                                        }`}
+                                      >
+                                        {sertifikat.status}
+                                      </div>
+                                    </td>
+                                  )}
                                   <td className="py-2 px-4 border-b text-center">
                                     {calculateDayDifference(
                                       sertifikat.created_at
