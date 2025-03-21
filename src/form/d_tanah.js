@@ -43,8 +43,8 @@ const DetailTanah = () => {
         setSertifikatList(sertifikatResponse.data.data); // Perhatikan: data sertifikat ada di `data.data`
         console.log("Data Sertifikat:", sertifikatResponse.data);
       } catch (error) {
-        console.error("Error fetching data:", error);
-        alert("Terjadi kesalahan saat mengambil data. Silakan coba lagi.");
+        // console.error("Error fetching data:", error);
+        // alert("Terjadi kesalahan saat mengambil data. Silakan coba lagi.");
       } finally {
         setLoading(false);
       }
@@ -68,6 +68,12 @@ const DetailTanah = () => {
     const dayDifference = Math.floor(timeDifference / (1000 * 60 * 60 * 24)); // Konversi ke hari
     return `${dayDifference} hari`; // Format hasil
   };
+
+  const dokumenTypes = [
+    { key: "noDokumenBastw", label: "BASTW", docKey: "dokBastw" },
+    { key: "noDokumenAIW", label: "AIW", docKey: "dokAiw" },
+    { key: "noDokumenSW", label: "SW", docKey: "dokSw" },
+  ];
 
   return (
     <div className="relative">
@@ -153,66 +159,75 @@ const DetailTanah = () => {
                     </thead>
                     <tbody>
                       {sertifikatList.length > 0 ? (
-                        sertifikatList.map((sertifikat, index) => (
-                          <tr key={sertifikat.id_sertifikat}>
-                            <td className="py-2 px-4 border-b text-center">
-                              {index + 1}
-                            </td>
-                            <td className="py-2 px-4 border-b text-center">
-                              {sertifikat.noDokumenBastw ||
-                                sertifikat.noDokumenAIW ||
-                                sertifikat.noDokumenSW}
-                            </td>
-                            <td className="py-2 px-4 border-b text-center">
-                              <div
-                                className={`inline-block px-8 py-2 rounded-[30px] ${
-                                  sertifikat.legalitas
-                                    .toLowerCase()
-                                    .includes("terbit")
-                                    ? "bg-[#AFFEB5] text-[#187556]"
-                                    : sertifikat.legalitas
-                                        .toLowerCase()
-                                        .includes("ditolak")
-                                    ? "bg-[#FEC5D0] text-[#D80027]"
-                                    : "bg-[#FFEFBA] text-[#FECC23]"
-                                }`}
-                              >
-                                {sertifikat.legalitas}
-                              </div>
-                            </td>
-                            <td className="py-2 px-4 border-b text-center">
-                              {new Date(
-                                sertifikat.created_at
-                              ).toLocaleDateString()}
-                            </td>
-                            <td className="py-5 flex items-center justify-center">
-                              <button
-                                onClick={() =>
-                                  handlePreviewDokumen(
-                                    sertifikat.dokBastw ||
-                                      sertifikat.dokAiw ||
-                                      sertifikat.dokSw
-                                  )
-                                }
-                                className="text-blue-500 hover:text-blue-700 flex items-center justify-center"
-                              >
-                                <FaEye />
-                              </button>
-                            </td>
-                            <td className="py-2 px-4 border-b text-center">
-                              {calculateDayDifference(
-                                sertifikatList[0].created_at
-                              )}
-                            </td>
-                          </tr>
-                        ))
+                        sertifikatList.map((sertifikat, index) =>
+                          dokumenTypes.map(
+                            (type, idx) =>
+                              sertifikat[type.key] && (
+                                <tr key={`${sertifikat.id_sertifikat}-${idx}`}>
+                                  <td className="py-2 px-4 border-b text-center">
+                                    {idx + 1}
+                                  </td>
+                                  <td className="py-2 px-4 border-b text-center">
+                                    {sertifikat[type.key]}
+                                  </td>
+                                  <td className="py-2 px-4 border-b text-center">
+                                    <div
+                                      className={`inline-block px-8 py-2 rounded-[30px] ${
+                                        sertifikat?.legalitas?.toLowerCase() ===
+                                          "bastw terbit" ||
+                                        sertifikat?.legalitas?.toLowerCase() ===
+                                          "aiw terbit" ||
+                                        sertifikat?.legalitas?.toLowerCase() ===
+                                          "sertifikat terbit"
+                                          ? "bg-[#AFFEB5] text-[#187556]"
+                                          : sertifikat?.legalitas?.toLowerCase() ===
+                                              "aiw ditolak" ||
+                                            sertifikat?.legalitas?.toLowerCase() ===
+                                              "sertifikat ditolak"
+                                          ? "bg-[#FEC5D0] text-[#D80027]"
+                                          : sertifikat?.legalitas
+                                              ?.toLowerCase()
+                                              .includes("proses")
+                                          ? "bg-[#FFEFBA] text-[#FECC23]"
+                                          : ""
+                                      }`}
+                                    >
+                                      {sertifikat.legalitas}
+                                    </div>
+                                  </td>
+                                  <td className="py-2 px-4 border-b text-center">
+                                    {new Date(
+                                      sertifikat.created_at
+                                    ).toLocaleDateString()}
+                                  </td>
+                                  <td className="py-5 flex items-center justify-center">
+                                    <button
+                                      onClick={() =>
+                                        handlePreviewDokumen(
+                                          sertifikat[type.docKey]
+                                        )
+                                      }
+                                      className="text-blue-500 hover:text-blue-700 flex items-center justify-center"
+                                    >
+                                      <FaEye />
+                                    </button>
+                                  </td>
+                                  <td className="py-2 px-4 border-b text-center">
+                                    {calculateDayDifference(
+                                      sertifikat.created_at
+                                    )}
+                                  </td>
+                                </tr>
+                              )
+                          )
+                        )
                       ) : (
                         <tr>
                           <td
-                            colSpan="5"
-                            className="text-center py-4 text-gray-500"
+                            colSpan="7"
+                            className="py-2 px-4 border-b text-center"
                           >
-                            Tidak ada data sertifikat
+                            Tidak ada data sertifikat.
                           </td>
                         </tr>
                       )}

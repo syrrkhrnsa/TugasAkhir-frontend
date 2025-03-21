@@ -388,13 +388,13 @@ const Legalitas = () => {
                               }`}
                             >
                               {item.legalitas}
+                              <button
+                                className="ml-2 bg-[#fff] text-gray-400 px-2 py-1 rounded-md hover:bg-[#848382] hover:text-[#000] text-xs"
+                                onClick={() => openModal(item)}
+                              >
+                                <FaEdit />
+                              </button>
                             </div>
-                            <button
-                              className="ml-2 bg-kuning text-white px-2 py-1 rounded-md hover:bg-[#ffe58e] hover:text-[#000] text-xs"
-                              onClick={() => openModal(item)}
-                            >
-                              <FaEdit />
-                            </button>
                           </td>
                           <td className="text-xs text-center px-4 py-4 flex gap-3 justify-center">
                             <button
