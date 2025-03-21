@@ -353,22 +353,6 @@ const Legalitas = () => {
                             {item.luasTanah || item.luas_tanah}
                           </td>
                           {isPimpinanJamaah ? (
-                          <td className="text-sm text-center px-4 py-2 whitespace-nowrap font-semibold">
-                            <div
-                              className={`inline-block px-4 py-2 rounded-[30px] ${
-                                item?.status?.toLowerCase() === "disetujui"
-                                  ? "bg-[#AFFEB5] text-[#187556]"
-                                  : item?.status?.toLowerCase() === "ditolak"
-                                  ? "bg-[#FEC5D0] text-[#D80027]"
-                                  : item?.status?.toLowerCase() === "ditinjau"
-                                  ? "bg-[#FFEFBA] text-[#FECC23]"
-                                  : ""
-                              }`}
-                            >
-                              {item.status}
-                            </div>
-                          </td>
-                        ): null}
                             <td className="text-sm text-center px-4 py-2 whitespace-nowrap font-semibold">
                               <div
                                 className={`inline-block px-4 py-2 rounded-[30px] ${
