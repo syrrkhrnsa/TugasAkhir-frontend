@@ -258,6 +258,7 @@ const Legalitas = () => {
                           <td className="text-sm text-center px-4 py-4 whitespace-nowrap font-semibold">
                             {item.luasTanah || item.luas_tanah}
                           </td>
+                          {isPimpinanJamaah ? (
                           <td className="text-sm text-center px-4 py-2 whitespace-nowrap font-semibold">
                             <div
                               className={`inline-block px-4 py-2 rounded-[30px] ${
@@ -273,7 +274,7 @@ const Legalitas = () => {
                               {item.status}
                             </div>
                           </td>
-                          {isPimpinanJamaah ? (
+                        ): null}
                             <td className="text-sm text-center px-4 py-2 whitespace-nowrap font-semibold">
                               <div
                                 className={`inline-block px-4 py-2 rounded-[30px] ${
@@ -289,7 +290,6 @@ const Legalitas = () => {
                                 {item.legalitas}
                               </div>
                             </td>
-                          ): null}
                           <td className="text-xs text-center px-4 py-4 flex gap-3 justify-center">
                             <button onClick={() => console.log("Pemetaan clicked")}>
                               <FaMap className="text-gray-400 text-lg" />
