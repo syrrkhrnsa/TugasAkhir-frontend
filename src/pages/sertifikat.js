@@ -346,7 +346,7 @@ const Legalitas = () => {
                           <td className="text-sm text-center px-4 py-4 whitespace-nowrap font-semibold">
                             {item.NamaWakif || item.nama_wakif}
                           </td>
-                          <td className="text-sm text-center px-4 py-4 whitespace-nowrap font-semibold">
+                          <td className="text-xs text-center px-4 py-4 font-semibold w-[200px] break-words whitespace-normal overflow-hidden overflow-ellipsis max-h-[100px] hover:max-h-none hover:whitespace-pre-wrap">
                             {item.lokasi || item.lokasi_tanah}
                           </td>
                           <td className="text-sm text-center px-4 py-4 whitespace-nowrap font-semibold">
