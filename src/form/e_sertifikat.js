@@ -47,8 +47,9 @@ const EditSertifikat = () => {
         setNoDokumenSW(sertifikat.noDokumenSW || "");
         // Jika ada file yang sudah diunggah sebelumnya, Anda bisa menyimpannya di state
         // setDokBastw(sertifikat.dokBastw || null);
-        // setDokAiw(sertifikat.dokAiw || null);
-        // setDokSw(sertifikat.dokSw || null);
+        setDokBastw("http://127.0.0.1:8000/storage/file.pdf" || null);
+        setDokAiw(sertifikat.dokAiw || null);
+        setDokSw(sertifikat.dokSw || null);
       }
       setLoading(false);
     } catch (error) {
