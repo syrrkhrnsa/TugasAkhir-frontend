@@ -11,6 +11,7 @@ import {
   FaEye,
 } from "react-icons/fa"; // Importing icons
 import { getUserId, getRoleId } from "../utils/Auth";
+import Swal from "sweetalert2";
 
 const Legalitas = () => {
   const [dataList, setDataList] = useState([]); // Mengganti tanahList menjadi dataList
@@ -73,9 +74,6 @@ const Legalitas = () => {
         }
       );
 
-      console.log("Response dari API tanah:", tanahResponse.data);
-      console.log("Response dari API approval:", approvalResponse.data);
-
       // Gabungkan data dari kedua API
       const combinedData = [
         ...(Array.isArray(tanahResponse.data.data)
@@ -124,10 +122,20 @@ const Legalitas = () => {
         prevList.filter((item) => item.id_tanah !== id && item.id !== id)
       );
 
-      alert("Data berhasil dihapus!");
+      Swal.fire({
+        icon: "success",
+        title: "Berhasil!",
+        text: "Data berhasil dihapus!",
+        confirmButtonText: "OK",
+      });
     } catch (error) {
       console.error("Gagal menghapus data:", error);
-      alert("Terjadi kesalahan saat menghapus data.");
+      Swal.fire({
+        icon: "error",
+        title: "Gagal!",
+        text: "Terjadi kesalahan saat menghapus data.",
+        confirmButtonText: "OK",
+      });
     }
   };
 
@@ -193,10 +201,6 @@ const Legalitas = () => {
       return;
     }
 
-    console.log("Selected Item:", selectedItem); // Untuk debug
-    console.log("ID Tanah:", selectedItem.id_tanah); // Pastikan ID yang dikirim benar
-    console.log("Legalitas Baru (Dari Dropdown):", selectedLegalitas); // Menampilkan pilihan yang dipilih
-
     try {
       // Kirim ID Tanah dan Legalitas yang dipilih ke API
       await axios.put(
@@ -210,19 +214,27 @@ const Legalitas = () => {
         }
       );
 
-      alert("Legalitas berhasil diperbarui!");
+      Swal.fire({
+        icon: "success",
+        title: "Berhasil!",
+        text: "Legalitas berhasil diperbarui!",
+        confirmButtonText: "OK",
+      });
       fetchData(); // Ambil ulang data setelah update
       closeModal();
     } catch (error) {
       console.error("Gagal mengupdate legalitas:", error);
-      alert("Terjadi kesalahan saat mengupdate legalitas.");
+      Swal.fire({
+        icon: "error",
+        title: "Gagal!",
+        text: "Terjadi kesalahan saat mengupdate legalitas.",
+        confirmButtonText: "OK",
+      });
     }
   };
 
   const openModal = async (item) => {
     console.log("Opening modal for:", item);
-    setSelectedItem(item);
-    setIsModalOpen(true);
     setIsLoading(true);
 
     const token = localStorage.getItem("token");
@@ -237,13 +249,34 @@ const Legalitas = () => {
         }
       );
 
+      console.log("id tanah :", item.id_tanah);
+
       if (response.data.status === "success") {
         // Set legalitas options
         const options = [response.data.data.legalitas]; // Misalnya data ada dalam bentuk array, atau bisa lebih
         setLegalitasOptions(options);
         setSelectedLegalitas(options[0]); // Menyimpan pilihan pertama sebagai default
+
+        // Buka modal hanya jika data legalitas tersedia
+        setSelectedItem(item);
+        setIsModalOpen(true);
+      } else {
+        // Tampilkan SweetAlert jika data legalitas tidak tersedia
+        Swal.fire({
+          icon: "warning",
+          title: "Peringatan!",
+          text: "Data Legalitas Belum Tersedia",
+          confirmButtonText: "OK",
+        });
       }
     } catch (error) {
+      // Tampilkan SweetAlert jika terjadi error
+      Swal.fire({
+        icon: "warning",
+        title: "Peringatan!",
+        text: "Data Legalitas Belum Tersedia",
+        confirmButtonText: "OK",
+      });
       console.error("Error fetching legalitas:", error);
     } finally {
       setIsLoading(false);
@@ -253,6 +286,8 @@ const Legalitas = () => {
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedItem(null);
+    setLegalitasOptions([]); // Reset legalitas options
+    setSelectedLegalitas(""); // Reset selected legalitas
   };
 
   return (
@@ -478,7 +513,7 @@ const Legalitas = () => {
                         Batal
                       </button>
                       <button
-                        className="bg-[#187556] text-white px-4 py-2 rounded-md"
+                        className="hover:bg-[#2563EB] bg-[#3B82F6] text-white px-4 py-2 rounded-md"
                         onClick={handleUpdateLegalitas}
                       >
                         Simpan
