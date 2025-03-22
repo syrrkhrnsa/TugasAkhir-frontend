@@ -4,6 +4,7 @@ import Sidebar from "../components/Sidebar";
 import axios from "axios";
 import { FaEye, FaPlus, FaEdit } from "react-icons/fa";
 import { getUserId, getRoleId } from "../utils/Auth";
+import Swal from "sweetalert2";
 
 const EditTanah = () => {
   const { id } = useParams(); // Ambil ID dari URL
@@ -36,6 +37,19 @@ const EditTanah = () => {
     kecamatanList.find((k) => k.id === kecamatan)?.name
   }, ${kelurahanList.find((k) => k.id === kelurahan)?.name}, ${detailLokasi}`;
 
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedLegalitas, setSelectedLegalitas] = useState("");
+  const [legalitasOptions, setLegalitasOptions] = useState([
+    "Proses BASTW",
+    "BASTW Terbit",
+    "Proses AIW",
+    "AIW Terbit",
+    "Proses Sertifikat",
+    "Sertifikat Terbit",
+    "AIW ditolak",
+    "Sertifikat ditolak",
+  ]);
+
   useEffect(() => {
     fetchTanah();
     fetchSertifikat();
@@ -47,7 +61,12 @@ const EditTanah = () => {
     const fetchUsers = async () => {
       const token = localStorage.getItem("token");
       if (!token) {
-        alert("Anda harus login untuk melihat data pengguna.");
+        Swal.fire({
+          icon: "warning",
+          title: "Peringatan!",
+          text: "Anda harus login untuk mengupdate legalitas.",
+          confirmButtonText: "OK",
+        });
         return;
       }
       try {
@@ -141,7 +160,12 @@ const EditTanah = () => {
     const token = localStorage.getItem("token");
 
     if (!token) {
-      alert("Anda harus login untuk mengedit data.");
+      Swal.fire({
+        icon: "warning",
+        title: "Peringatan!",
+        text: "Anda harus login untuk mengedit data.",
+        confirmButtonText: "OK",
+      });
       navigate("/dashboard");
       return;
     }
@@ -171,7 +195,12 @@ const EditTanah = () => {
       setLoading(false);
     } catch (error) {
       console.error("Gagal mengambil data tanah:", error);
-      alert("Gagal mengambil data tanah.");
+      Swal.fire({
+        icon: "error",
+        title: "Gagal!",
+        text: "Gagal mengambil data tanah.",
+        confirmButtonText: "OK",
+      });
       navigate("/dashboard");
     }
   };
@@ -244,11 +273,21 @@ const EditTanah = () => {
 
       localStorage.setItem("tanahList", JSON.stringify(updatedTanahList));
 
-      alert("Data berhasil diperbarui!");
+      Swal.fire({
+        icon: "success",
+        title: "Berhasil!",
+        text: "Data berhasil diperbarui!",
+        confirmButtonText: "OK",
+      });
       navigate("/dashboard"); // Kembali ke dashboard tanpa reload API
     } catch (error) {
       console.error("Gagal memperbarui data:", error);
-      alert("Terjadi kesalahan saat memperbarui data.");
+      Swal.fire({
+        icon: "error",
+        title: "Gagal!",
+        text: "Terjadi kesalahan saat memperbarui data.",
+        confirmButtonText: "OK",
+      });
     }
   };
 
@@ -271,11 +310,16 @@ const EditTanah = () => {
     // Implementasi logika untuk membuat legalitas baru
   };
 
-  const handleUpdateLegalitas = (sertifikatId) => {
+  const handleUpdateSertifikat = (sertifikatId) => {
     if (sertifikatId) {
       navigate(`/sertifikat/edit/${sertifikatId}`);
     } else {
-      alert("Tidak ada sertifikat yang dapat diupdate.");
+      Swal.fire({
+        icon: "warning",
+        title: "Peringatan!",
+        text: "Tidak ada sertifikat yang dapat diupdate.",
+        confirmButtonText: "OK",
+      });
     }
   };
 
@@ -284,6 +328,57 @@ const EditTanah = () => {
     { key: "noDokumenAIW", label: "AIW", docKey: "dokAiw" },
     { key: "noDokumenSW", label: "SW", docKey: "dokSw" },
   ];
+
+  const openModal = () => {
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+  };
+
+  const handleLegalitasChange = (e) => {
+    setSelectedLegalitas(e.target.value);
+  };
+
+  const handleUpdateLegalitas = async () => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      alert("Anda harus login untuk mengupdate legalitas.");
+      return;
+    }
+
+    try {
+      await axios.put(
+        `http://127.0.0.1:8000/api/sertifikat/legalitas/${sertifikatId}`,
+        { legalitas: selectedLegalitas },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        }
+      );
+
+      Swal.fire({
+        icon: "success",
+        title: "Berhasil!",
+        text: "Legalitas berhasil diperbarui!",
+        confirmButtonText: "OK",
+      });
+      closeModal();
+      fetchSertifikat(); // Refresh data sertifikat setelah update
+    } catch (error) {
+      console.error("Gagal memperbarui legalitas:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Gagal!",
+        text: "Terjadi kesalahan saat memperbarui legalitas.",
+        confirmButtonText: "OK",
+      });
+    }
+  };
 
   return (
     <div className="relative">
@@ -497,7 +592,7 @@ const EditTanah = () => {
                       </button>
                       <button
                         onClick={() =>
-                          handleUpdateLegalitas(
+                          handleUpdateSertifikat(
                             sertifikatList[0]?.id_sertifikat
                           )
                         } // Gunakan ID sertifikat yang sudah ada
@@ -567,10 +662,16 @@ const EditTanah = () => {
                                               ?.toLowerCase()
                                               .includes("proses")
                                           ? "bg-[#FFEFBA] text-[#FECC23]"
-                                          : ""
+                                          : "bg-[#D9D9D9] text-[#7E7E7E]"
                                       }`}
                                     >
-                                      {sertifikat.legalitas}
+                                      {sertifikat.legalitas || "-"}
+                                      <button
+                                        onClick={openModal}
+                                        className="ml-2 bg-[#fff] text-gray-400 px-2 py-1 rounded-md hover:bg-[#848382] hover:text-[#000] text-xs"
+                                      >
+                                        <FaEdit />
+                                      </button>
                                     </div>
                                   </td>
                                   <td className="py-2 px-4 border-b text-center">
@@ -631,6 +732,45 @@ const EditTanah = () => {
                       )}
                     </tbody>
                   </table>
+                  {isModalOpen && (
+                    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+                      <div className="bg-white p-6 rounded-lg shadow-lg w-96">
+                        <h2 className="text-xl font-semibold mb-4">
+                          Update Legalitas
+                        </h2>
+
+                        <label className="block text-sm font-medium text-gray-700">
+                          Status Legalitas:
+                        </label>
+                        <select
+                          value={selectedLegalitas}
+                          onChange={handleLegalitasChange}
+                          className="border p-2 w-full"
+                        >
+                          {legalitasOptions.map((option, index) => (
+                            <option key={index} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+
+                        <div className="flex justify-end mt-4">
+                          <button
+                            className="bg-gray-500 text-white px-4 py-2 rounded-md mr-2"
+                            onClick={closeModal}
+                          >
+                            Batal
+                          </button>
+                          <button
+                            className="hover:bg-[#2563EB] bg-[#3B82F6] text-white px-4 py-2 rounded-md"
+                            onClick={handleUpdateLegalitas}
+                          >
+                            Simpan
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </>
             )}
