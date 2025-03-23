@@ -99,7 +99,7 @@ const Approval = () => {
 
     const token = localStorage.getItem("token");
     const approvalId = selectedMessage.data.id_approval; // Get the id_approval
-
+    console.log("Approval ID:", approvalId);
     try {
       const response = await axios.post(`http://127.0.0.1:8000/api/approvals/${approvalId}/update/approve`, {}, {
         headers: {
