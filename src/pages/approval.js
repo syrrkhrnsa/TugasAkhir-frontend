@@ -2,15 +2,17 @@ import React, { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import axios from "axios";
 import { getRoleId } from "../utils/Auth";
+import Swal from 'sweetalert2';
 
 const Approval = () => {
   const [search, setSearch] = useState("");
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [messages, setMessages] = useState([]);
-  const [viewedMessages, setViewedMessages] = useState(new Set()); // Track viewed messages
+  const [viewedMessages, setViewedMessages] = useState(new Set());
+  const [approvalStatus, setApprovalStatus] = useState({}); // Track approval status for each message
   const isCreating = !selectedMessage?.data?.details?.previous_data;
+  const isSertifikat= !selectedMessage?.data?.details?.NamaPimpinanJamaah;
 
-  // Fetch notifications from the backend
   const fetchNotifications = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -20,9 +22,8 @@ const Approval = () => {
           Accept: "application/json",
         },
       });
-      // Sort messages by created_at in descending order
       const sortedMessages = response.data.data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-      setMessages(sortedMessages); // Set messages to the fetched notifications
+      setMessages(sortedMessages);
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
     }
@@ -32,11 +33,21 @@ const Approval = () => {
   const isPimpinanJamaah = roleId === "326f0dde-2851-4e47-ac5a-de6923447317";
 
   useEffect(() => {
-    fetchNotifications(); // Fetch notifications on mount
-
-    // Load viewed messages from local storage
+    fetchNotifications();
     const viewed = JSON.parse(localStorage.getItem("viewedMessages")) || [];
     setViewedMessages(new Set(viewed));
+
+    // Load approval status from localStorage
+    const storedApprovalStatus = localStorage.getItem("approvalStatus");
+    if (storedApprovalStatus) {
+      try {
+        setApprovalStatus(JSON.parse(storedApprovalStatus));
+      } catch (error) {
+        console.error("Failed to parse approval status from localStorage:", error);
+        // Clear invalid data
+        localStorage.removeItem("approvalStatus");
+      }
+    }
   }, []);
 
   const handleSelectMessage = (msg) => {
@@ -44,40 +55,52 @@ const Approval = () => {
     setViewedMessages((prev) => {
       const updated = new Set(prev);
       updated.add(msg.id);
-      localStorage.setItem("viewedMessages", JSON.stringify(Array.from(updated))); // Save to local storage
+      localStorage.setItem("viewedMessages", JSON.stringify(Array.from(updated)));
       return updated;
     });
   };
 
   const handleApprove = async () => {
     if (!selectedMessage) return;
-
+  
     const token = localStorage.getItem("token");
-    const approvalId = selectedMessage.data.id_approval; // Get the id_approval
-
+    const approvalId = selectedMessage.data.id_approval;
+  
     try {
-      const response = await axios.post(`http://127.0.0.1:8000/api/approvals/${approvalId}/approve`, {}, {
+      await axios.post(`http://127.0.0.1:8000/api/approvals/${approvalId}/approve`, {}, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",
         },
       });
-
-      console.log("Response from approval:", response.data); // Log response
-      alert("Data telah disetujui dan disimpan.");
-      fetchNotifications(); // Refresh notifications after approval
+  
+      // Ganti alert dengan SweetAlert
+      Swal.fire({
+        icon: 'success',
+        title: 'Berhasil!',
+        text: 'Data telah disetujui dan disimpan.',
+      });
+  
+      const newApprovalStatus = { ...approvalStatus, [selectedMessage.id]: "approved" };
+      setApprovalStatus(newApprovalStatus);
+      localStorage.setItem("approvalStatus", JSON.stringify(newApprovalStatus)); // Save to localStorage
+      fetchNotifications();
     } catch (error) {
       console.error("Gagal menyetujui data:", error);
-      alert("Terjadi kesalahan saat menyetujui data.");
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal!',
+        text: 'Terjadi kesalahan saat menyetujui data.',
+      });
     }
   };
 
   const handleReject = async () => {
     if (!selectedMessage) return;
-
+  
     const token = localStorage.getItem("token");
-    const approvalId = selectedMessage.data.id_approval; // Get the id_approval
-
+    const approvalId = selectedMessage.data.id_approval;
+  
     try {
       await axios.post(`http://127.0.0.1:8000/api/approvals/${approvalId}/reject`, {}, {
         headers: {
@@ -85,20 +108,34 @@ const Approval = () => {
           Accept: "application/json",
         },
       });
-
-      alert("Data telah ditolak.");
-      fetchNotifications(); // Refresh notifications after rejection
+  
+      // Ganti alert dengan SweetAlert
+      Swal.fire({
+        icon: 'success',
+        title: 'Berhasil!',
+        text: 'Data telah ditolak.',
+      });
+  
+      const newApprovalStatus = { ...approvalStatus, [selectedMessage.id]: "rejected" };
+      setApprovalStatus(newApprovalStatus);
+      localStorage.setItem("approvalStatus", JSON.stringify(newApprovalStatus)); // Save to localStorage
+      fetchNotifications();
     } catch (error) {
       console.error("Gagal menolak data:", error);
-      alert("Terjadi kesalahan saat menolak data.");
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal!',
+        text: 'Terjadi kesalahan saat menolak data.',
+      });
     }
   };
 
   const handleUpdateApprove = async () => {
     if (!selectedMessage) return;
-
+  
     const token = localStorage.getItem("token");
     const approvalId = selectedMessage.data.id_approval; // Get the id_approval
+  
     console.log("Approval ID:", approvalId);
     try {
       const response = await axios.post(`http://127.0.0.1:8000/api/approvals/${approvalId}/update/approve`, {}, {
@@ -107,22 +144,35 @@ const Approval = () => {
           Accept: "application/json",
         },
       });
-
+  
       console.log("Response from approval:", response.data); // Log response
-      alert("Data telah disetujui dan disimpan.");
+      // Ganti alert dengan SweetAlert
+      Swal.fire({
+        icon: 'success',
+        title: 'Berhasil!',
+        text: 'Data telah disetujui dan disimpan.',
+      });
+  
+      const newApprovalStatus = { ...approvalStatus, [selectedMessage.id]: "approved" };
+      setApprovalStatus(newApprovalStatus);
+      localStorage.setItem("approvalStatus", JSON.stringify(newApprovalStatus)); // Save to localStorage
       fetchNotifications(); // Refresh notifications after approval
     } catch (error) {
       console.error("Gagal menyetujui data:", error);
-      alert("Terjadi kesalahan saat menyetujui data.");
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal!',
+        text: 'Terjadi kesalahan saat menyetujui data.',
+      });
     }
   };
 
   const handleUpdateReject = async () => {
     if (!selectedMessage) return;
-
+  
     const token = localStorage.getItem("token");
     const approvalId = selectedMessage.data.id_approval; // Get the id_approval
-
+  
     try {
       const response = await axios.post(`http://127.0.0.1:8000/api/approvals/${approvalId}/update/reject`, {}, {
         headers: {
@@ -130,13 +180,26 @@ const Approval = () => {
           Accept: "application/json",
         },
       });
-
+  
       console.log("Response from rejection:", response.data); // Log response
-      alert("Data telah ditolak.");
+      // Ganti alert dengan SweetAlert
+      Swal.fire({
+        icon: 'success',
+        title: 'Berhasil!',
+        text: 'Data telah ditolak.',
+      });
+  
+      const newApprovalStatus = { ...approvalStatus, [selectedMessage.id]: "rejected" };
+      setApprovalStatus(newApprovalStatus);
+      localStorage.setItem("approvalStatus", JSON.stringify(newApprovalStatus)); // Save to localStorage
       fetchNotifications(); // Refresh notifications after rejection
     } catch (error) {
       console.error("Gagal menolak data:", error);
-      alert("Terjadi kesalahan saat menolak data.");
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal!',
+        text: 'Terjadi kesalahan saat menolak data.',
+      });
     }
   };
 
@@ -157,31 +220,22 @@ const Approval = () => {
           />
         </div>
 
-        {/* Container utama untuk daftar pesan dan detail */}
         <div className="flex border rounded-lg overflow-hidden shadow-md">
-          {/* List Messages */}
           <div className="w-1/2 p-4 bg-white border-r">
             <ul className="divide-y divide-gray-300">
               {messages.map((msg) => {
                 const details = msg.data.details || {};
                 const previousData = details.previous_data || {};
-                const updatedData = details.updated_data || {}; // Ambil updated_data jika ada
-                const isCreating = !details.previous_data; 
+                const updatedData = details.updated_data || {};
+                const isCreating = !details.previous_data;
 
-                // Ambil NamaPimpinanJamaah dari updated_data, details, atau previous_data
-                const namaPimpinan =
-                  updatedData.NamaPimpinanJamaah ||
-                  details.NamaPimpinanJamaah ||
-                  previousData.NamaPimpinanJamaah ||
-                  "Unknown";
+                const namaPimpinan = isPimpinanJamaah ? msg.data.approvername : (msg.data.username || "Unknown");
 
-                // Ambil pesan dari updated_data atau message dari msg.data jika kosong
                 let message =
-                  updatedData.message || // Prioritaskan pesan dari updated_data
-                  msg.data.message || // Jika tidak ada, pakai default dari msg.data
+                  updatedData.message ||
+                  msg.data.message ||
                   "Tidak ada pesan tersedia";
 
-                // Format waktu notifikasi
                 const formattedDate = new Intl.DateTimeFormat("id-ID", {
                   day: "2-digit",
                   month: "long",
@@ -201,7 +255,6 @@ const Approval = () => {
                   >
                     <div className="flex flex-col flex-1">
                       <div className="flex items-center">
-                        {/* Red circle for unread messages */}
                         {!viewedMessages.has(msg.id) && (
                           <span className="w-2.5 h-2.5 bg-red-500 rounded-full mr-2"></span>
                         )}
@@ -223,46 +276,135 @@ const Approval = () => {
             </ul>
           </div>
 
-          {/* Detail Message */}
           <div className="w-1/2 p-6 bg-white-50 flex flex-col justify-center items-center text-center">
             {selectedMessage ? (
               <>
                 <div className="text-gray-600 mb-4 text-left">
-                  {isCreating ? (
-                    <table className="min-w-full border-collapse border border-gray-300">
-                      <thead>
-                        <tr>
-                          <th className="border border-gray-300 px-4 py-2">Judul</th>
-                          <th className="border border-gray-300 px-4 py-2">Data</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td className="border border-gray-300 px-4 py-2">Pimpinan Jamaah</td>
-                          <td className="border border-gray-300 px-4 py-2">{selectedMessage.data.details?.NamaPimpinanJamaah || "N/A"}</td>
-                        </tr>
-                        <tr>
-                          <td className="border border-gray-300 px-4 py-2">Nama Wakif</td>
-                          <td className="border border-gray-300 px-4 py-2">{selectedMessage.data.details?.NamaWakif || "N/A"}</td>
-                        </tr>
-                        <tr>
-                          <td className="border border-gray-300 px-4 py-2">Lokasi</td>
-                          <td className="border border-gray-300 px-4 py-2">{selectedMessage.data.details?.lokasi || "N/A"}</td>
-                        </tr>
-                        <tr>
-                          <td className="border border-gray-300 px-4 py-2">Luas Tanah</td>
-                          <td className="border border-gray-300 px-4 py-2">{selectedMessage.data.details?.luasTanah || "N/A"}</td>
-                        </tr>
-                        <tr>
-                          <td className="border border-gray-300 px-4 py-2">Legalitas</td>
-                          <td className="border border-gray-300 px-4 py-2">{selectedMessage.data.details?.legalitas || "N/A"}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  ) : (
-                    <div className="flex flex-col gap-6">
-                      <div>
-                        <h3 className="text-lg font-semibold mb-2">Data Sebelumnya</h3>
+                  {/* New section for isSertifikat */}
+                  {isSertifikat && ( 
+                        <>
+                          {isCreating ? (
+                            <div className="mt-6">
+                              <h3 className="text-lg font-semibold mb-2">Detail Sertifikat</h3>
+                              <table className="min-w-full border-collapse border border-gray-300">
+                                <thead>
+                                  <tr>
+                                    <th className="border border-gray-300 px-4 py-2">Judul</th>
+                                    <th className="border border-gray-300 px-4 py-2" colSpan="2">Data</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  <tr>
+                                    <td className="border border-gray-300 px-4 py-2">Pimpinan Jamaah</td>
+                                    <td className="border border-gray-300 px-4 py-2" colSpan="2">{selectedMessage.data.username || "N/A"}</td>
+                                  </tr>
+                                  <tr>
+                                    <td className="border border-gray-300 px-4 py-2">No BASTW</td>
+                                    <td className="border border-gray-300 px-4 py-2">{selectedMessage.data.details?.noDokumenBastw || "N/A"}</td>
+                                    <td className="border border-gray-300 px-4 py-2">{selectedMessage.data.details?.dokBastw || "N/A"}</td>
+                                  </tr>
+                                  <tr>
+                                    <td className="border border-gray-300 px-4 py-2">No AIW</td>
+                                    <td className="border border-gray-300 px-4 py-2">{selectedMessage.data.details?.noDokumenAIW || "N/A"}</td>
+                                    <td className="border border-gray-300 px-4 py-2">{selectedMessage.data.details?.dokAiw || "N/A"}</td>
+                                  </tr>
+                                  <tr>
+                                    <td className="border border-gray-300 px-4 py-2">No SW</td>
+                                    <td className="border border-gray-300 px-4 py-2">{selectedMessage.data.details?.noDokumenSW || "N/A"}</td>
+                                    <td className="border border-gray-300 px-4 py-2">{selectedMessage.data.details?.dokSw || "N/A"}</td>
+                                  </tr>
+                                  <tr>
+                                    <td className="border border-gray-300 px-4 py-2">Legalitas</td>
+                                    <td className="border border-gray-300 px-4 py-2" colSpan="2">{selectedMessage.data.details?.legalitas || "N/A"}</td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col gap-6">
+                              <div>
+                                <h3 className="text-lg font-semibold mb-2">Data Sebelumnya</h3>
+                                <table className="min-w-full border-collapse border border-gray-300">
+                                  <thead>
+                                    <tr>
+                                      <th className="border border-gray-300 px-4 py-2">Judul</th>
+                                      <th className="border border-gray-300 px-4 py-2"colSpan="2">Data</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                  <tr>
+                                    <td className="border border-gray-300 px-4 py-2">Pimpinan Jamaah</td>
+                                    <td className="border border-gray-300 px-4 py-2" colSpan="2">{selectedMessage.data.username || "N/A"}</td>
+                                  </tr>
+                                  <tr>
+                                    <td className="border border-gray-300 px-4 py-2">No BASTW</td>
+                                    <td className="border border-gray-300 px-4 py-2">{selectedMessage.data.details?.previous_data.noDokumenBastw || "N/A"}</td>
+                                    <td className="border border-gray-300 px-4 py-2">{selectedMessage.data.details?.previous_data.dokBastw || "N/A"}</td>
+                                  </tr>
+                                  <tr>
+                                    <td className="border border-gray-300 px-4 py-2">No AIW</td>
+                                    <td className="border border-gray-300 px-4 py-2">{selectedMessage.data.details?.previous_data.noDokumenAIW || "N/A"}</td>
+                                    <td className="border border-gray-300 px-4 py-2">{selectedMessage.data.details?.previous_data.dokAiw || "N/A"}</td>
+                                  </tr>
+                                  <tr>
+                                    <td className="border border-gray-300 px-4 py-2">No SW</td>
+                                    <td className="border border-gray-300 px-4 py-2">{selectedMessage.data.details?.previous_data.noDokumenSW || "N/A"}</td>
+                                    <td className="border border-gray-300 px-4 py-2">{selectedMessage.data.details?.previous_data.dokSw || "N/A"}</td>
+                                  </tr>
+                                  <tr>
+                                    <td className="border border-gray-300 px-4 py-2">Legalitas</td>
+                                    <td className="border border-gray-300 px-4 py-2" colSpan="2">{selectedMessage.data.details?.previous_data.legalitas || "N/A"}</td>
+                                  </tr>
+                                </tbody>
+                                </table>
+                              </div>
+                              <div>
+                                <h3 className="text-lg font-semibold mb-2">Data Terbaru</h3>
+                                <table className="min-w-full border-collapse border border-gray-300">
+                                  <thead>
+                                    <tr>
+                                      <th className="border border-gray-300 px-4 py-2">Judul</th>
+                                      <th className="border border-gray-300 px-4 py-2" colSpan="2">Data</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                  <tr>
+                                    <td className="border border-gray-300 px-4 py-2">Pimpinan Jamaah</td>
+                                    <td className="border border-gray-300 px-4 py-2" colSpan="2">{selectedMessage.data.username || "N/A"}</td>
+                                  </tr>
+                                  <tr>
+                                    <td className="border border-gray-300 px-4 py-2">No BASTW</td>
+                                    <td className="border border-gray-300 px-4 py-2">{selectedMessage.data.details?.updated_data.noDokumenBastw || "N/A"}</td>
+                                    <td className="border border-gray-300 px-4 py-2">{selectedMessage.data.details?.updated_data.dokBastw || "N/A"}</td>
+                                  </tr>
+                                  <tr>
+                                    <td className="border border-gray-300 px-4 py-2">No AIW</td>
+                                    <td className="border border-gray-300 px-4 py-2">{selectedMessage.data.details?.updated_data.noDokumenAIW || "N/A"}</td>
+                                    <td className="border border-gray-300 px-4 py-2">{selectedMessage.data.details?.updated_data.dokAiw || "N/A"}</td>
+                                  </tr>
+                                  <tr>
+                                    <td className="border border-gray-300 px-4 py-2">No SW</td>
+                                    <td className="border border-gray-300 px-4 py-2">{selectedMessage.data.details?.updated_data.noDokumenSW || "N/A"}</td>
+                                    <td className="border border-gray-300 px-4 py-2">{selectedMessage.data.details?.updated_data.dokSw || "N/A"}</td>
+                                  </tr>
+                                  <tr>
+                                    <td className="border border-gray-300 px-4 py-2">Legalitas</td>
+                                    <td className="border border-gray-300 px-4 py-2" colSpan="2">{selectedMessage.data.details?.updated_data.legalitas || "N/A"}</td>
+                                  </tr>
+                                </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                  {/* Only show this table if isSertifikat is false */}
+                  {!isSertifikat && (
+                    <>
+                      {isCreating ? (
+                      <div className="mt-6">
+                      <h3 className="text-lg font-semibold mb-2">Detail Tanah</h3>
                         <table className="min-w-full border-collapse border border-gray-300">
                           <thead>
                             <tr>
@@ -271,64 +413,118 @@ const Approval = () => {
                             </tr>
                           </thead>
                           <tbody>
-                            {Object.entries(selectedMessage.data.details.updated_data).map(([key]) => (
-                              key !== "id_tanah" && selectedMessage.data.details.previous_data[key] !== undefined && (
-                                <tr key={key}>
-                                  <td className="border border-gray-300 px-4 py-2">{key}</td>
-                                  <td className="border border-gray-300 px-4 py-2">{selectedMessage.data.details.previous_data[key] || "N/A"}</td>
-                                </tr>
-                              )
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold mb-2">Data Terbaru</h3>
-                        <table className="min-w-full border-collapse border border-gray-300">
-                          <thead>
                             <tr>
-                              <th className="border border-gray-300 px-4 py-2">Judul</th>
-                              <th className="border border-gray-300 px-4 py-2">Data</th>
+                              <td className="border border-gray-300 px-4 py-2">Pimpinan Jamaah</td>
+                              <td className="border border-gray-300 px-4 py-2">{selectedMessage.data.details?.NamaPimpinanJamaah || "N/A"}</td>
                             </tr>
-                          </thead>
-                          <tbody>
-                            {Object.entries(selectedMessage.data.details.updated_data).map(([key, value]) => (
-                              key !== "id_tanah" && (
-                                <tr key={key}>
-                                  <td className="border border-gray-300 px-4 py-2">{key}</td>
-                                  <td className="border border-gray-300 px-4 py-2">{value || "N/A"}</td>
-                                </tr>
-                              )
-                            ))}
+                            <tr>
+                              <td className="border border-gray-300 px-4 py-2">Nama Wakif</td>
+                              <td className="border border-gray-300 px-4 py-2">{selectedMessage.data.details?.NamaWakif || "N/A"}</td>
+                            </tr>
+                            <tr>
+                              <td className="border border-gray-300 px-4 py-2">Lokasi</td>
+                              <td className="border border-gray-300 px-4 py-2">{selectedMessage.data.details?.lokasi || "N/A"}</td>
+                            </tr>
+                            <tr>
+                              <td className="border border-gray-300 px-4 py-2">Luas Tanah</td>
+                              <td className="border border-gray-300 px-4 py-2">{selectedMessage.data.details?.luasTanah || "N/A"}</td>
+                            </tr>
+                            <tr>
+                              <td className="border border-gray-300 px-4 py-2">Legalitas</td>
+                              <td className="border border-gray-300 px-4 py-2">{selectedMessage.data.details?.legalitas || "N/A"}</td>
+                            </tr>
                           </tbody>
                         </table>
-                      </div>
-                    </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-6">
+                          <div>
+                            <h3 className="text-lg font-semibold mb-2">Data Sebelumnya</h3>
+                            <table className="min-w-full border-collapse border border-gray-300">
+                              <thead>
+                                <tr>
+                                  <th className="border border-gray-300 px-4 py-2">Judul</th>
+                                  <th className="border border-gray-300 px-4 py-2">Data</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {Object.entries(selectedMessage.data.details.updated_data).map(([key]) => (
+                                  key !== "id_tanah" && selectedMessage.data.details.previous_data[key] !== undefined && (
+                                    <tr key={key}>
+                                      <td className="border border-gray-300 px-4 py-2">{key}</td>
+                                      <td className="border border-gray-300 px-4 py-2">{selectedMessage.data.details.previous_data[key] || "N/A"}</td>
+                                    </tr>
+                                  )
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-semibold mb-2">Data Terbaru</h3>
+                            <table className="min-w-full border-collapse border border-gray-300">
+                              <thead>
+                                <tr>
+                                  <th className="border border-gray-300 px-4 py-2">Judul</th>
+                                  <th className="border border-gray-300 px-4 py-2">Data</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {Object.entries(selectedMessage.data.details.updated_data).map(([key, value]) => (
+                                  key !== "id_tanah" && (
+                                    <tr key={key}>
+                                      <td className="border border-gray-300 px-4 py-2">{key}</td>
+                                      <td className="border border-gray-300 px-4 py-2">{value || "N/A"}</td>
+                                    </tr>
+                                  )
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      
+                      )}
+                    </>
                   )}
                 </div>
                 <div className="flex gap-2">
                   {isPimpinanJamaah ? (
                     <div>
-                      {isCreating ? (
-                        <span className="text-green-500 text-xs">Data diperbaharui</span>
-                      ) : (
-                        <span className="text-red-500 text-xs">Data ditolak</span>
-                      )}
+                      {approvalStatus[selectedMessage.id] === "approved" ? (
+                        <div className="bg-green-100 p-2 rounded-md"> {/* Container for approved status */}
+                          <span className="text-green-500 text-xs">Data disetujui</span>
+                        </div>
+                      ) : approvalStatus[selectedMessage.id] === "rejected" ? (
+                        <div className="bg-red-100 p-2 rounded-md"> {/* Container for rejected status */}
+                          <span className="text-red-500 text-xs">Data ditolak</span>
+                        </div>
+                      ) : null}
                     </div>
                   ) : (
                     <>
-                      <button
-                        className="bg-green-500 text-white text-xs px-3 py-2 rounded-md hover:bg-green-600"
-                        onClick={isCreating ? handleApprove : handleUpdateApprove}
-                      >
-                        Setuju
-                      </button>
-                      <button
-                        className="bg-red-500 text-white text-xs px-3 py-2 rounded-md hover:bg-red-600"
-                        onClick={isCreating ? handleReject : handleUpdateReject}
-                      >
-                        Tolak
-                      </button>
+                      {approvalStatus[selectedMessage.id] === "approved" ? (
+                        <div className="bg-green-100 p-2 rounded-md"> {/* Container for approved status */}
+                          <span className="text-green-500 text-xs">Data disetujui</span>
+                        </div>
+                      ) : approvalStatus[selectedMessage.id] === "rejected" ? (
+                        <div className="bg-red-100 p-2 rounded-md"> {/* Container for rejected status */}
+                          <span className="text-red-500 text-xs">Data ditolak</span>
+                        </div>
+                      ) : (
+                        <>
+                          <button
+                            className="bg-green-500 text-white text-xs px-3 py-2 rounded-md hover:bg-green-600"
+                            onClick={isCreating ? handleApprove : handleUpdateApprove}
+                          >
+                            Setuju
+                          </button>
+                          <button
+                            className="bg-red-500 text-white text-xs px-3 py-2 rounded-md hover:bg-red-600"
+                            onClick={isCreating ? handleReject : handleUpdateReject}
+                          >
+                            Tolak
+                          </button>
+                        </>
+                      )}
                     </>
                   )}
                 </div>
