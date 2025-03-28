@@ -1,161 +1,192 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import {
   FaPlus,
-  FaMap,
   FaEdit,
   FaTrash,
-  FaHistory,
   FaEye,
-} from "react-icons/fa"; // Importing icons
-import { getUserId, getRoleId } from "../utils/Auth";
+  FaHistory,
+  FaMap,
+  FaCheckCircle,
+} from "react-icons/fa";
+import { getRoleId } from "../utils/Auth";
 import Swal from "sweetalert2";
 
 const Legalitas = () => {
-  const [dataList, setDataList] = useState([]); // Mengganti tanahList menjadi dataList
+  // State management
+  const [tanahDisetujui, setTanahDisetujui] = useState([]);
+  const [approvalTanah, setApprovalTanah] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = 10;
+  const [itemsPerPage] = useState(5);
   const navigate = useNavigate();
-  const itemsPerPage = 5;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
-  const [legalitasOptions, setLegalitasOptions] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [legalitas, setLegalitas] = useState("");
-  const [newLegalitas, setNewLegalitas] = useState("");
+  const [legalitasOptions] = useState([
+    "Proses Verifikasi",
+    "Terbit",
+    "Ditolak",
+    "Belum Ada",
+  ]);
   const [selectedLegalitas, setSelectedLegalitas] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
 
+  // User role check
   const roleId = getRoleId();
   const isPimpinanJamaah = roleId === "326f0dde-2851-4e47-ac5a-de6923447317";
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  useEffect(() => {
-    console.log(roleId);
-  }, []);
-
-  const fetchData = async () => {
+  // Fetch data function
+  const fetchData = useCallback(async () => {
     const token = localStorage.getItem("token");
-
     if (!token) {
-      console.error("Token tidak ditemukan! Redirecting to login...");
       setError("Unauthorized: Silakan login terlebih dahulu.");
       setLoading(false);
       return;
     }
 
     try {
-      // Ambil data dari API tanah
-      const tanahResponse = await axios.get(
-        "http://127.0.0.1:8000/api/tanah/",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-          },
-        }
-      );
+      // Fetch approved tanah data
+      const tanahResponse = await axios.get("http://127.0.0.1:8000/api/tanah", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-      // Ambil data dari API approval
+      // Fetch pending approval tanah data
       const approvalResponse = await axios.get(
         "http://127.0.0.1:8000/api/approvals/type/tanah",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // Gabungkan data dari kedua API
-      const combinedData = [
-        ...(Array.isArray(tanahResponse.data.data)
-          ? tanahResponse.data.data
-          : []),
-        ...(Array.isArray(approvalResponse.data.data)
-          ? approvalResponse.data.data
-          : []),
-      ];
-
-      setDataList(combinedData); // Set data gabungan ke state
-      setLoading(false);
+      setTanahDisetujui(tanahResponse.data.data || []);
+      setApprovalTanah(approvalResponse.data.data || []);
     } catch (error) {
       console.error("Gagal mengambil data:", error);
-      setError("Unauthorized: Token tidak valid atau sudah kedaluwarsa.");
+      setError("Gagal memuat data tanah");
+    } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleDelete = async (id) => {
-    const token = localStorage.getItem("token");
+  // Fetch data on component mount
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
-    if (!token) {
-      console.error("Token tidak ditemukan!");
-      alert("Anda tidak memiliki izin untuk menghapus data ini.");
-      return;
-    }
+  // Combine and format data from both sources with safe JSON parsing
+  const combinedData = [
+    ...tanahDisetujui.map((item) => ({
+      ...item,
+      status: "disetujui",
+      isFromApproval: false,
+    })),
+    ...approvalTanah.map((approval) => ({
+      ...approval, // Langsung spread object approval
+      id_approval: approval.id,
+      status: approval.status || "ditinjau",
+      isFromApproval: true,
+      // Jika ada field yang nested, sesuaikan:
+      NamaPimpinanJamaah:
+        approval.NamaPimpinanJamaah ||
+        approval.data?.details?.NamaPimpinanJamaah,
+      NamaWakif: approval.NamaWakif || approval.data?.details?.NamaWakif,
+      lokasi: approval.lokasi || approval.data?.details?.lokasi,
+      luasTanah: approval.luasTanah || approval.data?.details?.luasTanah,
+    })),
+  ];
 
-    // Konfirmasi sebelum menghapus
-    const confirmDelete = window.confirm(
-      "Apakah Anda yakin ingin menghapus data ini?"
-    );
-    if (!confirmDelete) return;
+  const filteredData = combinedData.filter(
+    (item) =>
+      (item.NamaPimpinanJamaah?.toLowerCase() || "").includes(
+        search.toLowerCase()
+      ) ||
+      (item.NamaWakif?.toLowerCase() || "").includes(search.toLowerCase()) ||
+      (item.lokasi?.toLowerCase() || "").includes(search.toLowerCase())
+  );
 
-    try {
-      // Coba hapus dari API tanah
-      await axios.delete(`http://127.0.0.1:8000/api/tanah/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
-
-      // Perbarui state dengan menghapus item yang dihapus
-      setDataList((prevList) =>
-        prevList.filter((item) => item.id_tanah !== id && item.id !== id)
-      );
-
-      Swal.fire({
-        icon: "success",
-        title: "Berhasil!",
-        text: "Data berhasil dihapus!",
-        confirmButtonText: "OK",
-      });
-    } catch (error) {
-      console.error("Gagal menghapus data:", error);
-      Swal.fire({
-        icon: "error",
-        title: "Gagal!",
-        text: "Terjadi kesalahan saat menghapus data.",
-        confirmButtonText: "OK",
-      });
-    }
-  };
-
-  const filteredData = dataList.filter((item) => {
-    try {
-      console.info(item);
-      const pimpinanJamaah =
-        item?.NamaPimpinanJamaah || item?.pimpinan_jamaah || "";
-      return pimpinanJamaah.toLowerCase().includes(search.toLowerCase());
-    } catch (e) {
-      console.error("Failed to parse item data:", e);
-    }
-    return [];
-  });
-
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const paginatedData = filteredData.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
 
+  // Data manipulation handlers
+  const handleDelete = async (id, isFromApproval = false) => {
+    const result = await Swal.fire({
+      title: "Apakah Anda yakin?",
+      text: "Data yang dihapus tidak dapat dikembalikan!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Ya, hapus!",
+      cancelButtonText: "Batal",
+    });
+
+    if (!result.isConfirmed) return;
+
+    const token = localStorage.getItem("token");
+    try {
+      if (isFromApproval) {
+        await axios.delete(`http://127.0.0.1:8000/api/approvals/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setApprovalTanah((prev) => prev.filter((item) => item.id !== id));
+      } else {
+        await axios.delete(`http://127.0.0.1:8000/api/tanah/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setTanahDisetujui((prev) =>
+          prev.filter((item) => item.id_tanah !== id)
+        );
+      }
+
+      Swal.fire("Berhasil!", "Data telah dihapus.", "success");
+    } catch (error) {
+      console.error("Gagal menghapus data:", error);
+      Swal.fire("Gagal!", "Terjadi kesalahan saat menghapus data.", "error");
+    }
+  };
+
+  const handleUpdateLegalitas = async () => {
+    if (!selectedItem || !selectedLegalitas) return;
+
+    const token = localStorage.getItem("token");
+    setIsProcessing(true);
+
+    try {
+      await axios.put(
+        `http://127.0.0.1:8000/api/tanah/legalitas/${selectedItem.id_tanah}`,
+        { legalitas: selectedLegalitas },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // Update local state
+      setTanahDisetujui((prev) =>
+        prev.map((item) =>
+          item.id_tanah === selectedItem.id_tanah
+            ? { ...item, legalitas: selectedLegalitas }
+            : item
+        )
+      );
+
+      Swal.fire("Berhasil!", "Legalitas berhasil diperbarui.", "success");
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error("Gagal mengupdate legalitas:", error);
+      Swal.fire(
+        "Gagal!",
+        "Terjadi kesalahan saat mengupdate legalitas.",
+        "error"
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // UI helpers
   const handlePageChange = (page) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
@@ -163,407 +194,391 @@ const Legalitas = () => {
   };
 
   const getPageNumbers = () => {
-    if (totalPages <= 5) {
-      return [...Array(totalPages).keys()].map((n) => n + 1);
-    }
+    const pages = [];
+    const maxVisiblePages = 5;
 
-    if (currentPage <= 3) {
-      return [1, 2, "...", totalPages - 1, totalPages];
-    } else if (currentPage >= totalPages - 2) {
-      return [
-        1,
-        2,
-        "...",
-        currentPage - 1,
-        currentPage,
-        currentPage + 1,
-        "...",
-        totalPages,
-      ];
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
     } else {
-      return [
-        1,
-        "...",
-        currentPage - 1,
-        currentPage,
-        currentPage + 1,
-        "...",
-        totalPages,
-      ];
+      const half = Math.floor(maxVisiblePages / 2);
+      let start = Math.max(1, currentPage - half);
+      let end = Math.min(totalPages, currentPage + half);
+
+      if (currentPage <= half + 1) end = maxVisiblePages;
+      if (currentPage >= totalPages - half)
+        start = totalPages - maxVisiblePages + 1;
+
+      if (start > 1) pages.push(1, "...");
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (end < totalPages) pages.push("...", totalPages);
     }
+
+    return pages;
   };
 
-  const handleUpdateLegalitas = async () => {
-    const token = localStorage.getItem("token");
-
-    if (!token || !selectedItem || !selectedLegalitas) {
-      alert("Unauthorized or no item selected or no legalitas chosen!");
-      return;
-    }
-
-    try {
-      // Kirim ID Tanah dan Legalitas yang dipilih ke API
-      await axios.put(
-        `http://127.0.0.1:8000/api/tanah/legalitas/${selectedItem.id_tanah}`,
-        { legalitas: selectedLegalitas }, // Pastikan menggunakan legalitas yang dipilih dari dropdown
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-          },
-        }
-      );
-
-      Swal.fire({
-        icon: "success",
-        title: "Berhasil!",
-        text: "Legalitas berhasil diperbarui!",
-        confirmButtonText: "OK",
-      });
-      fetchData(); // Ambil ulang data setelah update
-      closeModal();
-    } catch (error) {
-      console.error("Gagal mengupdate legalitas:", error);
-      Swal.fire({
-        icon: "error",
-        title: "Gagal!",
-        text: "Terjadi kesalahan saat mengupdate legalitas.",
-        confirmButtonText: "OK",
-      });
-    }
-  };
-
-  const openModal = async (item) => {
-    console.log("Opening modal for:", item);
-    setIsLoading(true);
-
-    const token = localStorage.getItem("token");
-
-    try {
-      const response = await axios.get(
-        `http://127.0.0.1:8000/api/sertifikat/legalitas/${item.id_tanah}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      console.log("id tanah :", item.id_tanah);
-
-      if (response.data.status === "success") {
-        // Set legalitas options
-        const options = [response.data.data.legalitas]; // Misalnya data ada dalam bentuk array, atau bisa lebih
-        setLegalitasOptions(options);
-        setSelectedLegalitas(options[0]); // Menyimpan pilihan pertama sebagai default
-
-        // Buka modal hanya jika data legalitas tersedia
-        setSelectedItem(item);
-        setIsModalOpen(true);
-      } else {
-        // Tampilkan SweetAlert jika data legalitas tidak tersedia
-        Swal.fire({
-          icon: "warning",
-          title: "Peringatan!",
-          text: "Data Legalitas Belum Tersedia",
-          confirmButtonText: "OK",
-        });
-      }
-    } catch (error) {
-      // Tampilkan SweetAlert jika terjadi error
-      Swal.fire({
-        icon: "warning",
-        title: "Peringatan!",
-        text: "Data Legalitas Belum Tersedia",
-        confirmButtonText: "OK",
-      });
-      console.error("Error fetching legalitas:", error);
-    } finally {
-      setIsLoading(false);
-    }
+  const openModal = (item) => {
+    setSelectedItem(item);
+    setSelectedLegalitas(item.legalitas || "Belum Ada");
+    setIsModalOpen(true);
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedItem(null);
-    setLegalitasOptions([]); // Reset legalitas options
-    setSelectedLegalitas(""); // Reset selected legalitas
+    setSelectedLegalitas("");
+  };
+
+  // Status styling helpers
+  const getStatusStyle = (status) => {
+    switch (status) {
+      case "disetujui":
+        return "bg-[#AFFEB5] text-[#187556]";
+      case "ditolak":
+        return "bg-[#FEC5D0] text-[#D80027]";
+      default:
+        return "bg-[#FFEFBA] text-[#FECC23]";
+    }
+  };
+
+  const getLegalitasStyle = (legalitas) => {
+    if (!legalitas) return "bg-[#D9D9D9] text-[#7E7E7E]";
+    if (legalitas.includes("Terbit")) return "bg-[#AFFEB5] text-[#187556]";
+    if (legalitas.includes("Ditolak")) return "bg-[#FEC5D0] text-[#D80027]";
+    if (legalitas.includes("Proses")) return "bg-[#FFEFBA] text-[#FECC23]";
+    return "bg-[#D9D9D9] text-[#7E7E7E]";
   };
 
   return (
     <div className="relative">
-      {/* Layout */}
       <Sidebar>
-        <div className="relative mb-4 flex justify-between items-center">
-          <div className="ml-5">
-            <h2 className="text-xl font-medium">Legalitas Tanah Wakaf</h2>
-            <p className="text-gray-500">PC Persis Banjaran</p>
+        {/* Header Section */}
+        <div className="relative mb-4 flex justify-between items-center p-4 bg-white shadow-sm rounded-lg">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-800">
+              Legalitas Tanah Wakaf
+            </h2>
+            <p className="text-sm text-gray-500">PC Persis Banjaran</p>
           </div>
 
-          <div className="flex gap-2 items-center">
+          <div className="flex items-center space-x-3">
             <button
-              className="text-white p-2 rounded-md text-xs"
-              style={{ backgroundColor: "#2C3E50" }}
-              onClick={() => navigate(`/riwayat/tanah`)}
+              className="p-2 text-white bg-[#2C3E50] rounded-md hover:bg-[#1A2A3A] transition-colors"
+              onClick={() => navigate("/riwayat/tanah")}
+              title="Riwayat"
             >
-              <FaHistory />
+              <FaHistory className="text-sm" />
             </button>
+
             <input
               type="text"
-              placeholder="Cari"
-              className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none"
+              placeholder="Cari data tanah..."
+              className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#187556] focus:border-transparent"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setCurrentPage(1);
+              }}
             />
-            <button
-              className="bg-[#187556] text-white p-2 rounded-md hover:bg-[#146347]"
-              onClick={() => navigate("/tanah/create")} // Navigasi ke halaman create tanah
-            >
-              <FaPlus />
-            </button>
+
+            {isPimpinanJamaah && (
+              <button
+                className="p-2 text-white bg-[#187556] rounded-md hover:bg-[#146347] transition-colors"
+                onClick={() => navigate("/tanah/create")}
+                title="Tambah Baru"
+              >
+                <FaPlus />
+              </button>
+            )}
           </div>
         </div>
 
-        <div className="flex-1 p-4">
-          <div
-            className="bg-white shadow-lg rounded-lg p-6"
-            style={{
-              boxShadow:
-                "0px 5px 15px rgba(0, 0, 0, 0.1), 0px -5px 15px rgba(0, 0, 0, 0.1), 5px 0px 15px rgba(0, 0, 0, 0.1), -5px 0px 15px rgba(0, 0, 0, 0.1)",
-            }}
-          >
-            <div className="container">
-              {loading ? (
-                <p className="text-center text-gray-500 py-6">Memuat data...</p>
-              ) : (
-                <table className="min-w-full border-collapse">
-                  <thead>
-                    <tr className="border-b border-gray-300">
-                      <th className="px-4 py-2 text-left font-medium">No</th>
-                      <th className="px-4 py-2 text-left font-medium">
-                        Pimpinan Jamaah
-                      </th>
-                      <th className="px-4 py-2 text-center font-medium">
-                        Nama Wakif
-                      </th>
-                      <th className="px-4 py-2 text-center font-medium">
-                        Lokasi
-                      </th>
-                      <th className="px-4 py-2 text-center font-medium">
-                        Luas Tanah
-                      </th>
-                      {isPimpinanJamaah && (
-                        <th className="px-4 py-2 text-center font-medium">
+        {/* Main Content */}
+        <div className="p-4">
+          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            {loading ? (
+              <div className="p-8 text-center">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#187556]"></div>
+                <p className="mt-2 text-gray-600">Memuat data tanah...</p>
+              </div>
+            ) : error ? (
+              <div className="p-8 text-center">
+                <p className="text-red-500 font-medium">{error}</p>
+                <button
+                  onClick={fetchData}
+                  className="mt-2 px-4 py-2 bg-[#187556] text-white rounded-md hover:bg-[#146347]"
+                >
+                  Coba Lagi
+                </button>
+              </div>
+            ) : (
+              <>
+                {/* Data Table */}
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          No
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Pimpinan Jamaah
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Nama Wakif
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Lokasi
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Luas Tanah
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Status
                         </th>
-                      )}
-                      <th className="px-4 py-2 text-center font-medium">
-                        Legalitas
-                      </th>
-                      <th className="px-4 py-2 text-center font-medium">
-                        Aksi
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginatedData.length > 0 ? (
-                      paginatedData.map((item, index) => (
-                        <tr
-                          key={item.id_tanah || item.id}
-                          className="border-b border-gray-300"
-                        >
-                          <td className="text-sm px-4 py-4 whitespace-nowrap font-semibold">
-                            {(currentPage - 1) * itemsPerPage + index + 1}
-                          </td>
-                          <td className="text-sm text-center px-4 py-4 whitespace-nowrap font-semibold">
-                            {item.NamaPimpinanJamaah || item.pimpinan_jamaah}
-                          </td>
-                          <td className="text-sm text-center px-4 py-4 whitespace-nowrap font-semibold">
-                            {item.NamaWakif || item.nama_wakif}
-                          </td>
-                          <td className="text-xs text-center px-4 py-4 font-semibold w-[200px] break-words whitespace-normal overflow-hidden overflow-ellipsis max-h-[100px] hover:max-h-none hover:whitespace-pre-wrap">
-                            {item.lokasi || item.lokasi_tanah}
-                          </td>
-                          <td className="text-sm text-center px-4 py-4 whitespace-nowrap font-semibold">
-                            {item.luasTanah || item.luas_tanah}
-                          </td>
-                          {isPimpinanJamaah ? (
-                            <td className="text-sm text-center px-4 py-2 whitespace-nowrap font-semibold">
-                              <div
-                                className={`inline-block px-4 py-2 rounded-[30px] ${
-                                  item?.status?.toLowerCase() === "disetujui"
-                                    ? "bg-[#AFFEB5] text-[#187556]"
-                                    : item?.status?.toLowerCase() === "ditolak"
-                                    ? "bg-[#FEC5D0] text-[#D80027]"
-                                    : item?.status?.toLowerCase() === "ditinjau"
-                                    ? "bg-[#FFEFBA] text-[#FECC23]"
-                                    : ""
-                                }`}
-                              >
-                                {item.status}
-                              </div>
-                            </td>
-                          ) : null}
-                          <td className="text-sm text-center px-4 py-2 whitespace-nowrap font-semibold">
-                            <div
-                              className={`inline-block px-4 py-2 rounded-[30px] ${
-                                item?.legalitas
-                                  ?.toLowerCase()
-                                  .includes("terbit")
-                                  ? "bg-[#AFFEB5] text-[#187556]"
-                                  : item?.legalitas
-                                      ?.toLowerCase()
-                                      .includes("ditolak")
-                                  ? "bg-[#FEC5D0] text-[#D80027]"
-                                  : item?.legalitas
-                                      ?.toLowerCase()
-                                      .includes("proses")
-                                  ? "bg-[#FFEFBA] text-[#FECC23]"
-                                  : "bg-[#D9D9D9] text-[#7E7E7E]"
-                              }`}
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Legalitas
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Aksi
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {paginatedData.length > 0 ? (
+                        paginatedData.map((item, index) => {
+                          console.log("Current item:", item); // Debug each item
+                          return (
+                            <tr
+                              key={item.id_tanah || item.id_approval || index}
+                              className="hover:bg-gray-50"
                             >
-                              {item.legalitas}
-                              <button
-                                className="ml-2 bg-[#fff] text-gray-400 px-2 py-1 rounded-md hover:bg-[#848382] hover:text-[#000] text-xs"
-                                onClick={() => openModal(item)}
-                              >
-                                <FaEdit />
-                              </button>
-                            </div>
-                          </td>
-                          <td className="text-xs text-center px-4 py-4 flex gap-3 justify-center">
-                            <button
-                              onClick={() => console.log("Pemetaan clicked")}
-                            >
-                              <FaMap className="text-gray-400 text-lg" />
-                            </button>
-                            <button
-                              onClick={() =>
-                                navigate(
-                                  `/tanah/edit/${item.id_tanah || item.id}`
-                                )
-                              }
-                            >
-                              <FaEdit className="text-gray-400 text-lg" />
-                            </button>
-                            <button
-                              onClick={() =>
-                                navigate(
-                                  `/tanah/detail/${item.id_tanah || item.id}`
-                                )
-                              }
-                            >
-                              <FaEye className="text-gray-400 text-lg" />
-                            </button>
-                            <button
-                              onClick={() =>
-                                handleDelete(item.id_tanah || item.id)
-                              }
-                            >
-                              <FaTrash className="text-gray-400 text-lg" />
-                            </button>
-                            <button
-                              onClick={() => console.log("Riwayat clicked")}
-                            >
-                              <FaHistory className="text-gray-400 text-lg" />
-                            </button>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                {(currentPage - 1) * itemsPerPage + index + 1}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {item.NamaPimpinanJamaah || "-"}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {item.NamaWakif || "-"}
+                              </td>
+                              <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate hover:max-w-none hover:whitespace-normal">
+                                {item.lokasi || "-"}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {item.luasTanah || "-"}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span
+                                  className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusStyle(
+                                    item.status
+                                  )}`}
+                                >
+                                  {item.status}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {item.legalitas || "Belum Ada"}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <div className="flex space-x-2">
+                                  <button
+                                    onClick={() =>
+                                      navigate(
+                                        `/tanah/detail/${
+                                          item.id_tanah || item.id_approval
+                                        }`
+                                      )
+                                    }
+                                    className="p-1 text-gray-400 hover:text-gray-600"
+                                    title="Detail"
+                                  >
+                                    <FaEye />
+                                  </button>
+
+                                  {item.isFromApproval ? (
+                                   <button
+                                   onClick={() => {
+                                     if (item.status !== 'disetujui') {
+                                       Swal.fire({
+                                         title: 'Tidak Dapat Edit',
+                                         text: 'Data tanah belum disetujui, tidak dapat melakukan edit',
+                                         icon: 'warning',
+                                         confirmButtonText: 'OK'
+                                       });
+                                     } else {
+                                       navigate(`/approval/edit/${item.id_approval}`);
+                                     }
+                                   }}
+                                   className={`p-1 ${item.status !== 'disetujui' ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-gray-600'}`}
+                                   title={item.status !== 'disetujui' ? 'Tanah belum disetujui' : 'Edit'}
+                                   disabled={item.status !== 'disetujui'}
+                                 >
+                                   <FaEdit />
+                                 </button>
+                                  ) : (
+                                    <button
+                                      onClick={() =>
+                                        navigate(`/tanah/edit/${item.id_tanah}`)
+                                      }
+                                      className="p-1 text-gray-400 hover:text-gray-600"
+                                      title="Edit"
+                                    >
+                                      <FaEdit />
+                                    </button>
+                                  )}
+
+                                  <button
+                                    onClick={() =>
+                                      handleDelete(
+                                        item.id_tanah || item.id_approval,
+                                        item.isFromApproval
+                                      )
+                                    }
+                                    className="p-1 text-gray-400 hover:text-gray-600"
+                                    title="Hapus"
+                                  >
+                                    <FaTrash />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      ) : (
+                        <tr>
+                          <td
+                            colSpan={8}
+                            className="px-6 py-4 text-center text-sm text-gray-500"
+                          >
+                            Tidak ada data yang ditemukan
                           </td>
                         </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td
-                          colSpan="6"
-                          className="text-center text-center py-4 text-gray-500"
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm text-gray-500">
+                        Menampilkan{" "}
+                        <span className="font-medium">
+                          {(currentPage - 1) * itemsPerPage + 1}
+                        </span>{" "}
+                        sampai{" "}
+                        <span className="font-medium">
+                          {Math.min(
+                            currentPage * itemsPerPage,
+                            filteredData.length
+                          )}
+                        </span>{" "}
+                        dari{" "}
+                        <span className="font-medium">
+                          {filteredData.length}
+                        </span>{" "}
+                        hasil
+                      </div>
+                      <div className="flex space-x-1">
+                        <button
+                          onClick={() => handlePageChange(currentPage - 1)}
+                          disabled={currentPage === 1}
+                          className={`px-3 py-1 rounded-md ${
+                            currentPage === 1
+                              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                              : "bg-white text-gray-700 hover:bg-gray-50"
+                          }`}
                         >
-                          Data Tidak Tersedia
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              )}
-              {isModalOpen && (
-                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-                  <div className="bg-white p-6 rounded-lg shadow-lg w-96">
-                    <h2 className="text-xl font-semibold mb-4">
-                      Update Legalitas
-                    </h2>
-
-                    <label className="block text-sm font-medium text-gray-700">
-                      Status Legalitas:
-                    </label>
-                    <select
-                      value={selectedLegalitas} // Nilai yang dipilih saat ini
-                      onChange={(e) => setSelectedLegalitas(e.target.value)} // Mengupdate state dengan nilai yang dipilih
-                      className="border p-2 w-full"
-                    >
-                      {legalitasOptions.map((option, index) => (
-                        <option key={index} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-
-                    <div className="flex justify-end mt-4">
-                      <button
-                        className="bg-gray-500 text-white px-4 py-2 rounded-md mr-2"
-                        onClick={() => setIsModalOpen(false)}
-                      >
-                        Batal
-                      </button>
-                      <button
-                        className="hover:bg-[#2563EB] bg-[#3B82F6] text-white px-4 py-2 rounded-md"
-                        onClick={handleUpdateLegalitas}
-                      >
-                        Simpan
-                      </button>
+                          Sebelumnya
+                        </button>
+                        {getPageNumbers().map((page, index) =>
+                          page === "..." ? (
+                            <span
+                              key={index}
+                              className="px-3 py-1 text-gray-500"
+                            >
+                              ...
+                            </span>
+                          ) : (
+                            <button
+                              key={index}
+                              onClick={() => handlePageChange(page)}
+                              className={`px-3 py-1 rounded-md ${
+                                currentPage === page
+                                  ? "bg-[#187556] text-white"
+                                  : "bg-white text-gray-700 hover:bg-gray-50"
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          )
+                        )}
+                        <button
+                          onClick={() => handlePageChange(currentPage + 1)}
+                          disabled={currentPage === totalPages}
+                          className={`px-3 py-1 rounded-md ${
+                            currentPage === totalPages
+                              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                              : "bg-white text-gray-700 hover:bg-gray-50"
+                          }`}
+                        >
+                          Selanjutnya
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
-              <div className="pagination flex justify-left space-x-1 mt-4">
-                <button
-                  className={`border border-gray-300 rounded-md px-3 py-1 ${
-                    currentPage === 1 ? "text-gray-400 cursor-not-allowed" : ""
-                  }`}
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                >
-                  ‹
-                </button>
-                {getPageNumbers().map((page, index) =>
-                  page === "..." ? (
-                    <span key={index} className="px-3 py-1">
-                      {page}
-                    </span>
-                  ) : (
-                    <button
-                      key={index}
-                      className={`border border-gray-300 rounded-md px-3 py-1 font-medium ${
-                        currentPage === page ? "bg-gray-300" : ""
-                      }`}
-                      onClick={() => handlePageChange(page)}
-                    >
-                      {page}
-                    </button>
-                  )
                 )}
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Legalitas Update Modal */}
+        {isModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+              <div className="p-6">
+                <h3 className="text-lg font-medium leading-6 text-gray-900">
+                  Update Status Legalitas
+                </h3>
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Status Legalitas
+                  </label>
+                  <select
+                    value={selectedLegalitas}
+                    onChange={(e) => setSelectedLegalitas(e.target.value)}
+                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-[#187556] focus:border-[#187556] sm:text-sm rounded-md"
+                  >
+                    {legalitasOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="bg-gray-50 px-6 py-4 flex justify-end rounded-b-lg">
                 <button
-                  className={`border border-gray-300 rounded-md px-3 py-1 ${
-                    currentPage === totalPages
-                      ? "text-gray-400 cursor-not-allowed"
-                      : ""
-                  }`}
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
+                  type="button"
+                  onClick={closeModal}
+                  className="mr-3 inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#187556]"
                 >
-                  ›
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleUpdateLegalitas}
+                  disabled={isProcessing}
+                  className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[#187556] hover:bg-[#146347] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#187556] disabled:opacity-50"
+                >
+                  {isProcessing ? "Menyimpan..." : "Simpan Perubahan"}
                 </button>
               </div>
             </div>
           </div>
-        </div>
+        )}
       </Sidebar>
     </div>
   );
