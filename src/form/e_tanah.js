@@ -18,6 +18,7 @@ const EditTanah = () => {
   const [sertifikatList, setSertifikatList] = useState([]);
   const [roleUser, setRoleUser] = useState("");
   const sertifikatId = sertifikatList[0]?.id_sertifikat;
+  const [tanahData, setTanahData] = useState(null);
 
   const roleId = getRoleId();
   const isPimpinanJamaah = roleId === "326f0dde-2851-4e47-ac5a-de6923447317";
@@ -50,11 +51,18 @@ const EditTanah = () => {
     "Sertifikat ditolak",
   ]);
 
+  const API_KEY = "231b062a5d2c75a9f68a41107079fb6bba17c1251089b912ad92d9f572dd974d";
+
   useEffect(() => {
     fetchTanah();
     fetchSertifikat();
     fetchUserRole();
   }, []);
+
+  const findWilayahId = (list, name) => {
+    const found = list.find(item => item.name === name);
+    return found ? found.id : '';
+  };
 
   // Ambil data pengguna
   useEffect(() => {
@@ -88,123 +96,184 @@ const EditTanah = () => {
     fetchUsers();
   }, []);
 
-  // Ambil data provinsi saat komponen dimuat
-  useEffect(() => {
-    const fetchProvinsi = async () => {
-      try {
-        const response = await axios.get(
-          "https://api.binderbyte.com/wilayah/provinsi?api_key=231b062a5d2c75a9f68a41107079fb6bba17c1251089b912ad92d9f572dd974d"
-        );
-        setProvinsiList(response.data.value);
-      } catch (error) {
-        console.error("Error fetching provinsi:", error);
-      }
-    };
-
-    fetchProvinsi();
-  }, []);
-
-  // Ambil data kabupaten saat provinsi dipilih
-  useEffect(() => {
-    if (provinsi) {
-      const fetchKota = async () => {
-        try {
-          const response = await axios.get(
-            `https://api.binderbyte.com/wilayah/kabupaten?api_key=231b062a5d2c75a9f68a41107079fb6bba17c1251089b912ad92d9f572dd974d&id_provinsi=${provinsi}`
-          );
-          setKotaList(response.data.value);
-        } catch (error) {
-          console.error("Error fetching kota:", error);
-        }
-      };
-
-      fetchKota();
-    }
-  }, [provinsi]);
-
-  // Fetch Kecamatan
-  useEffect(() => {
-    if (kota) {
-      const fetchKecamatan = async () => {
-        try {
-          const response = await axios.get(
-            `https://api.binderbyte.com/wilayah/kecamatan?api_key=231b062a5d2c75a9f68a41107079fb6bba17c1251089b912ad92d9f572dd974d&id_kabupaten=${kota}`
-          );
-          setKecamatanList(response.data.value || []);
-        } catch (error) {
-          console.error("Error fetching kecamatan:", error);
-        }
-      };
-      fetchKecamatan();
-    }
-  }, [kota]);
-
-  // Fetch Kelurahan
-  useEffect(() => {
-    if (kecamatan) {
-      const fetchKelurahan = async () => {
-        try {
-          const response = await axios.get(
-            `https://api.binderbyte.com/wilayah/kelurahan?api_key=231b062a5d2c75a9f68a41107079fb6bba17c1251089b912ad92d9f572dd974d&id_kecamatan=${kecamatan}`
-          );
-          setKelurahanList(response.data.value || []);
-        } catch (error) {
-          console.error("Error fetching kelurahan:", error);
-        }
-      };
-      fetchKelurahan();
-    }
-  }, [kecamatan]);
-
-  const fetchTanah = async () => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      Swal.fire({
-        icon: "warning",
-        title: "Peringatan!",
-        text: "Anda harus login untuk mengedit data.",
-        confirmButtonText: "OK",
-      });
-      navigate("/dashboard");
-      return;
-    }
-
+// 1. Fetch Provinsi
+useEffect(() => {
+  const fetchProvinsi = async () => {
     try {
       const response = await axios.get(
-        `http://127.0.0.1:8000/api/tanah/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-          },
-        }
+        `https://api.binderbyte.com/wilayah/provinsi?api_key=${API_KEY}`
       );
-
-      console.log("Response dari API:", response.data); // Cek response di console
-
-      // Periksa struktur response, bisa jadi datanya ada di response.data.data
-      const tanah = response.data.data || response.data;
-
-      if (tanah) {
-        setNamaPimpinanJamaah(tanah.NamaPimpinanJamaah || "");
-        setNamaWakif(tanah.NamaWakif || "");
-        setLokasi(tanah.lokasi || "");
-        setLuasTanah(tanah.luasTanah || "");
-      }
-      setLoading(false);
+      setProvinsiList(response.data.value);
     } catch (error) {
-      console.error("Gagal mengambil data tanah:", error);
+      console.error("Error fetching provinsi:", error);
       Swal.fire({
-        icon: "error",
-        title: "Gagal!",
-        text: "Gagal mengambil data tanah.",
-        confirmButtonText: "OK",
+        icon: 'error',
+        title: 'Gagal memuat data provinsi',
+        text: 'Silakan coba lagi atau hubungi admin',
       });
-      navigate("/dashboard");
     }
   };
+  fetchProvinsi();
+}, []);
 
+// 2. Fetch Kabupaten/Kota ketika provinsi dipilih
+useEffect(() => {
+  const fetchKota = async () => {
+    if (!provinsi) return;
+    
+    try {
+      const response = await axios.get(
+        `https://api.binderbyte.com/wilayah/kabupaten?api_key=${API_KEY}&id_provinsi=${provinsi}`
+      );
+      setKotaList(response.data.value);
+      setKota(""); // Reset kabupaten ketika provinsi berubah
+      setKecamatan(""); // Reset kecamatan
+      setKelurahan(""); // Reset kelurahan
+    } catch (error) {
+      console.error("Error fetching kabupaten:", error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal memuat data kabupaten',
+        text: 'Silakan coba lagi atau hubungi admin',
+      });
+    }
+  };
+  fetchKota();
+}, [provinsi]);
+
+// 3. Fetch Kecamatan ketika kabupaten dipilih
+useEffect(() => {
+  const fetchKecamatan = async () => {
+    if (!kota) return;
+    
+    try {
+      const response = await axios.get(
+        `https://api.binderbyte.com/wilayah/kecamatan?api_key=${API_KEY}&id_kabupaten=${kota}`
+      );
+      setKecamatanList(response.data.value || []);
+      setKecamatan(""); // Reset kecamatan ketika kabupaten berubah
+      setKelurahan(""); // Reset kelurahan
+    } catch (error) {
+      console.error("Error fetching kecamatan:", error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal memuat data kecamatan',
+        text: 'Silakan coba lagi atau hubungi admin',
+      });
+    }
+  };
+  fetchKecamatan();
+}, [kota]);
+
+// 4. Fetch Kelurahan/Desa ketika kecamatan dipilih
+useEffect(() => {
+  const fetchKelurahan = async () => {
+    if (!kecamatan) return;
+    
+    try {
+      const response = await axios.get(
+        `https://api.binderbyte.com/wilayah/kelurahan?api_key=${API_KEY}&id_kecamatan=${kecamatan}`
+      );
+      setKelurahanList(response.data.value || []);
+      setKelurahan(""); // Reset kelurahan ketika kecamatan berubah
+    } catch (error) {
+      console.error("Error fetching kelurahan:", error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal memuat data kelurahan',
+        text: 'Silakan coba lagi atau hubungi admin',
+      });
+    }
+  };
+  fetchKelurahan();
+}, [kecamatan]);
+
+// Fungsi untuk mengisi dropdown otomatis dari data yang sudah ada
+const initWilayahFromData = async (lokasi) => {
+  if (!lokasi) return;
+  
+  const [provName, kabName, kecName, kelName] = lokasi.split(', ');
+  
+  // 1. Set Provinsi
+  const prov = provinsiList.find(p => p.name === provName);
+  if (prov) {
+    setProvinsi(prov.id);
+    
+    // Tunggu data kabupaten terload
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const kab = kotaList.find(k => k.name === kabName);
+    if (kab) {
+      setKota(kab.id);
+      
+      // Tunggu data kecamatan terload
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const kec = kecamatanList.find(k => k.name === kecName);
+      if (kec) {
+        setKecamatan(kec.id);
+        
+        // Tunggu data kelurahan terload
+        await new Promise(resolve => setTimeout(resolve, 500));
+        const kel = kelurahanList.find(k => k.name === kelName);
+        if (kel) setKelurahan(kel.id);
+      }
+    }
+  }
+};
+
+// Gunakan initWilayahFromData saat data tanah di-load
+useEffect(() => {
+  if (tanahData?.lokasi && provinsiList.length > 0) {
+    initWilayahFromData(tanahData.lokasi);
+  }
+}, [tanahData, provinsiList]);
+
+const fetchTanah = async () => {
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    Swal.fire({
+      icon: "warning",
+      title: "Peringatan!",
+      text: "Anda harus login untuk mengedit data.",
+      confirmButtonText: "OK",
+    });
+    navigate("/dashboard");
+    return;
+  }
+
+  try {
+    const response = await axios.get(`http://127.0.0.1:8000/api/tanah/${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+    });
+
+    const tanah = response.data.data[0] || response.data.data;
+    setTanahData(tanah); // Simpan data tanah
+    
+    if (tanah) {
+      setNamaPimpinanJamaah(tanah.NamaPimpinanJamaah || "");
+      setNamaWakif(tanah.NamaWakif || "");
+      setLuasTanah(tanah.luasTanah || "");
+      
+      if (tanah.lokasi) {
+        const [provName, kabName, kecName, kelName, detail] = tanah.lokasi.split(', ');
+        setDetailLokasi(detail || "");
+      }
+    }
+    setLoading(false);
+  } catch (error) {
+    console.error("Gagal mengambil data tanah:", error);
+    Swal.fire({
+      icon: "error",
+      title: "Gagal!",
+      text: "Gagal mengambil data tanah.",
+      confirmButtonText: "OK",
+    });
+    navigate("/dashboard");
+  }
+};
   const fetchSertifikat = async () => {
     const token = localStorage.getItem("token");
 
@@ -244,10 +313,36 @@ const EditTanah = () => {
       return;
     }
 
+    // Validasi data lokasi
+    if (!provinsi || !kota || !kecamatan || !kelurahan || !detailLokasi) {
+      Swal.fire({
+        icon: "warning",
+        title: "Peringatan!",
+        text: "Harap lengkapi semua data lokasi",
+        confirmButtonText: "OK",
+      });
+      return;
+    }
+
+    // Buat string lokasi lengkap
+    const lokasiLengkap = `${
+      provinsiList.find((p) => p.id === provinsi)?.name || ""
+    }, ${kotaList.find((k) => k.id === kota)?.name || ""}, ${
+      kecamatanList.find((k) => k.id === kecamatan)?.name || ""
+    }, ${kelurahanList.find((k) => k.id === kelurahan)?.name || ""}, ${
+      detailLokasi || ""
+    }`;
+
     try {
       await axios.put(
         `http://127.0.0.1:8000/api/tanah/${id}`,
-        { NamaPimpinanJamaah, NamaWakif, lokasi, luasTanah },
+        {
+          NamaPimpinanJamaah,
+          NamaWakif,
+          lokasi: lokasiLengkap, // Gunakan lokasi lengkap
+          luasTanah,
+          detailLokasi, // Tambahkan detailLokasi jika diperlukan di backend
+        },
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -279,7 +374,7 @@ const EditTanah = () => {
         text: "Data berhasil diperbarui!",
         confirmButtonText: "OK",
       });
-      navigate("/dashboard"); // Kembali ke dashboard tanpa reload API
+      navigate("/dashboard");
     } catch (error) {
       console.error("Gagal memperbarui data:", error);
       Swal.fire({
@@ -290,7 +385,6 @@ const EditTanah = () => {
       });
     }
   };
-
   const calculateDayDifference = (dateString) => {
     const today = new Date(); // Tanggal hari ini
     const targetDate = new Date(dateString); // Tanggal dari data sertifikat
@@ -558,13 +652,31 @@ const EditTanah = () => {
                       Preview Lokasi:
                     </h3>
                     <p className="text-gray-600 mt-2">
-                      {`${provinsiList.find((p) => p.id === provinsi)?.name}, ${
-                        kotaList.find((k) => k.id === kota)?.name
-                      }, ${
-                        kecamatanList.find((k) => k.id === kecamatan)?.name
-                      }, ${
-                        kelurahanList.find((k) => k.id === kelurahan)?.name
-                      }, ${detailLokasi}`}
+                      {provinsi
+                        ? `${
+                            provinsiList.find((p) => p.id === provinsi)?.name ||
+                            "Belum dipilih"
+                          }, `
+                        : ""}
+                      {kota
+                        ? `${
+                            kotaList.find((k) => k.id === kota)?.name ||
+                            "Belum dipilih"
+                          }, `
+                        : ""}
+                      {kecamatan
+                        ? `${
+                            kecamatanList.find((k) => k.id === kecamatan)
+                              ?.name || "Belum dipilih"
+                          }, `
+                        : ""}
+                      {kelurahan
+                        ? `${
+                            kelurahanList.find((k) => k.id === kelurahan)
+                              ?.name || "Belum dipilih"
+                          }, `
+                        : ""}
+                      {detailLokasi || "Detail lokasi belum diisi"}
                     </p>
                   </div>
                   {/* Tombol Simpan */}
