@@ -396,17 +396,25 @@ const Legalitas = () => {
                                   </button>
 
                                   {item.isFromApproval ? (
-                                    <button
-                                      onClick={() =>
-                                        navigate(
-                                          `/approval/edit/${item.id_approval}`
-                                        )
-                                      }
-                                      className="p-1 text-gray-400 hover:text-gray-600"
-                                      title="Edit"
-                                    >
-                                      <FaEdit />
-                                    </button>
+                                   <button
+                                   onClick={() => {
+                                     if (item.status !== 'disetujui') {
+                                       Swal.fire({
+                                         title: 'Tidak Dapat Edit',
+                                         text: 'Data tanah belum disetujui, tidak dapat melakukan edit',
+                                         icon: 'warning',
+                                         confirmButtonText: 'OK'
+                                       });
+                                     } else {
+                                       navigate(`/approval/edit/${item.id_approval}`);
+                                     }
+                                   }}
+                                   className={`p-1 ${item.status !== 'disetujui' ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-gray-600'}`}
+                                   title={item.status !== 'disetujui' ? 'Tanah belum disetujui' : 'Edit'}
+                                   disabled={item.status !== 'disetujui'}
+                                 >
+                                   <FaEdit />
+                                 </button>
                                   ) : (
                                     <button
                                       onClick={() =>
