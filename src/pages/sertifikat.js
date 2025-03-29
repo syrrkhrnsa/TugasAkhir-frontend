@@ -27,7 +27,10 @@ const Legalitas = () => {
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
-  const [legalitasOptions] = useState(["BASTW", "AIW", "SW"]);
+  const [legalitasOptions, setLegalitasOptions] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [legalitas, setLegalitas] = useState("");
+  const [newLegalitas, setNewLegalitas] = useState("");
   const [selectedLegalitas, setSelectedLegalitas] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -207,38 +210,46 @@ const Legalitas = () => {
   };
 
   const handleUpdateLegalitas = async () => {
-    if (!selectedItem || !selectedLegalitas) return;
-
     const token = localStorage.getItem("token");
-    setIsProcessing(true);
+
+    if (!token || !selectedItem || !selectedLegalitas) {
+      alert("Unauthorized or no item selected or no legalitas chosen!");
+      return;
+    }
+
+    console.log("Selected Item:", selectedItem); // Untuk debug
+    console.log("ID Tanah:", selectedItem.id_tanah); // Pastikan ID yang dikirim benar
+    console.log("Legalitas Baru (Dari Dropdown):", selectedLegalitas); // Menampilkan pilihan yang dipilih
 
     try {
+      // Kirim ID Tanah dan Legalitas yang dipilih ke API
       await axios.put(
         `http://127.0.0.1:8000/api/tanah/legalitas/${selectedItem.id_tanah}`,
-        { legalitas: selectedLegalitas },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { legalitas: selectedLegalitas }, // Pastikan menggunakan legalitas yang dipilih dari dropdown
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        }
       );
 
-      // Update local state
-      setTanahDisetujui((prev) =>
-        prev.map((item) =>
-          item.id_tanah === selectedItem.id_tanah
-            ? { ...item, legalitas: selectedLegalitas }
-            : item
-        )
-      );
-
-      Swal.fire("Berhasil!", "Legalitas berhasil diperbarui.", "success");
-      setIsModalOpen(false);
+      Swal.fire({
+        icon: "success",
+        title: "Berhasil!",
+        text: "Legalitas berhasil diperbarui!",
+        confirmButtonText: "OK",
+      });
+      fetchData(); // Ambil ulang data setelah update
+      closeModal();
     } catch (error) {
       console.error("Gagal mengupdate legalitas:", error);
-      Swal.fire(
-        "Gagal!",
-        "Terjadi kesalahan saat mengupdate legalitas.",
-        "error"
-      );
-    } finally {
-      setIsProcessing(false);
+      Swal.fire({
+        icon: "error",
+        title: "Gagal!",
+        text: "Terjadi kesalahan saat mengupdate legalitas.",
+        confirmButtonText: "OK",
+      });
     }
   };
 
@@ -272,16 +283,61 @@ const Legalitas = () => {
     return pages;
   };
 
-  const openModal = (item) => {
+  const openModal = async (item) => {
+    console.log("Opening modal for:", item);
     setSelectedItem(item);
-    setSelectedLegalitas(item.legalitas || "Belum Ada");
     setIsModalOpen(true);
+    setIsLoading(true);
+
+    const token = localStorage.getItem("token");
+
+    try {
+      const response = await axios.get(
+        `http://127.0.0.1:8000/api/sertifikat/legalitas/${item.id_tanah}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data.status === "success") {
+        // Ambil semua jenis sertifikat dari array legalitas
+        const legalitasList = response.data.data.legalitas.map(
+          (item) => item.jenis_sertifikat
+        );
+
+        // Set legalitas options
+        setLegalitasOptions(legalitasList);
+
+        // Set default value ke pilihan pertama
+        if (legalitasList.length > 0) {
+          setSelectedLegalitas(legalitasList[0]);
+        }
+      } else {
+        Swal.fire({
+          icon: "warning",
+          title: "Peringatan!",
+          text: "Data Legalitas Belum Tersedia",
+          confirmButtonText: "OK",
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching legalitas:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Gagal mengambil data legalitas",
+        confirmButtonText: "OK",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedItem(null);
-    setSelectedLegalitas("");
   };
 
   // Status styling helpers
@@ -468,31 +524,22 @@ const Legalitas = () => {
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="flex items-center">
-                                  <div className="relative">
-                                    <select
-                                      value={item.legalitas || ""}
-                                      onChange={(e) =>
-                                        handleLegalitasChange(
-                                          item.id_tanah,
-                                          e.target.value
-                                        )
-                                      }
-                                      className={`appearance-none px-3 py-1 rounded-full text-xs font-semibold pr-6 focus:outline-none focus:ring-1 focus:ring-[#187556] ${
-                                        !item.legalitas
-                                          ? "bg-gray-200 text-gray-700" // Gray for empty
-                                          : item.legalitas === "BASTW"
-                                          ? "bg-blue-100 text-blue-800" // Blue for BASTW
-                                          : item.legalitas === "AIW"
-                                          ? "bg-yellow-100 text-yellow-800" // Yellow for AIW
-                                          : "bg-green-100 text-green-800" // Green for SW
-                                      }`}
+                                  <div
+                                    className={`inline-block px-4 py-2 rounded-[30px] ${
+                                      item.legalitas === "SW"
+                                        ? "bg-[#AFFEB5] text-[#187556]"
+                                        : item.legalitas === "AIW"
+                                        ? "bg-[#acdfff] text-[#3175f3]"
+                                        : "bg-[#FFEFBA] text-[#ffc400]"
+                                    }`}
+                                  >
+                                    {item.legalitas}
+                                    <button
+                                      className="ml-2 bg-[#fff] text-[#000] px-2 py-1 rounded-md hover:bg-[#848483] hover:text-[#000] text-xs"
+                                      onClick={() => openModal(item)}
                                     >
-                                      <option value="">-</option>
-                                      <option value="BASTW">BASTW</option>
-                                      <option value="AIW">AIW</option>
-                                      <option value="SW">SW</option>
-                                    </select>
-                                    <FaPencilAlt className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs pointer-events-none" />
+                                      <FaEdit />
+                                    </button>
                                   </div>
                                 </div>
                               </td>
@@ -731,17 +778,23 @@ const Legalitas = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Status Legalitas
                   </label>
-                  <select
-                    value={selectedLegalitas}
-                    onChange={(e) => setSelectedLegalitas(e.target.value)}
-                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-[#187556] focus:border-[#187556] sm:text-sm rounded-md"
-                  >
-                    {legalitasOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
+                  {legalitasOptions.length > 0 ? (
+                    <select
+                      value={selectedLegalitas}
+                      onChange={(e) => setSelectedLegalitas(e.target.value)}
+                      className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-[#187556] focus:border-[#187556] sm:text-sm rounded-md"
+                    >
+                      {legalitasOptions.map((option, index) => (
+                        <option key={index} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p className="text-sm text-gray-500">
+                      Tidak ada data legalitas tersedia
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="bg-gray-50 px-6 py-4 flex justify-end rounded-b-lg">
@@ -755,7 +808,7 @@ const Legalitas = () => {
                 <button
                   type="button"
                   onClick={handleUpdateLegalitas}
-                  disabled={isProcessing}
+                  disabled={isProcessing || legalitasOptions.length === 0}
                   className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[#187556] hover:bg-[#146347] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#187556] disabled:opacity-50"
                 >
                   {isProcessing ? "Menyimpan..." : "Simpan Perubahan"}

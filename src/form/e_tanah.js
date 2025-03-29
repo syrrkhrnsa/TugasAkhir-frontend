@@ -19,6 +19,10 @@ const EditTanah = () => {
   const [roleUser, setRoleUser] = useState("");
   const sertifikatId = sertifikatList[0]?.id_sertifikat;
   const [tanahData, setTanahData] = useState(null);
+  const [selectedJenisSertifikat, setSelectedJenisSertifikat] = useState("");
+  const [selectedStatusPengajuan, setSelectedStatusPengajuan] = useState("");
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const roleId = getRoleId();
   const isPimpinanJamaah = roleId === "326f0dde-2851-4e47-ac5a-de6923447317";
@@ -436,7 +440,10 @@ const EditTanah = () => {
     }
   };
 
-  const openModal = () => {
+  const openModal = (sertifikat) => {
+    setSelectedItem(sertifikat);
+    setSelectedJenisSertifikat(sertifikat.jenis_sertifikat || "");
+    setSelectedStatusPengajuan(sertifikat.status_pengajuan || "");
     setIsModalOpen(true);
   };
 
@@ -451,22 +458,50 @@ const EditTanah = () => {
   const handleUpdateLegalitas = async () => {
     const token = localStorage.getItem("token");
 
-    if (!token) {
-      alert("Anda harus login untuk mengupdate legalitas.");
+    if (!token || !selectedItem) {
+      Swal.fire({
+        icon: "warning",
+        title: "Peringatan!",
+        text: "Anda harus login untuk mengupdate legalitas.",
+        confirmButtonText: "OK",
+      });
       return;
     }
 
+    setIsProcessing(true);
+
     try {
-      await axios.put(
-        `http://127.0.0.1:8000/api/sertifikat/legalitas/${sertifikatId}`,
-        { legalitas: selectedLegalitas },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-          },
-        }
-      );
+      // Update jenis sertifikat jika ada perubahan
+      if (
+        selectedJenisSertifikat &&
+        selectedJenisSertifikat !== selectedItem.jenis_sertifikat
+      ) {
+        await axios.put(
+          `http://127.0.0.1:8000/api/sertifikat/jenissertifikat/${selectedItem.id_sertifikat}`,
+          { jenis_sertifikat: selectedJenisSertifikat },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+      }
+
+      // Update status pengajuan jika ada perubahan
+      if (
+        selectedStatusPengajuan &&
+        selectedStatusPengajuan !== selectedItem.status_pengajuan
+      ) {
+        await axios.put(
+          `http://127.0.0.1:8000/api/sertifikat/statuspengajuan/${selectedItem.id_sertifikat}`,
+          { status_pengajuan: selectedStatusPengajuan },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+      }
 
       Swal.fire({
         icon: "success",
@@ -474,16 +509,21 @@ const EditTanah = () => {
         text: "Legalitas berhasil diperbarui!",
         confirmButtonText: "OK",
       });
-      closeModal();
+
       fetchSertifikat();
+      closeModal();
     } catch (error) {
       console.error("Gagal memperbarui legalitas:", error);
       Swal.fire({
         icon: "error",
         title: "Gagal!",
-        text: "Terjadi kesalahan saat memperbarui legalitas.",
+        text:
+          error.response?.data?.message ||
+          "Terjadi kesalahan saat memperbarui legalitas.",
         confirmButtonText: "OK",
       });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -544,7 +584,7 @@ const EditTanah = () => {
       <Sidebar>
         <div className="flex-1 p-4">
           <div
-            className="bg-white shadow-lg rounded-lg p-10 mx-auto w-[90%] max-w-3xl"
+            className="bg-white shadow-lg rounded-lg p-10 mx-auto w-[70%] "
             style={{
               boxShadow:
                 "0px 5px 15px rgba(0, 0, 0, 0.1), 0px -5px 15px rgba(0, 0, 0, 0.1), 5px 0px 15px rgba(0, 0, 0, 0.1), -5px 0px 15px rgba(0, 0, 0, 0.1)",
@@ -789,10 +829,7 @@ const EditTanah = () => {
                           No Dokumen
                         </th>
                         <th className="py-2 px-4 font-medium border-b-2">
-                          Jenis Sertifikat
-                        </th>
-                        <th className="py-2 px-4 font-medium border-b-2">
-                          Status Pengajuan
+                          Legalitas
                         </th>
                         <th className="py-2 px-4 font-medium border-b-2">
                           Tanggal Pengajuan
@@ -824,19 +861,24 @@ const EditTanah = () => {
                               {sertifikat.no_dokumen || "-"}
                             </td>
                             <td className="py-2 px-4 border-b text-center">
-                              {sertifikat.jenis_sertifikat || "-"}
-                            </td>
-                            <td className="py-2 px-4 border-b text-center">
                               <div
                                 className={`inline-block px-4 py-1 rounded-[30px] ${
                                   sertifikat.status_pengajuan === "Terbit"
                                     ? "bg-[#AFFEB5] text-[#187556]"
                                     : sertifikat.status_pengajuan === "Ditolak"
                                     ? "bg-[#FEC5D0] text-[#D80027]"
-                                    : "bg-[#FFEFBA] text-[#FECC23]"
+                                    : "bg-[#fffcd6] text-[#FECC23]"
                                 }`}
                               >
-                                {sertifikat.status_pengajuan || "-"}
+                                {`${sertifikat.status_pengajuan || "Proses"} ${
+                                  sertifikat.jenis_sertifikat || ""
+                                }`}
+                                <button
+                                  className="ml-2 bg-[#fff] text-[#000] px-2 py-1 rounded-md hover:bg-[#848483] hover:text-[#000] text-xs"
+                                  onClick={() => openModal(sertifikat)}
+                                >
+                                  <FaEdit />
+                                </button>
                               </div>
                             </td>
                             <td className="py-2 px-4 border-b text-center">
@@ -882,7 +924,7 @@ const EditTanah = () => {
                                       ? "bg-[#AFFEB5] text-[#187556]"
                                       : sertifikat.status === "ditolak"
                                       ? "bg-[#FEC5D0] text-[#D80027]"
-                                      : "bg-[#FFEFBA] text-[#FECC23]"
+                                      : "bg-[#FFEFBA] text-[#ffc400]"
                                   }`}
                                 >
                                   {sertifikat.status}
@@ -916,8 +958,7 @@ const EditTanah = () => {
                                   className="bg-red-500 text-white p-1 rounded-md hover:bg-red-600"
                                   title="Hapus"
                                 >
-                                  <FaTrash className="text-xs" />{" "}
-                                  {/* Make sure to import FaTrash from react-icons/fa */}
+                                  <FaTrash className="text-xs" />
                                 </button>
                               </div>
                             </td>
@@ -926,10 +967,10 @@ const EditTanah = () => {
                       ) : (
                         <tr>
                           <td
-                            colSpan={isPimpinanJamaah ? 9 : 8}
-                            className="py-2 px-4 border-b text-center"
+                            colSpan={isPimpinanJamaah ? 8 : 7}
+                            className="py-4 text-center"
                           >
-                            Tidak ada data sertifikat.
+                            Tidak ada data sertifikat
                           </td>
                         </tr>
                       )}
@@ -937,39 +978,70 @@ const EditTanah = () => {
                   </table>
 
                   {isModalOpen && (
-                    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-                      <div className="bg-white p-6 rounded-lg shadow-lg w-96">
-                        <h2 className="text-xl font-semibold mb-4">
-                          Update Legalitas
-                        </h2>
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                      <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+                        <div className="p-6">
+                          <h3 className="text-lg font-medium leading-6 text-gray-900">
+                            Update Legalitas
+                          </h3>
 
-                        <label className="block text-sm font-medium text-gray-700">
-                          Status Legalitas:
-                        </label>
-                        <select
-                          value={selectedLegalitas}
-                          onChange={handleLegalitasChange}
-                          className="border p-2 w-full"
-                        >
-                          {legalitasOptions.map((option, index) => (
-                            <option key={index} value={option}>
-                              {option}
-                            </option>
-                          ))}
-                        </select>
+                          {/* Dropdown Jenis Sertifikat */}
+                          <div className="mt-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Jenis Sertifikat
+                            </label>
+                            <select
+                              value={selectedJenisSertifikat}
+                              onChange={(e) =>
+                                setSelectedJenisSertifikat(e.target.value)
+                              }
+                              className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-[#187556] focus:border-[#187556] sm:text-sm rounded-md"
+                            >
+                              <option value="">Pilih Jenis Sertifikat</option>
+                              <option value="BASTW">BASTW</option>
+                              <option value="AIW">AIW</option>
+                              <option value="SW">SW</option>
+                            </select>
+                          </div>
 
-                        <div className="flex justify-end mt-4">
+                          {/* Dropdown Status Pengajuan */}
+                          <div className="mt-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Status Pengajuan
+                            </label>
+                            <select
+                              value={selectedStatusPengajuan}
+                              onChange={(e) =>
+                                setSelectedStatusPengajuan(e.target.value)
+                              }
+                              className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-[#187556] focus:border-[#187556] sm:text-sm rounded-md"
+                            >
+                              <option value="">Pilih Status</option>
+                              <option value="Proses">Proses</option>
+                              <option value="Terbit">Terbit</option>
+                              <option value="Tolak">Tolak</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="bg-gray-50 px-6 py-4 flex justify-end rounded-b-lg">
                           <button
-                            className="bg-gray-500 text-white px-4 py-2 rounded-md mr-2"
+                            type="button"
                             onClick={closeModal}
+                            className="mr-3 inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#187556]"
                           >
                             Batal
                           </button>
                           <button
-                            className="hover:bg-[#2563EB] bg-[#3B82F6] text-white px-4 py-2 rounded-md"
+                            type="button"
                             onClick={handleUpdateLegalitas}
+                            disabled={
+                              !selectedJenisSertifikat &&
+                              !selectedStatusPengajuan
+                            }
+                            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[#187556] hover:bg-[#146347] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#187556] disabled:opacity-50"
                           >
-                            Simpan
+                            {isProcessing ? "Menyimpan..." : "Simpan Perubahan"}
                           </button>
                         </div>
                       </div>
