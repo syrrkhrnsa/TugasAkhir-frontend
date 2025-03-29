@@ -146,18 +146,27 @@ const EditSertifikat = () => {
     // For Pimpinan Jamaah, create approval request
     if (isPimpinanJamaah) {
       try {
-        const approvalData = {
-          id_sertifikat: id,
-          ...formData,
-          dokumen: files.dokumen || originalData.dokumen,
-        };
+        // Prepare FormData for file upload
+        const formData = new FormData();
+        formData.append("id_sertifikat", id);
+        formData.append("jenis_sertifikat", formData.jenis_sertifikat);
+        formData.append("status_pengajuan", formData.status_pengajuan);
+        formData.append("tanggal_pengajuan", formData.tanggal_pengajuan);
+
+        if (files.dokumen) {
+          formData.append("dokumen", files.dokumen);
+        } else if (originalData.dokumen) {
+          // If no new file, send the existing file path
+          formData.append("existing_dokumen", originalData.dokumen);
+        }
 
         const response = await axios.post(
-          "http://127.0.0.1:8000/api/approvals",
-          approvalData,
+          `http://127.0.0.1:8000/api/approvals/${id}/update/approve`,
+          formData,
           {
             headers: {
               Authorization: `Bearer ${token}`,
+              "Content-Type": "multipart/form-data",
             },
           }
         );
@@ -172,45 +181,22 @@ const EditSertifikat = () => {
         return;
       } catch (error) {
         console.error("Error creating approval:", error);
+        let errorMessage = "Gagal mengirim permintaan persetujuan";
+
+        if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.response?.status === 403) {
+          errorMessage =
+            "Anda tidak memiliki izin untuk melakukan tindakan ini";
+        }
+
         Swal.fire({
           icon: "error",
           title: "Gagal",
-          text:
-            error.response?.data?.message ||
-            "Gagal mengirim permintaan persetujuan",
+          text: errorMessage,
         });
         return;
       }
-    }
-
-    // For other roles, update directly
-    try {
-      formDataToSend.append("_method", "PUT");
-      const response = await axios.post(
-        `http://127.0.0.1:8000/api/sertifikat/${id}`,
-        formDataToSend,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-
-      Swal.fire({
-        icon: "success",
-        title: "Berhasil!",
-        text: "Data sertifikat berhasil diperbarui",
-      }).then(() => {
-        navigate(`/tanah/edit/${formData.id_tanah}`);
-      });
-    } catch (error) {
-      console.error("Error:", error);
-      Swal.fire({
-        icon: "error",
-        title: "Gagal",
-        text: error.response?.data?.message || "Gagal memperbarui data",
-      });
     }
   };
 
