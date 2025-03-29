@@ -82,19 +82,38 @@ const Legalitas = () => {
       status: "disetujui",
       isFromApproval: false,
     })),
-    ...approvalTanah.map((approval) => ({
-      ...approval, // Langsung spread object approval
-      id_approval: approval.id,
-      status: approval.status || "ditinjau",
-      isFromApproval: true,
-      // Jika ada field yang nested, sesuaikan:
-      NamaPimpinanJamaah:
-        approval.NamaPimpinanJamaah ||
-        approval.data?.details?.NamaPimpinanJamaah,
-      NamaWakif: approval.NamaWakif || approval.data?.details?.NamaWakif,
-      lokasi: approval.lokasi || approval.data?.details?.lokasi,
-      luasTanah: approval.luasTanah || approval.data?.details?.luasTanah,
-    })),
+    ...approvalTanah
+      .filter((approval) => {
+        // Check if this approval already exists in tanahDisetujui
+        const isDuplicate = tanahDisetujui.some((approvedItem) => {
+          // Compare based on your unique identifiers or key fields
+          // Adjust these conditions based on your actual data structure
+          return (
+            approvedItem.NamaPimpinanJamaah === 
+              (approval.NamaPimpinanJamaah || approval.data?.details?.NamaPimpinanJamaah) &&
+            approvedItem.NamaWakif === 
+              (approval.NamaWakif || approval.data?.details?.NamaWakif) &&
+            approvedItem.lokasi === 
+              (approval.lokasi || approval.data?.details?.lokasi) &&
+            approvedItem.luasTanah === 
+              (approval.luasTanah || approval.data?.details?.luasTanah)
+          );
+        });
+        
+        // Only include if it's not a duplicate AND status is "ditinjau"
+        return !isDuplicate && (approval.status === "ditinjau" || !approval.status);
+      })
+      .map((approval) => ({
+        ...approval,
+        id_approval: approval.id,
+        status: approval.status || "ditinjau",
+        isFromApproval: true,
+        NamaPimpinanJamaah:
+          approval.NamaPimpinanJamaah || approval.data?.details?.NamaPimpinanJamaah,
+        NamaWakif: approval.NamaWakif || approval.data?.details?.NamaWakif,
+        lokasi: approval.lokasi || approval.data?.details?.lokasi,
+        luasTanah: approval.luasTanah || approval.data?.details?.luasTanah,
+      })),
   ];
 
   const filteredData = combinedData.filter(
