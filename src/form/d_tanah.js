@@ -38,16 +38,20 @@ const DetailTanah = () => {
         setTanah(tanahResponse.data.data);
 
         // Fetch sertifikat data
-        const sertifikatResponse = await axios.get(
-          `http://127.0.0.1:8000/api/sertifikat/tanah/${idTanah}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        setSertifikatList(sertifikatResponse.data.data || []);
+        try {
+          const sertifikatResponse = await axios.get(
+            `http://127.0.0.1:8000/api/sertifikat/tanah/${idTanah}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+          setSertifikatList(sertifikatResponse.data.data || []);
+        } catch (sertifikatError) {
+          console.error("Error fetching sertifikat:", sertifikatError);
+          setSertifikatList([]); // Set empty array if error occurs
+        }
       } catch (error) {
         setError(
           error.response?.data?.message ||
@@ -65,7 +69,6 @@ const DetailTanah = () => {
 
   const handlePreviewDokumen = (dokumenPath) => {
     if (dokumenPath) {
-      // Construct full URL if the path is relative
       const fullUrl = dokumenPath.startsWith("http")
         ? dokumenPath
         : `http://127.0.0.1:8000/storage/${dokumenPath}`;
@@ -168,44 +171,44 @@ const DetailTanah = () => {
                   Luas Tanah
                 </span>
                 <p className="mt-2 text-sm text-[#868686] font-semibold bg-gray-100 rounded-3xl text-center py-2 px-4">
-                  {tanah.luasTanah}
+                  {tanah.luasTanah
+                    ? `${Number(tanah.luasTanah).toLocaleString("id-ID")} m²`
+                    : "-"}
                 </p>
               </div>
             </div>
 
-            {/* Tabel Sertifikat */}
+            {/* Tabel Sertifikat - Always shown */}
             <div className="mt-10">
               <h3 className="text-lg font-bold mb-4">Legalitas</h3>
-              {sertifikatList.length > 0 ? (
-                <table className="min-w-full text-xs bg-white border border-gray-300">
-                  <thead>
-                    <tr>
-                      <th className="py-2 px-4 font-medium border-b-2">No</th>
-                      <th className="py-2 px-4 font-medium border-b-2">
-                        ID Sertifikat
-                      </th>
-                      <th className="py-2 px-4 font-medium border-b-2">
-                        Jenis Sertifikat
-                      </th>
-                      <th className="py-2 px-4 font-medium border-b-2">
-                        No Dokumen
-                      </th>
-                      <th className="py-2 px-4 font-medium border-b-2">
-                        Status
-                      </th>
-                      <th className="py-2 px-4 font-medium border-b-2">
-                        Tanggal
-                      </th>
-                      <th className="py-2 px-4 font-medium border-b-2">
-                        Dokumen
-                      </th>
-                      <th className="py-2 px-4 font-medium border-b-2">
-                        Keterangan
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sertifikatList.map((sertifikat, index) => (
+              <table className="min-w-full text-xs bg-white border border-gray-300">
+                <thead>
+                  <tr>
+                    <th className="py-2 px-4 font-medium border-b-2">No</th>
+                    <th className="py-2 px-4 font-medium border-b-2">
+                      ID Sertifikat
+                    </th>
+                    <th className="py-2 px-4 font-medium border-b-2">
+                      Jenis Sertifikat
+                    </th>
+                    <th className="py-2 px-4 font-medium border-b-2">
+                      No Dokumen
+                    </th>
+                    <th className="py-2 px-4 font-medium border-b-2">Status</th>
+                    <th className="py-2 px-4 font-medium border-b-2">
+                      Tanggal
+                    </th>
+                    <th className="py-2 px-4 font-medium border-b-2">
+                      Dokumen
+                    </th>
+                    <th className="py-2 px-4 font-medium border-b-2">
+                      Keterangan
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sertifikatList.length > 0 ? (
+                    sertifikatList.map((sertifikat, index) => (
                       <tr key={sertifikat.id_sertifikat}>
                         <td className="py-2 px-4 border-b text-center">
                           {index + 1}
@@ -252,14 +255,19 @@ const DetailTanah = () => {
                           {calculateDayDifference(sertifikat.tanggal_pengajuan)}
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <div className="text-center py-4 text-gray-500">
-                  Tidak ada data sertifikat untuk tanah ini.
-                </div>
-              )}
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan="8"
+                        className="py-4 text-center text-sm text-gray-500"
+                      >
+                        Belum ada data sertifikat untuk tanah ini
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>

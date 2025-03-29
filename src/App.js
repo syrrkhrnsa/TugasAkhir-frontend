@@ -24,21 +24,19 @@ function App() {
         {/* Grouping Protected Routes */}
         <Route element={<ProtectedRoute />}>
           <Route path="/pemetaan" element={<Pemetaan />} />
-
           <Route path="/sertifikat" element={<Sertifikat />} />
           <Route path="/sertifikat/edit/:id" element={<EditSertifikat />} />
           <Route path="/sertifikat/create" element={<CreateSertifikat />} />
-
-
           {/* Route Tanah */}
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/tanah/create" element={<CreateTanah />} />
           <Route path="/tanah/edit/:id" element={<EditTanah />} />
           <Route path="/tanah/detail/:idTanah" element={<DetailTanah />} />
 
+          {/* <Route path="/tanah/peta/:id" element={<PetaTanah />} />
+          <Route path="/tanah/history/:id" element={<HistoryTanah />} /> */}
           {/* Log Tanah*/}
           <Route path="/riwayat/tanah" element={<RiwayatTanah />} />
-
           {/* Pesan Perubahan*/}
           <Route path="/notifikasi" element={<PesanPerubahan />} />
         </Route>
