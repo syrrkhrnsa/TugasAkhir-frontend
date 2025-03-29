@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
@@ -9,8 +9,6 @@ import {
   FaEye,
   FaHistory,
   FaMap,
-  FaCheckCircle,
-  FaPencilAlt,
 } from "react-icons/fa";
 import { getRoleId } from "../utils/Auth";
 import Swal from "sweetalert2";
@@ -28,22 +26,15 @@ const Legalitas = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [legalitasOptions, setLegalitasOptions] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [legalitas, setLegalitas] = useState("");
-  const [newLegalitas, setNewLegalitas] = useState("");
   const [selectedLegalitas, setSelectedLegalitas] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Legalitas editing state
-  const [isEditingLegalitas, setIsEditingLegalitas] = useState(false);
-  const [currentEditId, setCurrentEditId] = useState(null);
-  const [tempLegalitas, setTempLegalitas] = useState("");
-
-  // User role check
+  // User info
   const roleId = getRoleId();
   const isPimpinanJamaah = roleId === "326f0dde-2851-4e47-ac5a-de6923447317";
+  const userId = localStorage.getItem("user_id");
 
-  // Fetch data function
+  // Fetch data with ownership filtering
   const fetchData = useCallback(async () => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -53,16 +44,21 @@ const Legalitas = () => {
     }
 
     try {
-      // Fetch approved tanah data
-      const tanahResponse = await axios.get("http://127.0.0.1:8000/api/tanah", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      // Build URLs with filters
+      const tanahUrl = isPimpinanJamaah
+        ? `http://127.0.0.1:8000/api/tanah?filter[user_id]=${userId}`
+        : "http://127.0.0.1:8000/api/tanah";
 
-      // Fetch pending approval tanah data
-      const approvalResponse = await axios.get(
-        "http://127.0.0.1:8000/api/approvals/type/tanah",
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const approvalUrl = isPimpinanJamaah
+        ? `http://127.0.0.1:8000/api/approvals/type/tanah?user_id=${userId}`
+        : "http://127.0.0.1:8000/api/approvals/type/tanah";
+
+      const [tanahResponse, approvalResponse] = await Promise.all([
+        axios.get(tanahUrl, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(approvalUrl, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
 
       setTanahDisetujui(tanahResponse.data.data || []);
       setApprovalTanah(approvalResponse.data.data || []);
@@ -72,53 +68,56 @@ const Legalitas = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isPimpinanJamaah, userId]);
 
-  // Fetch data on component mount
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  // Combine and format data from both sources with safe JSON parsing
-  const combinedData = [
-    ...tanahDisetujui.map((item) => ({
-      ...item,
-      status: "disetujui",
-      isFromApproval: false,
-    })),
-    ...approvalTanah
-      .filter((approval) => {
-        const isDuplicate = tanahDisetujui.some((approvedItem) => {
-          return (
-            approvedItem.NamaPimpinanJamaah ===
-              (approval.NamaPimpinanJamaah ||
-                approval.data?.details?.NamaPimpinanJamaah) &&
-            approvedItem.NamaWakif ===
-              (approval.NamaWakif || approval.data?.details?.NamaWakif) &&
-            approvedItem.lokasi ===
-              (approval.lokasi || approval.data?.details?.lokasi) &&
-            approvedItem.luasTanah ===
-              (approval.luasTanah || approval.data?.details?.luasTanah)
-          );
-        });
-        return (
-          !isDuplicate && (approval.status === "ditinjau" || !approval.status)
-        );
-      })
-      .map((approval) => ({
-        ...approval,
-        id_approval: approval.id,
-        status: approval.status || "ditinjau",
-        isFromApproval: true,
-        NamaPimpinanJamaah:
-          approval.NamaPimpinanJamaah ||
-          approval.data?.details?.NamaPimpinanJamaah,
-        NamaWakif: approval.NamaWakif || approval.data?.details?.NamaWakif,
-        lokasi: approval.lokasi || approval.data?.details?.lokasi,
-        luasTanah: approval.luasTanah || approval.data?.details?.luasTanah,
+  // Combine and filter data
+  const combinedData = useMemo(() => {
+    return [
+      ...tanahDisetujui.map((item) => ({
+        ...item,
+        status: "disetujui",
+        isFromApproval: false,
       })),
-  ];
+      ...approvalTanah
+        .filter((approval) => {
+          const isDuplicate = tanahDisetujui.some(
+            (approvedItem) =>
+              approvedItem.NamaPimpinanJamaah ===
+                (approval.NamaPimpinanJamaah ||
+                  approval.data?.details?.NamaPimpinanJamaah) &&
+              approvedItem.NamaWakif ===
+                (approval.NamaWakif || approval.data?.details?.NamaWakif) &&
+              approvedItem.lokasi ===
+                (approval.lokasi || approval.data?.details?.lokasi) &&
+              approvedItem.luasTanah ===
+                (approval.luasTanah || approval.data?.details?.luasTanah)
+          );
+          return (
+            !isDuplicate &&
+            (approval.status === "ditinjau" || !approval.status) &&
+            (!isPimpinanJamaah || approval.user_id === userId)
+          );
+        })
+        .map((approval) => ({
+          ...approval,
+          id_approval: approval.id,
+          status: approval.status || "ditinjau",
+          isFromApproval: true,
+          NamaPimpinanJamaah:
+            approval.NamaPimpinanJamaah ||
+            approval.data?.details?.NamaPimpinanJamaah,
+          NamaWakif: approval.NamaWakif || approval.data?.details?.NamaWakif,
+          lokasi: approval.lokasi || approval.data?.details?.lokasi,
+          luasTanah: approval.luasTanah || approval.data?.details?.luasTanah,
+        })),
+    ];
+  }, [tanahDisetujui, approvalTanah, isPimpinanJamaah, userId]);
 
+  // Search and pagination
   const filteredData = combinedData.filter(
     (item) =>
       (item.NamaPimpinanJamaah?.toLowerCase() || "").includes(
@@ -134,8 +133,17 @@ const Legalitas = () => {
     currentPage * itemsPerPage
   );
 
-  // Data manipulation handlers
+  // Action handlers with ownership checks
   const handleDelete = async (id, isFromApproval = false) => {
+    const item = combinedData.find(
+      (item) => item.id_tanah === id || item.id_approval === id
+    );
+
+    if (isPimpinanJamaah && item?.user_id !== userId) {
+      Swal.fire("Error", "Anda hanya dapat menghapus data milik Anda", "error");
+      return;
+    }
+
     const result = await Swal.fire({
       title: "Apakah Anda yakin?",
       text: "Data yang dihapus tidak dapat dikembalikan!",
@@ -166,94 +174,25 @@ const Legalitas = () => {
       }
 
       Swal.fire("Berhasil!", "Data telah dihapus.", "success");
+      fetchData();
     } catch (error) {
       console.error("Gagal menghapus data:", error);
       Swal.fire("Gagal!", "Terjadi kesalahan saat menghapus data.", "error");
     }
   };
 
-  // Legalitas editing functions
-  const handleEditLegalitas = (id, currentLegalitas) => {
-    setIsEditingLegalitas(true);
-    setCurrentEditId(id);
-    setTempLegalitas(currentLegalitas || "-");
-  };
-
-  const handleSaveLegalitas = async (id) => {
-    const token = localStorage.getItem("token");
-    setIsEditingLegalitas(false);
-
-    try {
-      // Optimistic update
-      setTanahDisetujui((prev) =>
-        prev.map((item) =>
-          item.id_tanah === id ? { ...item, legalitas: tempLegalitas } : item
-        )
-      );
-
-      // API call
-      await axios.put(
-        `http://127.0.0.1:8000/api/tanah/legalitas/${id}`,
-        { legalitas: tempLegalitas === "-" ? null : tempLegalitas },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-    } catch (error) {
-      console.error("Gagal mengupdate legalitas:", error);
-      Swal.fire("Gagal!", "Gagal memperbarui legalitas.", "error");
-      // Revert on error
-      setTanahDisetujui((prev) =>
-        prev.map((item) =>
-          item.id_tanah === id ? { ...item, legalitas: item.legalitas } : item
-        )
-      );
-    }
-  };
-
-  const handleUpdateLegalitas = async () => {
-    const token = localStorage.getItem("token");
-
-    if (!token || !selectedItem || !selectedLegalitas) {
-      alert("Unauthorized or no item selected or no legalitas chosen!");
-      return;
-    }
-
-    console.log("Selected Item:", selectedItem); // Untuk debug
-    console.log("ID Tanah:", selectedItem.id_tanah); // Pastikan ID yang dikirim benar
-    console.log("Legalitas Baru (Dari Dropdown):", selectedLegalitas); // Menampilkan pilihan yang dipilih
-
-    try {
-      // Kirim ID Tanah dan Legalitas yang dipilih ke API
-      await axios.put(
-        `http://127.0.0.1:8000/api/tanah/legalitas/${selectedItem.id_tanah}`,
-        { legalitas: selectedLegalitas }, // Pastikan menggunakan legalitas yang dipilih dari dropdown
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-          },
-        }
-      );
-
-      Swal.fire({
-        icon: "success",
-        title: "Berhasil!",
-        text: "Legalitas berhasil diperbarui!",
-        confirmButtonText: "OK",
-      });
-      fetchData(); // Ambil ulang data setelah update
-      closeModal();
-    } catch (error) {
-      console.error("Gagal mengupdate legalitas:", error);
-      Swal.fire({
-        icon: "error",
-        title: "Gagal!",
-        text: "Terjadi kesalahan saat mengupdate legalitas.",
-        confirmButtonText: "OK",
-      });
-    }
-  };
-
   // UI helpers
+  const getStatusStyle = (status) => {
+    switch (status) {
+      case "disetujui":
+        return "bg-[#AFFEB5] text-[#187556]";
+      case "ditolak":
+        return "bg-[#FEC5D0] text-[#D80027]";
+      default:
+        return "bg-[#FFEFBA] text-[#FECC23]";
+    }
+  };
+
   const handlePageChange = (page) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
@@ -283,12 +222,15 @@ const Legalitas = () => {
     return pages;
   };
 
+  // Modal functions
   const openModal = async (item) => {
-    console.log("Opening modal for:", item);
+    if (isPimpinanJamaah && item.user_id !== userId) {
+      Swal.fire("Error", "Anda tidak memiliki akses", "error");
+      return;
+    }
+
     setSelectedItem(item);
     setIsModalOpen(true);
-    setIsLoading(true);
-
     const token = localStorage.getItem("token");
 
     try {
@@ -302,36 +244,15 @@ const Legalitas = () => {
       );
 
       if (response.data.status === "success") {
-        // Ambil semua jenis sertifikat dari array legalitas
         const legalitasList = response.data.data.legalitas.map(
           (item) => item.jenis_sertifikat
         );
-
-        // Set legalitas options
         setLegalitasOptions(legalitasList);
-
-        // Set default value ke pilihan pertama
-        if (legalitasList.length > 0) {
-          setSelectedLegalitas(legalitasList[0]);
-        }
-      } else {
-        Swal.fire({
-          icon: "warning",
-          title: "Peringatan!",
-          text: "Data Legalitas Belum Tersedia",
-          confirmButtonText: "OK",
-        });
+        setSelectedLegalitas(legalitasList[0] || "");
       }
     } catch (error) {
       console.error("Error fetching legalitas:", error);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Gagal mengambil data legalitas",
-        confirmButtonText: "OK",
-      });
-    } finally {
-      setIsLoading(false);
+      Swal.fire("Error", "Gagal mengambil data legalitas", "error");
     }
   };
 
@@ -340,54 +261,67 @@ const Legalitas = () => {
     setSelectedItem(null);
   };
 
-  // Status styling helpers
-  const getStatusStyle = (status) => {
-    switch (status) {
-      case "disetujui":
-        return "bg-[#AFFEB5] text-[#187556]";
-      case "ditolak":
-        return "bg-[#FEC5D0] text-[#D80027]";
-      default:
-        return "bg-[#FFEFBA] text-[#FECC23]";
-    }
-  };
-  const handleLegalitasChange = async (id_tanah, newLegalitas) => {
+  const handleUpdateLegalitas = async () => {
+    if (!selectedItem || !selectedLegalitas) return;
+
     const token = localStorage.getItem("token");
+    setIsProcessing(true);
 
     try {
-      // Optimistic UI update
-      setTanahDisetujui((prev) =>
-        prev.map((item) =>
-          item.id_tanah === id_tanah
-            ? { ...item, legalitas: newLegalitas }
-            : item
-        )
+      await axios.put(
+        `http://127.0.0.1:8000/api/tanah/legalitas/${selectedItem.id_tanah}`,
+        { legalitas: selectedLegalitas },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        }
       );
 
-      // API call
-      await axios.put(
-        `http://127.0.0.1:8000/api/tanah/legalitas/${id_tanah}`,
-        { legalitas: newLegalitas },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      Swal.fire("Berhasil!", "Legalitas berhasil diperbarui!", "success");
+      fetchData();
+      closeModal();
     } catch (error) {
       console.error("Gagal mengupdate legalitas:", error);
-
-      // Revert UI if API call fails
-      setTanahDisetujui((prev) =>
-        prev.map((item) =>
-          item.id_tanah === id_tanah
-            ? { ...item, legalitas: item.legalitas }
-            : item
-        )
-      );
-
       Swal.fire(
         "Gagal!",
         "Terjadi kesalahan saat mengupdate legalitas.",
         "error"
       );
+    } finally {
+      setIsProcessing(false);
     }
+  };
+
+  // Render function for action buttons
+  const renderActionButton = (item, action, icon, label) => {
+    const isOwner = !isPimpinanJamaah || item.user_id === userId;
+    const isDisabled = item.isFromApproval && item.status !== "disetujui";
+
+    if (isDisabled || !isOwner) {
+      return (
+        <button
+          className={`p-1 ${
+            isOwner ? "text-gray-400" : "text-gray-300"
+          } cursor-not-allowed`}
+          title={!isOwner ? "Anda tidak memiliki akses" : label}
+          disabled
+        >
+          {icon}
+        </button>
+      );
+    }
+
+    return (
+      <button
+        onClick={() => action(item.id_tanah || item.id_approval)}
+        className="p-1 text-gray-400 hover:text-gray-600"
+        title={label}
+      >
+        {icon}
+      </button>
+    );
   };
 
   return (
@@ -422,15 +356,13 @@ const Legalitas = () => {
               }}
             />
 
-            {isPimpinanJamaah && (
-              <button
-                className="p-2 text-white bg-[#187556] rounded-md hover:bg-[#146347] transition-colors"
-                onClick={() => navigate("/tanah/create")}
-                title="Tambah Baru"
-              >
-                <FaPlus />
-              </button>
-            )}
+            <button
+              className="p-2 text-white bg-[#187556] rounded-md hover:bg-[#146347] transition-colors"
+              onClick={() => navigate("/tanah/create")}
+              title="Tambah Baru"
+            >
+              <FaPlus />
+            </button>
           </div>
         </div>
 
@@ -487,195 +419,104 @@ const Legalitas = () => {
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {paginatedData.length > 0 ? (
-                        paginatedData.map((item, index) => {
-                          return (
-                            <tr
-                              key={item.id_tanah || item.id_approval || index}
-                              className="hover:bg-gray-50"
-                            >
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                {(currentPage - 1) * itemsPerPage + index + 1}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {item.NamaPimpinanJamaah || "-"}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {item.NamaWakif || "-"}
-                              </td>
-                              <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate hover:max-w-none hover:whitespace-normal">
-                                {item.lokasi || "-"}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {item.luasTanah
-                                  ? `${item.luasTanah.replace(
-                                      /\B(?=(\d{3})+(?!\d))/g,
-                                      "."
-                                    )} m²`
-                                  : "-"}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <span
-                                  className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusStyle(
-                                    item.status
-                                  )}`}
+                        paginatedData.map((item, index) => (
+                          <tr
+                            key={item.id_tanah || item.id_approval || index}
+                            className="hover:bg-gray-50"
+                          >
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              {(currentPage - 1) * itemsPerPage + index + 1}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {item.NamaPimpinanJamaah || "-"}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {item.NamaWakif || "-"}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate hover:max-w-none hover:whitespace-normal">
+                              {item.lokasi || "-"}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {item.luasTanah
+                                ? `${item.luasTanah.replace(
+                                    /\B(?=(\d{3})+(?!\d))/g,
+                                    "."
+                                  )} m²`
+                                : "-"}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span
+                                className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusStyle(
+                                  item.status
+                                )}`}
+                              >
+                                {item.status}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <div
+                                  className={`inline-block px-4 py-2 rounded-[30px] ${
+                                    item.legalitas === "SW"
+                                      ? "bg-[#AFFEB5] text-[#187556]"
+                                      : item.legalitas === "AIW"
+                                      ? "bg-[#acdfff] text-[#3175f3]"
+                                      : "bg-[#FFEFBA] text-[#ffc400]"
+                                  }`}
                                 >
-                                  {item.status}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="flex items-center">
-                                  <div
-                                    className={`inline-block px-4 py-2 rounded-[30px] ${
-                                      item.legalitas === "SW"
-                                        ? "bg-[#AFFEB5] text-[#187556]"
-                                        : item.legalitas === "AIW"
-                                        ? "bg-[#acdfff] text-[#3175f3]"
-                                        : "bg-[#FFEFBA] text-[#ffc400]"
-                                    }`}
-                                  >
-                                    {item.legalitas}
+                                  {item.legalitas || "-"}
+                                  {(!isPimpinanJamaah ||
+                                    item.user_id === userId) && (
                                     <button
-                                      className="ml-2 bg-[#fff] text-[#000] px-2 py-1 rounded-md hover:bg-[#848483] hover:text-[#000] text-xs"
+                                      className="ml-2 bg-white text-black px-2 py-1 rounded-md hover:bg-gray-200 text-xs"
                                       onClick={() => openModal(item)}
-                                    >
-                                      <FaEdit />
-                                    </button>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <div className="flex space-x-2">
-                                  {item.isFromApproval ? (
-                                    <button
-                                      onClick={() => {
-                                        if (item.status !== "disetujui") {
-                                          Swal.fire({
-                                            title: "Tidak Dapat Melihat Detail",
-                                            text: "Data tanah belum disetujui, tidak dapat melihat detail",
-                                            icon: "warning",
-                                            confirmButtonText: "OK",
-                                          });
-                                        } else {
-                                          navigate(
-                                            `/tanah/detail/${item.id_approval}`
-                                          );
-                                        }
-                                      }}
-                                      className={`p-1 ${
+                                      disabled={
+                                        item.isFromApproval &&
                                         item.status !== "disetujui"
-                                          ? "text-gray-300 cursor-not-allowed"
-                                          : "text-gray-400 hover:text-gray-600"
-                                      }`}
-                                      title={
-                                        item.status !== "disetujui"
-                                          ? "Tanah belum disetujui"
-                                          : "Detail"
                                       }
-                                      disabled={item.status !== "disetujui"}
-                                    >
-                                      <FaEye />
-                                    </button>
-                                  ) : (
-                                    <button
-                                      onClick={() =>
-                                        navigate(
-                                          `/tanah/detail/${item.id_tanah}`
-                                        )
-                                      }
-                                      className="p-1 text-gray-400 hover:text-gray-600"
-                                      title="Detail"
-                                    >
-                                      <FaEye />
-                                    </button>
-                                  )}
-
-                                  <button
-                                    onClick={() =>
-                                      navigate(
-                                        `/tanah/peta/${
-                                          item.id_tanah || item.id_approval
-                                        }`
-                                      )
-                                    }
-                                    className="p-1 text-gray-400 hover:text-gray-600"
-                                    title="Pemetaan"
-                                  >
-                                    <FaMap />
-                                  </button>
-
-                                  <button
-                                    onClick={() =>
-                                      navigate(
-                                        `/tanah/history/${
-                                          item.id_tanah || item.id_approval
-                                        }`
-                                      )
-                                    }
-                                    className="p-1 text-gray-400 hover:text-gray-600"
-                                    title="Riwayat"
-                                  >
-                                    <FaHistory />
-                                  </button>
-
-                                  {item.isFromApproval ? (
-                                    <button
-                                      onClick={() => {
-                                        if (item.status !== "disetujui") {
-                                          Swal.fire({
-                                            title: "Tidak Dapat Edit",
-                                            text: "Data tanah belum disetujui, tidak dapat melakukan edit",
-                                            icon: "warning",
-                                            confirmButtonText: "OK",
-                                          });
-                                        } else {
-                                          navigate(
-                                            `/approval/edit/${item.id_approval}`
-                                          );
-                                        }
-                                      }}
-                                      className={`p-1 ${
-                                        item.status !== "disetujui"
-                                          ? "text-gray-300 cursor-not-allowed"
-                                          : "text-gray-400 hover:text-gray-600"
-                                      }`}
-                                      title={
-                                        item.status !== "disetujui"
-                                          ? "Tanah belum disetujui"
-                                          : "Edit"
-                                      }
-                                      disabled={item.status !== "disetujui"}
-                                    >
-                                      <FaEdit />
-                                    </button>
-                                  ) : (
-                                    <button
-                                      onClick={() =>
-                                        navigate(`/tanah/edit/${item.id_tanah}`)
-                                      }
-                                      className="p-1 text-gray-400 hover:text-gray-600"
-                                      title="Edit"
                                     >
                                       <FaEdit />
                                     </button>
                                   )}
-
-                                  <button
-                                    onClick={() =>
-                                      handleDelete(
-                                        item.id_tanah || item.id_approval,
-                                        item.isFromApproval
-                                      )
-                                    }
-                                    className="p-1 text-gray-400 hover:text-gray-600"
-                                    title="Hapus"
-                                  >
-                                    <FaTrash />
-                                  </button>
                                 </div>
-                              </td>
-                            </tr>
-                          );
-                        })
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <div className="flex space-x-2">
+                                {renderActionButton(
+                                  item,
+                                  (id) => navigate(`/tanah/detail/${id}`),
+                                  <FaEye />,
+                                  "Detail"
+                                )}
+                                {renderActionButton(
+                                  item,
+                                  (id) => navigate(`/tanah/peta/${id}`),
+                                  <FaMap />,
+                                  "Pemetaan"
+                                )}
+                                {renderActionButton(
+                                  item,
+                                  (id) => navigate(`/tanah/history/${id}`),
+                                  <FaHistory />,
+                                  "Riwayat"
+                                )}
+                                {renderActionButton(
+                                  item,
+                                  (id) => navigate(`/tanah/edit/${id}`),
+                                  <FaEdit />,
+                                  "Edit"
+                                )}
+                                {renderActionButton(
+                                  item,
+                                  (id) => handleDelete(id, item.isFromApproval),
+                                  <FaTrash />,
+                                  "Hapus"
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))
                       ) : (
                         <tr>
                           <td
