@@ -37,23 +37,9 @@ const CreateSertifikat = () => {
   const validateForm = () => {
     let isValid = true;
     const newErrors = {
-      jenis_sertifikat: "",
-      status_pengajuan: "",
       tanggal_pengajuan: "",
       dokumen: "",
     };
-
-    // Validasi jenis sertifikat
-    if (!formData.jenis_sertifikat) {
-      newErrors.jenis_sertifikat = "Jenis sertifikat wajib diisi";
-      isValid = false;
-    }
-
-    // Validasi status pengajuan
-    if (!formData.status_pengajuan) {
-      newErrors.status_pengajuan = "Status pengajuan wajib diisi";
-      isValid = false;
-    }
 
     // Validasi tanggal pengajuan
     if (!formData.tanggal_pengajuan) {
@@ -264,64 +250,6 @@ const CreateSertifikat = () => {
                 {errors.tanggal_pengajuan && (
                   <p className="text-red-500 text-xs mt-1">
                     {errors.tanggal_pengajuan}
-                  </p>
-                )}
-              </div>
-
-              {/* Jenis Sertifikat */}
-              <div className="flex flex-col">
-                <label className="text-sm font-medium text-gray-400">
-                  Jenis Sertifikat <span className="text-red-500">*</span>
-                </label>
-                <select
-                  className={`w-full border-b-2 p-2 focus:outline-none ${
-                    errors.jenis_sertifikat
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  }`}
-                  value={formData.jenis_sertifikat}
-                  onChange={(e) =>
-                    handleInputChange("jenis_sertifikat", e.target.value)
-                  }
-                  required
-                >
-                  <option value="">Pilih Jenis Sertifikat</option>
-                  <option value="BASTW">BASTW</option>
-                  <option value="AIW">AIW</option>
-                  <option value="SW">SW</option>
-                </select>
-                {errors.jenis_sertifikat && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {errors.jenis_sertifikat}
-                  </p>
-                )}
-              </div>
-
-              {/* Status Pengajuan */}
-              <div className="flex flex-col">
-                <label className="text-sm font-medium text-gray-400">
-                  Status Pengajuan <span className="text-red-500">*</span>
-                </label>
-                <select
-                  className={`w-full border-b-2 p-2 focus:outline-none ${
-                    errors.status_pengajuan
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  }`}
-                  value={formData.status_pengajuan}
-                  onChange={(e) =>
-                    handleInputChange("status_pengajuan", e.target.value)
-                  }
-                  required
-                >
-                  <option value="">Pilih Status</option>
-                  <option value="Diproses">Diproses</option>
-                  <option value="Terbit">Terbit</option>
-                  <option value="Ditolak">Ditolak</option>
-                </select>
-                {errors.status_pengajuan && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {errors.status_pengajuan}
                   </p>
                 )}
               </div>
