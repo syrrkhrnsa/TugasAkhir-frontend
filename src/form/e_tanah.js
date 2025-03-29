@@ -405,8 +405,8 @@ const EditTanah = () => {
   };
 
   const handleCreateLegalitas = () => {
-    console.log("Tombol Create diklik");
-    // Implementasi logika untuk membuat legalitas baru
+    console.log("Navigasi ke halaman pembuatan sertifikat");
+    navigate("/sertifikat/create");
   };
 
   const handleUpdateSertifikat = (sertifikatId) => {

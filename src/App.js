@@ -11,6 +11,7 @@ import EditTanah from "./form/e_tanah.js";
 import RiwayatTanah from "./log/log_tanah.js";
 import PesanPerubahan from "./pages/approval.js";
 import EditSertifikat from "./form/e_sertifikat.js";
+import CreateSertifikat from "./form/c_sertifikat.js";
 import DetailTanah from "./form/d_tanah.js";
 
 function App() {
@@ -26,6 +27,8 @@ function App() {
 
           <Route path="/sertifikat" element={<Sertifikat />} />
           <Route path="/sertifikat/edit/:id" element={<EditSertifikat />} />
+          <Route path="/sertifikat/create" element={<CreateSertifikat />} />
+
 
           {/* Route Tanah */}
           <Route path="/dashboard" element={<Dashboard />} />
