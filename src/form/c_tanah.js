@@ -353,7 +353,7 @@ const CreateTanah = () => {
                   Preview Lokasi:
                 </h3>
                 <p className="text-gray-600 mt-2">
-                  {detailLokasi || "Detail lokasi belum diisi"}
+                  {detailLokasi || "-"}
                   {kelurahan
                     ? `, ${
                         kelurahanList.find((k) => k.id === kelurahan)?.name ||

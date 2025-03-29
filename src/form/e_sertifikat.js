@@ -2,33 +2,29 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import axios from "axios";
-import { FaEye, FaTimes } from "react-icons/fa";
+import { FaEye, FaTimes, FaTrash } from "react-icons/fa";
+import Swal from "sweetalert2";
+import { getRoleId } from "../utils/Auth";
 
 const EditSertifikat = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const roleId = getRoleId();
+  const isPimpinanJamaah = roleId === "326f0dde-2851-4e47-ac5a-de6923447317";
 
-  // State untuk data form
   const [formData, setFormData] = useState({
-    noDokumen: "",
-    jenisSertifikat: "",
-    statusPengajuan: "",
-    tanggalPengajuan: "",
+    no_dokumen: "",
+    jenis_sertifikat: "",
+    status_pengajuan: "",
+    tanggal_pengajuan: "",
+    id_tanah: "",
+    status: "ditinjau",
   });
 
-  // State untuk file preview
-  const [filePreviews, setFilePreviews] = useState({
-    dokLegalitas: null,
-    dokPersyaratan: null,
-  });
-
-  // State untuk file yang akan diupload
-  const [files, setFiles] = useState({
-    dokLegalitas: null,
-    dokPersyaratan: null,
-  });
-
+  const [filePreviews, setFilePreviews] = useState({ dokumen: null });
+  const [files, setFiles] = useState({ dokumen: null });
   const [loading, setLoading] = useState(true);
+  const [originalData, setOriginalData] = useState(null);
 
   useEffect(() => {
     fetchSertifikat();
@@ -37,77 +33,104 @@ const EditSertifikat = () => {
   const fetchSertifikat = async () => {
     const token = localStorage.getItem("token");
 
-    if (!token) {
-      alert("Anda harus login untuk melihat data sertifikat.");
-      navigate("/dashboard");
-      return;
-    }
-
     try {
       const response = await axios.get(
         `http://127.0.0.1:8000/api/sertifikat/${id}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            Accept: "application/json",
           },
         }
       );
 
       const sertifikat = response.data.data || response.data;
       if (sertifikat) {
+        setOriginalData(sertifikat);
         setFormData({
-          noDokumen: sertifikat.noDokumen || "",
-          jenisSertifikat: sertifikat.jenisSertifikat || "",
-          statusPengajuan: sertifikat.statusPengajuan || "",
-          tanggalPengajuan: sertifikat.tanggalPengajuan || "",
+          no_dokumen: sertifikat.no_dokumen || "",
+          jenis_sertifikat: sertifikat.jenis_sertifikat || "",
+          status_pengajuan: sertifikat.status_pengajuan || "",
+          tanggal_pengajuan: sertifikat.tanggal_pengajuan || "",
+          id_tanah: sertifikat.id_tanah || "",
+          status: sertifikat.status || "ditinjau",
         });
 
-        // Set preview untuk file yang sudah ada
-        setFilePreviews({
-          dokLegalitas: sertifikat.dokLegalitas
-            ? `http://127.0.0.1:8000/storage/${sertifikat.dokLegalitas}`
-            : null,
-          dokPersyaratan: sertifikat.dokPersyaratan
-            ? `http://127.0.0.1:8000/storage/${sertifikat.dokPersyaratan}`
-            : null,
-        });
+        if (sertifikat.dokumen) {
+          setFilePreviews({
+            dokumen: `http://127.0.0.1:8000/storage/${sertifikat.dokumen}`,
+          });
+        }
       }
       setLoading(false);
     } catch (error) {
       console.error("Error:", error);
-      alert("Gagal mengambil data sertifikat.");
+      Swal.fire({
+        icon: "error",
+        title: "Gagal",
+        text: "Gagal mengambil data sertifikat",
+      });
       navigate("/dashboard");
     }
   };
 
-  // Handle file change untuk preview
   const handleFileChange = (field, e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Set file untuk upload
-    setFiles((prev) => ({ ...prev, [field]: file }));
+    // Validate file type and size
+    if (!file.type.includes("pdf")) {
+      Swal.fire({
+        icon: "error",
+        title: "Format tidak valid",
+        text: "Hanya file PDF yang diperbolehkan",
+      });
+      return;
+    }
 
-    // Buat preview URL
-    const previewUrl = URL.createObjectURL(file);
-    setFilePreviews((prev) => ({ ...prev, [field]: previewUrl }));
+    if (file.size > 5 * 1024 * 1024) {
+      // 5MB
+      Swal.fire({
+        icon: "error",
+        title: "File terlalu besar",
+        text: "Ukuran file maksimal 5MB",
+      });
+      return;
+    }
+
+    setFiles({ ...files, [field]: file });
+    setFilePreviews({ ...filePreviews, [field]: URL.createObjectURL(file) });
   };
 
-  // Hapus file yang dipilih
   const handleRemoveFile = (field) => {
-    setFiles((prev) => ({ ...prev, [field]: null }));
-    setFilePreviews((prev) => ({ ...prev, [field]: null }));
-    document.getElementById(field).value = ""; // Reset input file
+    setFiles({ ...files, [field]: null });
+    setFilePreviews({ ...filePreviews, [field]: null });
+    document.getElementById(field).value = "";
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     const token = localStorage.getItem("token");
     if (!token) {
-      alert("Anda harus login terlebih dahulu.");
-      navigate("/dashboard");
+      Swal.fire({
+        icon: "error",
+        title: "Gagal",
+        text: "Anda harus login terlebih dahulu",
+      });
+      return;
+    }
+
+    // Validate required fields
+    if (
+      !formData.jenis_sertifikat ||
+      !formData.status_pengajuan ||
+      !formData.tanggal_pengajuan
+    ) {
+      Swal.fire({
+        icon: "error",
+        title: "Data tidak lengkap",
+        text: "Harap isi semua field yang wajib diisi",
+      });
       return;
     }
 
@@ -115,13 +138,55 @@ const EditSertifikat = () => {
     Object.entries(formData).forEach(([key, value]) => {
       if (value) formDataToSend.append(key, value);
     });
-    Object.entries(files).forEach(([key, file]) => {
-      if (file) formDataToSend.append(key, file);
-    });
-    formDataToSend.append('_method', 'PUT');
 
+    if (files.dokumen) {
+      formDataToSend.append("dokumen", files.dokumen);
+    }
+
+    // For Pimpinan Jamaah, create approval request
+    if (isPimpinanJamaah) {
+      try {
+        const approvalData = {
+          id_sertifikat: id,
+          ...formData,
+          dokumen: files.dokumen || originalData.dokumen,
+        };
+
+        const response = await axios.post(
+          "http://127.0.0.1:8000/api/approvals",
+          approvalData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        Swal.fire({
+          icon: "success",
+          title: "Berhasil!",
+          text: "Permintaan perubahan telah dikirim untuk persetujuan",
+        }).then(() => {
+          navigate(`/tanah/edit/${formData.id_tanah}`);
+        });
+        return;
+      } catch (error) {
+        console.error("Error creating approval:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Gagal",
+          text:
+            error.response?.data?.message ||
+            "Gagal mengirim permintaan persetujuan",
+        });
+        return;
+      }
+    }
+
+    // For other roles, update directly
     try {
-      await axios.post(
+      formDataToSend.append("_method", "PUT");
+      const response = await axios.post(
         `http://127.0.0.1:8000/api/sertifikat/${id}`,
         formDataToSend,
         {
@@ -131,18 +196,29 @@ const EditSertifikat = () => {
           },
         }
       );
-      alert("Data berhasil diperbarui!");
-      navigate("/dashboard");
+
+      Swal.fire({
+        icon: "success",
+        title: "Berhasil!",
+        text: "Data sertifikat berhasil diperbarui",
+      }).then(() => {
+        navigate(`/tanah/edit/${formData.id_tanah}`);
+      });
     } catch (error) {
       console.error("Error:", error);
-      alert(`Gagal memperbarui data. Error: ${error.response?.data?.message || error.message}`);
+      Swal.fire({
+        icon: "error",
+        title: "Gagal",
+        text: error.response?.data?.message || "Gagal memperbarui data",
+      });
     }
   };
 
-  // Komponen untuk menampilkan preview dokumen
   const FilePreview = ({ field, label }) => (
     <div className="flex flex-col">
-      <label className="block text-sm font-medium text-gray-400">{label}</label>
+      <label className="block text-sm font-medium text-gray-400">
+        {label} <span className="text-red-500">*</span>
+      </label>
 
       {filePreviews[field] && (
         <div className="mt-2 flex items-center gap-2">
@@ -157,9 +233,9 @@ const EditSertifikat = () => {
           <button
             type="button"
             onClick={() => handleRemoveFile(field)}
-            className="text-red-500 hover:text-red-700"
+            className="flex items-center text-red-500 hover:text-red-700"
           >
-            <FaTimes />
+            <FaTimes className="mr-1" /> Hapus
           </button>
         </div>
       )}
@@ -168,9 +244,17 @@ const EditSertifikat = () => {
         id={field}
         type="file"
         accept=".pdf"
-        className="w-full border-b-2 border-gray-300 p-2 focus:outline-none mt-2"
+        className={`w-full border-b-2 p-2 focus:outline-none mt-2 ${
+          !filePreviews[field] && !originalData?.dokumen
+            ? "border-red-500"
+            : "border-gray-300"
+        }`}
         onChange={(e) => handleFileChange(field, e)}
+        required={!originalData?.dokumen}
       />
+      {!filePreviews[field] && !originalData?.dokumen && (
+        <p className="text-red-500 text-xs mt-1">Dokumen wajib diupload</p>
+      )}
     </div>
   );
 
@@ -187,71 +271,138 @@ const EditSertifikat = () => {
             {loading ? (
               <p className="text-center">Memuat data...</p>
             ) : (
-              <form onSubmit={handleSubmit} className="mt-6 grid grid-cols-2 gap-8">
-                {/* Input untuk No Dokumen */}
+              <form
+                onSubmit={handleSubmit}
+                className="mt-6 grid grid-cols-2 gap-8"
+              >
+                {/* No Dokumen */}
                 <div className="flex flex-col">
-                  <label className="text-sm font-medium text-gray-400">No Dokumen</label>
+                  <label className="text-sm font-medium text-gray-400">
+                    No Dokumen
+                  </label>
                   <input
                     type="text"
                     className="w-full border-b-2 border-gray-300 p-2 focus:outline-none"
-                    value={formData.noDokumen}
-                    onChange={(e) => setFormData({ ...formData, noDokumen: e.target.value })}
+                    value={formData.no_dokumen}
+                    onChange={(e) =>
+                      setFormData({ ...formData, no_dokumen: e.target.value })
+                    }
                   />
                 </div>
 
-                {/* Input untuk Jenis Sertifikat */}
+                {/* Tanggal Pengajuan */}
                 <div className="flex flex-col">
-                  <label className="text-sm font-medium text-gray-400">Jenis Sertifikat</label>
+                  <label className="text-sm font-medium text-gray-400">
+                    Tanggal Pengajuan <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    className={`w-full border-b-2 p-2 focus:outline-none ${
+                      !formData.tanggal_pengajuan
+                        ? "border-red-500"
+                        : "border-gray-300"
+                    }`}
+                    value={formData.tanggal_pengajuan}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        tanggal_pengajuan: e.target.value,
+                      })
+                    }
+                    required
+                  />
+                  {!formData.tanggal_pengajuan && (
+                    <p className="text-red-500 text-xs mt-1">
+                      Tanggal pengajuan wajib diisi
+                    </p>
+                  )}
+                </div>
+
+                {/* Jenis Sertifikat */}
+                <div className="flex flex-col">
+                  <label className="text-sm font-medium text-gray-400">
+                    Jenis Sertifikat <span className="text-red-500">*</span>
+                  </label>
                   <select
-                    className="w-full border-b-2 border-gray-300 p-2 focus:outline-none"
-                    value={formData.jenisSertifikat}
-                    onChange={(e) => setFormData({ ...formData, jenisSertifikat: e.target.value })}
+                    className={`w-full border-b-2 p-2 focus:outline-none ${
+                      !formData.jenis_sertifikat
+                        ? "border-red-500"
+                        : "border-gray-300"
+                    }`}
+                    value={formData.jenis_sertifikat}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        jenis_sertifikat: e.target.value,
+                      })
+                    }
+                    required
                   >
                     <option value="">Pilih Jenis Sertifikat</option>
                     <option value="BASTW">BASTW</option>
                     <option value="AIW">AIW</option>
                     <option value="SW">SW</option>
                   </select>
+                  {!formData.jenis_sertifikat && (
+                    <p className="text-red-500 text-xs mt-1">
+                      Jenis sertifikat wajib dipilih
+                    </p>
+                  )}
                 </div>
 
-                {/* Input untuk Status Pengajuan */}
+                {/* Status Pengajuan */}
                 <div className="flex flex-col">
-                  <label className="text-sm font-medium text-gray-400">Status Pengajuan</label>
+                  <label className="text-sm font-medium text-gray-400">
+                    Status Pengajuan <span className="text-red-500">*</span>
+                  </label>
                   <select
-                    className="w-full border-b-2 border-gray-300 p-2 focus:outline-none"
-                    value={formData.statusPengajuan}
-                    onChange={(e) => setFormData({ ...formData, statusPengajuan: e.target.value })}
+                    className={`w-full border-b-2 p-2 focus:outline-none ${
+                      !formData.status_pengajuan
+                        ? "border-red-500"
+                        : "border-gray-300"
+                    }`}
+                    value={formData.status_pengajuan}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        status_pengajuan: e.target.value,
+                      })
+                    }
+                    required
                   >
                     <option value="">Pilih Status</option>
                     <option value="Diproses">Diproses</option>
                     <option value="Terbit">Terbit</option>
                     <option value="Ditolak">Ditolak</option>
                   </select>
+                  {!formData.status_pengajuan && (
+                    <p className="text-red-500 text-xs mt-1">
+                      Status pengajuan wajib dipilih
+                    </p>
+                  )}
                 </div>
 
-                {/* Input untuk Tanggal Pengajuan */}
-                <div className="flex flex-col">
-                  <label className="text-sm font-medium text-gray-400">Tanggal Pengajuan</label>
-                  <input
-                    type="date"
-                    className="w-full border-b-2 border-gray-300 p-2 focus:outline-none"
-                    value={formData.tanggalPengajuan}
-                    onChange={(e) => setFormData({ ...formData, tanggalPengajuan: e.target.value })}
+                {/* Dokumen Upload */}
+                <div className="col-span-2">
+                  <FilePreview
+                    field="dokumen"
+                    label="Dokumen Sertifikat (PDF)"
                   />
                 </div>
 
-                {/* Input untuk Dokumen Legalitas */}
-                <FilePreview field="dokLegalitas" label="Dokumen Legalitas" />
-
-                {/* Input untuk Dokumen Persyaratan */}
-                <FilePreview field="dokPersyaratan" label="Dokumen Persyaratan" />
-
-                <div className="col-span-2 flex justify-center mt-8">
+                <div className="col-span-2 flex justify-center mt-8 gap-4">
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/tanah/edit/${formData.id_tanah}`)}
+                    className="bg-gray-300 text-gray-700 px-6 py-2 rounded-md hover:bg-gray-400"
+                  >
+                    Batal
+                  </button>
                   <button
                     type="submit"
                     className="bg-[#3B82F6] text-white px-6 py-2 rounded-md hover:bg-[#2563EB]"
                   >
-                    Simpan Perubahan
+                    {isPimpinanJamaah ? "Ajukan Perubahan" : "Simpan Perubahan"}
                   </button>
                 </div>
               </form>

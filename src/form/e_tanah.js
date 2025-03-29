@@ -2,12 +2,12 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import axios from "axios";
-import { FaEye, FaPlus, FaEdit } from "react-icons/fa";
+import { FaEye, FaPlus, FaEdit, FaTrash } from "react-icons/fa";
 import { getUserId, getRoleId } from "../utils/Auth";
 import Swal from "sweetalert2";
 
 const EditTanah = () => {
-  const { id } = useParams(); // Ambil ID dari URL
+  const { id } = useParams();
   const navigate = useNavigate();
 
   const [NamaPimpinanJamaah, setNamaPimpinanJamaah] = useState("");
@@ -65,7 +65,6 @@ const EditTanah = () => {
     return found ? found.id : "";
   };
 
-  // Ambil data pengguna
   useEffect(() => {
     const fetchUsers = async () => {
       const token = localStorage.getItem("token");
@@ -97,7 +96,6 @@ const EditTanah = () => {
     fetchUsers();
   }, []);
 
-  // 1. Fetch Provinsi
   useEffect(() => {
     const fetchProvinsi = async () => {
       try {
@@ -117,7 +115,6 @@ const EditTanah = () => {
     fetchProvinsi();
   }, []);
 
-  // 2. Fetch Kabupaten/Kota ketika provinsi dipilih
   useEffect(() => {
     const fetchKota = async () => {
       if (!provinsi) return;
@@ -127,9 +124,9 @@ const EditTanah = () => {
           `https://api.binderbyte.com/wilayah/kabupaten?api_key=${API_KEY}&id_provinsi=${provinsi}`
         );
         setKotaList(response.data.value);
-        setKota(""); // Reset kabupaten ketika provinsi berubah
-        setKecamatan(""); // Reset kecamatan
-        setKelurahan(""); // Reset kelurahan
+        setKota("");
+        setKecamatan("");
+        setKelurahan("");
       } catch (error) {
         console.error("Error fetching kabupaten:", error);
         Swal.fire({
@@ -142,7 +139,6 @@ const EditTanah = () => {
     fetchKota();
   }, [provinsi]);
 
-  // 3. Fetch Kecamatan ketika kabupaten dipilih
   useEffect(() => {
     const fetchKecamatan = async () => {
       if (!kota) return;
@@ -152,8 +148,8 @@ const EditTanah = () => {
           `https://api.binderbyte.com/wilayah/kecamatan?api_key=${API_KEY}&id_kabupaten=${kota}`
         );
         setKecamatanList(response.data.value || []);
-        setKecamatan(""); // Reset kecamatan ketika kabupaten berubah
-        setKelurahan(""); // Reset kelurahan
+        setKecamatan("");
+        setKelurahan("");
       } catch (error) {
         console.error("Error fetching kecamatan:", error);
         Swal.fire({
@@ -166,7 +162,6 @@ const EditTanah = () => {
     fetchKecamatan();
   }, [kota]);
 
-  // 4. Fetch Kelurahan/Desa ketika kecamatan dipilih
   useEffect(() => {
     const fetchKelurahan = async () => {
       if (!kecamatan) return;
@@ -176,7 +171,7 @@ const EditTanah = () => {
           `https://api.binderbyte.com/wilayah/kelurahan?api_key=${API_KEY}&id_kecamatan=${kecamatan}`
         );
         setKelurahanList(response.data.value || []);
-        setKelurahan(""); // Reset kelurahan ketika kecamatan berubah
+        setKelurahan("");
       } catch (error) {
         console.error("Error fetching kelurahan:", error);
         Swal.fire({
@@ -189,30 +184,25 @@ const EditTanah = () => {
     fetchKelurahan();
   }, [kecamatan]);
 
-  // Fungsi untuk mengisi dropdown otomatis dari data yang sudah ada
   const initWilayahFromData = async (lokasi) => {
     if (!lokasi) return;
 
     const [provName, kabName, kecName, kelName] = lokasi.split(", ");
 
-    // 1. Set Provinsi
     const prov = provinsiList.find((p) => p.name === provName);
     if (prov) {
       setProvinsi(prov.id);
 
-      // Tunggu data kabupaten terload
       await new Promise((resolve) => setTimeout(resolve, 500));
       const kab = kotaList.find((k) => k.name === kabName);
       if (kab) {
         setKota(kab.id);
 
-        // Tunggu data kecamatan terload
         await new Promise((resolve) => setTimeout(resolve, 500));
         const kec = kecamatanList.find((k) => k.name === kecName);
         if (kec) {
           setKecamatan(kec.id);
 
-          // Tunggu data kelurahan terload
           await new Promise((resolve) => setTimeout(resolve, 500));
           const kel = kelurahanList.find((k) => k.name === kelName);
           if (kel) setKelurahan(kel.id);
@@ -221,7 +211,6 @@ const EditTanah = () => {
     }
   };
 
-  // Gunakan initWilayahFromData saat data tanah di-load
   useEffect(() => {
     if (tanahData?.lokasi && provinsiList.length > 0) {
       initWilayahFromData(tanahData.lokasi);
@@ -254,7 +243,7 @@ const EditTanah = () => {
       );
 
       const tanah = response.data.data[0] || response.data.data;
-      setTanahData(tanah); // Simpan data tanah
+      setTanahData(tanah);
 
       if (tanah) {
         setNamaPimpinanJamaah(tanah.NamaPimpinanJamaah || "");
@@ -279,6 +268,7 @@ const EditTanah = () => {
       navigate("/dashboard");
     }
   };
+
   const fetchSertifikat = async () => {
     const token = localStorage.getItem("token");
 
@@ -300,12 +290,12 @@ const EditTanah = () => {
 
       setSertifikatList(response.data.data || response.data);
     } catch (error) {
-      // test
+      console.error("Error fetching sertifikat:", error);
     }
   };
 
   const fetchUserRole = () => {
-    const role = localStorage.getItem("role"); // Asumsikan role disimpan di localStorage
+    const role = localStorage.getItem("role");
     setRoleUser(role);
   };
 
@@ -318,7 +308,6 @@ const EditTanah = () => {
       return;
     }
 
-    // Validasi data lokasi
     if (!provinsi || !kota || !kecamatan || !kelurahan || !detailLokasi) {
       Swal.fire({
         icon: "warning",
@@ -329,7 +318,6 @@ const EditTanah = () => {
       return;
     }
 
-    // Buat string lokasi lengkap
     const lokasiLengkap = `${
       provinsiList.find((p) => p.id === provinsi)?.name || ""
     }, ${kotaList.find((k) => k.id === kota)?.name || ""}, ${
@@ -344,9 +332,9 @@ const EditTanah = () => {
         {
           NamaPimpinanJamaah,
           NamaWakif,
-          lokasi: lokasiLengkap, // Gunakan lokasi lengkap
+          lokasi: lokasiLengkap,
           luasTanah,
-          detailLokasi, // Tambahkan detailLokasi jika diperlukan di backend
+          detailLokasi,
         },
         {
           headers: {
@@ -356,17 +344,16 @@ const EditTanah = () => {
         }
       );
 
-      // Perbarui state tanahList di localStorage
       const storedTanahList =
         JSON.parse(localStorage.getItem("tanahList")) || [];
       const updatedTanahList = storedTanahList.map((tanah) =>
         tanah.id_tanah === id
           ? {
               ...tanah,
-              NamaPimpinanJamaah: NamaPimpinanJamaah,
-              NamaWakif: NamaWakif,
+              NamaPimpinanJamaah,
+              NamaWakif,
               lokasi: lokasiLengkap,
-              luasTanah: luasTanah,
+              luasTanah,
             }
           : tanah
       );
@@ -390,22 +377,49 @@ const EditTanah = () => {
       });
     }
   };
+
   const calculateDayDifference = (dateString) => {
-    const today = new Date(); // Tanggal hari ini
-    const targetDate = new Date(dateString); // Tanggal dari data sertifikat
-    const timeDifference = today - targetDate; // Selisih waktu dalam milidetik
-    const dayDifference = Math.floor(timeDifference / (1000 * 60 * 60 * 24)); // Konversi ke hari
-    return `${dayDifference} hari`; // Format hasil
+    const today = new Date();
+    const targetDate = new Date(dateString);
+    const timeDifference = today - targetDate;
+    const dayDifference = Math.floor(timeDifference / (1000 * 60 * 60 * 24));
+    return `${dayDifference} hari`;
   };
 
   const handlePreviewDokumen = (dokumen) => {
-    // Implementasi preview dokumen
-    console.log("Preview dokumen:", dokumen);
-    // Bisa menggunakan library seperti react-pdf atau modal untuk menampilkan dokumen
+    if (!dokumen) {
+      Swal.fire({
+        icon: "warning",
+        title: "Dokumen Tidak Tersedia",
+        text: "Dokumen belum diupload",
+        confirmButtonText: "OK",
+      });
+      return;
+    }
+
+    // Jika dokumen adalah PDF
+    if (dokumen.endsWith(".pdf")) {
+      // Buka PDF di tab baru
+      window.open(`http://127.0.0.1:8000/storage/${dokumen}`, "_blank");
+    }
+    // Jika dokumen adalah gambar (jpg, jpeg, png)
+    else if (dokumen.match(/\.(jpg|jpeg|png)$/i)) {
+      Swal.fire({
+        imageUrl: `http://127.0.0.1:8000/storage/${dokumen}`,
+        imageAlt: "Preview Dokumen",
+        showConfirmButton: false,
+        showCloseButton: true,
+        width: "80%",
+      });
+    }
+    // Format dokumen lainnya
+    else {
+      // Alternatif: download dokumen
+      window.open(`http://127.0.0.1:8000/storage/${dokumen}`, "_blank");
+    }
   };
 
   const handleCreateLegalitas = () => {
-    console.log("Navigasi ke halaman pembuatan sertifikat");
     navigate("/sertifikat/create");
   };
 
@@ -421,12 +435,6 @@ const EditTanah = () => {
       });
     }
   };
-
-  const dokumenTypes = [
-    { key: "noDokumenBastw", label: "BASTW", docKey: "dokBastw" },
-    { key: "noDokumenAIW", label: "AIW", docKey: "dokAiw" },
-    { key: "noDokumenSW", label: "SW", docKey: "dokSw" },
-  ];
 
   const openModal = () => {
     setIsModalOpen(true);
@@ -467,7 +475,7 @@ const EditTanah = () => {
         confirmButtonText: "OK",
       });
       closeModal();
-      fetchSertifikat(); // Refresh data sertifikat setelah update
+      fetchSertifikat();
     } catch (error) {
       console.error("Gagal memperbarui legalitas:", error);
       Swal.fire({
@@ -476,6 +484,58 @@ const EditTanah = () => {
         text: "Terjadi kesalahan saat memperbarui legalitas.",
         confirmButtonText: "OK",
       });
+    }
+  };
+
+  const handleDeleteSertifikat = async (sertifikatId) => {
+    const result = await Swal.fire({
+      title: "Apakah Anda yakin?",
+      text: "Data sertifikat akan dihapus permanen!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Ya, hapus!",
+      cancelButtonText: "Batal",
+    });
+
+    if (result.isConfirmed) {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        Swal.fire({
+          icon: "error",
+          title: "Gagal",
+          text: "Anda harus login untuk menghapus data",
+        });
+        return;
+      }
+
+      try {
+        const response = await axios.delete(
+          `http://127.0.0.1:8000/api/sertifikat/${sertifikatId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (response.data.status === "success") {
+          Swal.fire({
+            icon: "success",
+            title: "Berhasil!",
+            text: response.data.message,
+          });
+          fetchSertifikat(); // Refresh the list
+        }
+      } catch (error) {
+        console.error("Error deleting sertifikat:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Gagal!",
+          text: error.response?.data?.message || "Gagal menghapus sertifikat",
+        });
+      }
     }
   };
 
@@ -490,7 +550,6 @@ const EditTanah = () => {
                 "0px 5px 15px rgba(0, 0, 0, 0.1), 0px -5px 15px rgba(0, 0, 0, 0.1), 5px 0px 15px rgba(0, 0, 0, 0.1), -5px 0px 15px rgba(0, 0, 0, 0.1)",
             }}
           >
-            {/* Judul */}
             <h2 className="text-center text-3xl font-bold">
               <span className="text-[#FECC23]">Edit</span>{" "}
               <span className="text-[#187556]">Tanah</span>
@@ -501,10 +560,8 @@ const EditTanah = () => {
               <p className="text-center text-gray-500 mt-6">Memuat data...</p>
             ) : (
               <>
-                {/* Form Edit Tanah */}
                 <form onSubmit={handleSubmit} className="mt-6">
                   <div className="grid grid-cols-2 gap-8 justify-center">
-                    {/* Kolom kiri */}
                     <div className="flex flex-col items-left">
                       <label className="block text-sm font-medium text-gray-400">
                         Pimpinan Jamaah
@@ -524,7 +581,6 @@ const EditTanah = () => {
                           </option>
                         ))}
                       </select>
-                      {/* Dropdown Provinsi */}
                       <label className="block text-sm font-medium text-gray-400 mt-6">
                         Provinsi
                       </label>
@@ -544,7 +600,6 @@ const EditTanah = () => {
                         ))}
                       </select>
 
-                      {/* Dropdown Kabupaten (Muncul setelah provinsi dipilih) */}
                       {provinsi && (
                         <>
                           <label className="block text-sm font-medium text-gray-400 mt-6">
@@ -568,7 +623,6 @@ const EditTanah = () => {
                         </>
                       )}
 
-                      {/* Dropdown Kecamatan (Muncul setelah kabupaten dipilih) */}
                       {kota && (
                         <>
                           <label className="block text-sm font-medium text-gray-400 mt-6">
@@ -592,7 +646,6 @@ const EditTanah = () => {
                         </>
                       )}
 
-                      {/* Dropdown Kelurahan (Muncul setelah kecamatan dipilih) */}
                       {kecamatan && (
                         <>
                           <label className="block text-sm font-medium text-gray-400 mt-6">
@@ -616,7 +669,6 @@ const EditTanah = () => {
                         </>
                       )}
                     </div>
-                    {/* Kolom kanan */}
                     <div className="flex flex-col items-left">
                       <label className="block text-sm font-medium text-gray-400">
                         Nama Wakif
@@ -651,7 +703,6 @@ const EditTanah = () => {
                       />
                     </div>
                   </div>
-                  {/* Preview Lokasi */}
                   <div className="bg-gray-100 p-4 rounded-md mt-8 shadow-md">
                     <h3 className="text-lg font-semibold text-gray-700">
                       Preview Lokasi:
@@ -684,7 +735,6 @@ const EditTanah = () => {
                         : ""}
                     </p>
                   </div>
-                  {/* Tombol Simpan */}
                   <div className="flex justify-center mt-8">
                     <button
                       type="submit"
@@ -695,32 +745,27 @@ const EditTanah = () => {
                   </div>
                 </form>
 
-                {/* Tabel Sertifikat */}
                 <div className="mt-10">
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-bold">Legalitas</h3>
                     <div className="flex gap-2">
                       <button
-                        onClick={() => navigate("/c_sertifikat")}
+                        onClick={() =>
+                          navigate("/sertifikat/create", {
+                            state: {
+                              idTanah: tanahData.id_tanah,
+                              pimpinanName: tanahData.pimpinan_jamaah?.nama,
+                            },
+                          })
+                        }
                         className="bg-[#3B82F6] text-white px-2 py-2 text-xs rounded-md hover:bg-[#2563EB] flex items-center"
                       >
                         <FaPlus className="mr-2 text-xs" />
-                        Create
-                      </button>
-                      <button
-                        onClick={() =>
-                          handleUpdateSertifikat(
-                            sertifikatList[0]?.id_sertifikat
-                          )
-                        } // Gunakan ID sertifikat yang sudah ada
-                        className="bg-[#F59E0B] text-white text-xs px-2 py-2 rounded-md hover:bg-[#D97706] flex items-center"
-                        disabled={!sertifikatList.length} // Nonaktifkan tombol jika tidak ada sertifikat
-                      >
-                        <FaEdit className="mr-2 text-xs" />
-                        Update
+                        Create Sertifikat
                       </button>
                     </div>
                   </div>
+
                   <table className="min-w-full text-xs bg-white border border-gray-300">
                     <thead>
                       <tr>
@@ -729,118 +774,144 @@ const EditTanah = () => {
                           No Dokumen
                         </th>
                         <th className="py-2 px-4 font-medium border-b-2">
-                          Legalitas
+                          Jenis Sertifikat
                         </th>
                         <th className="py-2 px-4 font-medium border-b-2">
-                          Tanggal
+                          Status Pengajuan
                         </th>
                         <th className="py-2 px-4 font-medium border-b-2">
-                          Dokumen Legalitas
+                          Tanggal Pengajuan
+                        </th>
+                        <th className="py-2 px-4 font-medium border-b-2">
+                          Dokumen
                         </th>
                         {isPimpinanJamaah && (
-                          <th className="px-4 py-2 text-center font-medium">
-                            Status
+                          <th className="px-4 py-2 text-center font-medium border-b-2">
+                            Status Approval
                           </th>
                         )}
                         <th className="py-2 px-4 font-medium border-b-2">
                           Keterangan
                         </th>
+                        <th className="py-2 px-4 font-medium border-b-2">
+                          Aksi
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       {sertifikatList.length > 0 ? (
-                        sertifikatList.map((sertifikat, index) =>
-                          dokumenTypes.map(
-                            (type, idx) =>
-                              sertifikat[type.key] && (
-                                <tr key={`${sertifikat.id_sertifikat}-${idx}`}>
-                                  <td className="py-2 px-4 border-b text-center">
-                                    {idx + 1}
-                                  </td>
-                                  <td className="py-2 px-4 border-b text-center">
-                                    {sertifikat[type.key]}
-                                  </td>
-                                  <td className="py-2 px-4 border-b text-center">
-                                    <div
-                                      className={`inline-block px-8 py-2 rounded-[30px] ${
-                                        sertifikat?.legalitas?.toLowerCase() ===
-                                          "bastw terbit" ||
-                                        sertifikat?.legalitas?.toLowerCase() ===
-                                          "aiw terbit" ||
-                                        sertifikat?.legalitas?.toLowerCase() ===
-                                          "sertifikat terbit"
-                                          ? "bg-[#AFFEB5] text-[#187556]"
-                                          : sertifikat?.legalitas?.toLowerCase() ===
-                                              "aiw ditolak" ||
-                                            sertifikat?.legalitas?.toLowerCase() ===
-                                              "sertifikat ditolak"
-                                          ? "bg-[#FEC5D0] text-[#D80027]"
-                                          : sertifikat?.legalitas
-                                              ?.toLowerCase()
-                                              .includes("proses")
-                                          ? "bg-[#FFEFBA] text-[#FECC23]"
-                                          : "bg-[#D9D9D9] text-[#7E7E7E]"
-                                      }`}
-                                    >
-                                      {sertifikat.legalitas || "-"}
-                                      <button
-                                        onClick={openModal}
-                                        className="ml-2 bg-[#fff] text-gray-400 px-2 py-1 rounded-md hover:bg-[#848382] hover:text-[#000] text-xs"
-                                      >
-                                        <FaEdit />
-                                      </button>
-                                    </div>
-                                  </td>
-                                  <td className="py-2 px-4 border-b text-center">
-                                    {new Date(
-                                      sertifikat.created_at
-                                    ).toLocaleDateString()}
-                                  </td>
-                                  <td className="py-5 flex items-center justify-center">
-                                    <button
-                                      onClick={() =>
-                                        handlePreviewDokumen(
-                                          sertifikat[type.docKey]
-                                        )
-                                      }
-                                      className="text-blue-500 hover:text-blue-700 flex items-center justify-center"
-                                    >
-                                      <FaEye />
-                                    </button>
-                                  </td>
-                                  {isPimpinanJamaah && (
-                                    <td className="text-xs text-center px-4 py-2 whitespace-nowrap font-semibold">
-                                      <div
-                                        className={`inline-block px-4 py-2 rounded-[30px] ${
-                                          sertifikat?.status?.toLowerCase() ===
-                                          "disetujui"
-                                            ? "bg-[#AFFEB5] text-[#187556]"
-                                            : sertifikat?.status?.toLowerCase() ===
-                                              "ditolak"
-                                            ? "bg-[#FEC5D0] text-[#D80027]"
-                                            : sertifikat?.status?.toLowerCase() ===
-                                              "ditinjau"
-                                            ? "bg-[#FFEFBA] text-[#FECC23]"
-                                            : ""
-                                        }`}
-                                      >
-                                        {sertifikat.status}
-                                      </div>
-                                    </td>
-                                  )}
-                                  <td className="py-2 px-4 border-b text-center">
-                                    {calculateDayDifference(
-                                      sertifikat.created_at
-                                    )}
-                                  </td>
-                                </tr>
-                              )
-                          )
-                        )
+                        sertifikatList.map((sertifikat, index) => (
+                          <tr key={sertifikat.id_sertifikat}>
+                            <td className="py-2 px-4 border-b text-center">
+                              {index + 1}
+                            </td>
+                            <td className="py-2 px-4 border-b text-center">
+                              {sertifikat.no_dokumen || "-"}
+                            </td>
+                            <td className="py-2 px-4 border-b text-center">
+                              {sertifikat.jenis_sertifikat || "-"}
+                            </td>
+                            <td className="py-2 px-4 border-b text-center">
+                              <div
+                                className={`inline-block px-4 py-1 rounded-[30px] ${
+                                  sertifikat.status_pengajuan === "Terbit"
+                                    ? "bg-[#AFFEB5] text-[#187556]"
+                                    : sertifikat.status_pengajuan === "Ditolak"
+                                    ? "bg-[#FEC5D0] text-[#D80027]"
+                                    : "bg-[#FFEFBA] text-[#FECC23]"
+                                }`}
+                              >
+                                {sertifikat.status_pengajuan || "-"}
+                              </div>
+                            </td>
+                            <td className="py-2 px-4 border-b text-center">
+                              {sertifikat.tanggal_pengajuan
+                                ? new Date(
+                                    sertifikat.tanggal_pengajuan
+                                  ).toLocaleDateString()
+                                : "-"}
+                            </td>
+                            <td className="py-2 px-4 border-b text-center">
+                              <div className="flex justify-center">
+                                {sertifikat.dokumen ? (
+                                  <button
+                                    onClick={() =>
+                                      handlePreviewDokumen(sertifikat.dokumen)
+                                    }
+                                    className="group relative p-1 text-blue-500 hover:text-blue-600 transition-colors"
+                                    title="Lihat Dokumen"
+                                    aria-label={`Preview dokumen ${
+                                      sertifikat.jenis_sertifikat || ""
+                                    }`}
+                                  >
+                                    <FaEye className="text-lg" />
+                                    <span className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                                      Lihat Dokumen
+                                    </span>
+                                  </button>
+                                ) : (
+                                  <span
+                                    className="text-gray-400 text-xs italic"
+                                    title="Dokumen belum diupload"
+                                  >
+                                    Tidak tersedia
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            {isPimpinanJamaah && (
+                              <td className="text-xs text-center px-4 py-2 whitespace-nowrap font-semibold border-b">
+                                <div
+                                  className={`inline-block px-4 py-1 rounded-[30px] ${
+                                    sertifikat.status === "disetujui"
+                                      ? "bg-[#AFFEB5] text-[#187556]"
+                                      : sertifikat.status === "ditolak"
+                                      ? "bg-[#FEC5D0] text-[#D80027]"
+                                      : "bg-[#FFEFBA] text-[#FECC23]"
+                                  }`}
+                                >
+                                  {sertifikat.status}
+                                </div>
+                              </td>
+                            )}
+                            <td className="py-2 px-4 border-b text-center">
+                              {sertifikat.created_at
+                                ? calculateDayDifference(sertifikat.created_at)
+                                : "-"}
+                            </td>
+                            <td className="py-2 px-4 border-b text-center">
+                              <div className="flex justify-center gap-2">
+                                <button
+                                  onClick={() =>
+                                    handleUpdateSertifikat(
+                                      sertifikat.id_sertifikat
+                                    )
+                                  }
+                                  className="bg-[#F59E0B] text-white p-1 rounded-md hover:bg-[#D97706]"
+                                  title="Update"
+                                >
+                                  <FaEdit className="text-xs" />
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handleDeleteSertifikat(
+                                      sertifikat.id_sertifikat
+                                    )
+                                  }
+                                  className="bg-red-500 text-white p-1 rounded-md hover:bg-red-600"
+                                  title="Hapus"
+                                >
+                                  <FaTrash className="text-xs" />{" "}
+                                  {/* Make sure to import FaTrash from react-icons/fa */}
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
                       ) : (
                         <tr>
                           <td
-                            colSpan="7"
+                            colSpan={isPimpinanJamaah ? 9 : 8}
                             className="py-2 px-4 border-b text-center"
                           >
                             Tidak ada data sertifikat.
@@ -849,6 +920,7 @@ const EditTanah = () => {
                       )}
                     </tbody>
                   </table>
+
                   {isModalOpen && (
                     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
                       <div className="bg-white p-6 rounded-lg shadow-lg w-96">
