@@ -10,23 +10,22 @@ const EditSertifikat = () => {
 
   // State untuk data form
   const [formData, setFormData] = useState({
-    noDokumenBastw: "",
-    noDokumenAIW: "",
-    noDokumenSW: "",
+    noDokumen: "",
+    jenisSertifikat: "",
+    statusPengajuan: "",
+    tanggalPengajuan: "",
   });
 
   // State untuk file preview
   const [filePreviews, setFilePreviews] = useState({
-    dokBastw: null,
-    dokAiw: null,
-    dokSw: null,
+    dokLegalitas: null,
+    dokPersyaratan: null,
   });
 
   // State untuk file yang akan diupload
   const [files, setFiles] = useState({
-    dokBastw: null,
-    dokAiw: null,
-    dokSw: null,
+    dokLegalitas: null,
+    dokPersyaratan: null,
   });
 
   const [loading, setLoading] = useState(true);
@@ -58,21 +57,19 @@ const EditSertifikat = () => {
       const sertifikat = response.data.data || response.data;
       if (sertifikat) {
         setFormData({
-          noDokumenBastw: sertifikat.noDokumenBastw || "",
-          noDokumenAIW: sertifikat.noDokumenAIW || "",
-          noDokumenSW: sertifikat.noDokumenSW || "",
+          noDokumen: sertifikat.noDokumen || "",
+          jenisSertifikat: sertifikat.jenisSertifikat || "",
+          statusPengajuan: sertifikat.statusPengajuan || "",
+          tanggalPengajuan: sertifikat.tanggalPengajuan || "",
         });
 
         // Set preview untuk file yang sudah ada
         setFilePreviews({
-          dokBastw: sertifikat.dokBastw
-            ? `http://127.0.0.1:8000/storage/${sertifikat.dokBastw}`
+          dokLegalitas: sertifikat.dokLegalitas
+            ? `http://127.0.0.1:8000/storage/${sertifikat.dokLegalitas}`
             : null,
-          dokAiw: sertifikat.dokAiw
-            ? `http://127.0.0.1:8000/storage/${sertifikat.dokAiw}`
-            : null,
-          dokSw: sertifikat.dokSw
-            ? `http://127.0.0.1:8000/storage/${sertifikat.dokSw}`
+          dokPersyaratan: sertifikat.dokPersyaratan
+            ? `http://127.0.0.1:8000/storage/${sertifikat.dokPersyaratan}`
             : null,
         });
       }
@@ -106,86 +103,38 @@ const EditSertifikat = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("[DEBUG 1] Form submission started");
-  
-    // 1. Check token
+    
     const token = localStorage.getItem("token");
-    console.log("[DEBUG 2] Token from localStorage:", token ? "Exists" : "MISSING");
-  
-    // 2. Prepare FormData
-    const formDataToSend = new FormData();
-    console.log("[DEBUG 3] New FormData created");
-  
-    // 3. Log current form state before processing
-    console.log("[DEBUG 4] Current formData state:", JSON.stringify(formData, null, 2));
-    console.log("[DEBUG 5] Current files state:", files);
-  
-    // 4. Add text fields to FormData
-    console.log("[DEBUG 6] Adding text fields to FormData:");
-    Object.entries(formData).forEach(([key, value]) => {
-      if (value) {
-        formDataToSend.append(key, value);
-        console.log(`  - Appended ${key}:`, value);
-      } else {
-        console.log(`  - Skipped ${key} (empty value)`);
-      }
-    });
-  
-    // 5. Add files to FormData
-    console.log("[DEBUG 7] Adding files to FormData:");
-    Object.entries(files).forEach(([key, file]) => {
-      if (file) {
-        formDataToSend.append(key, file);
-        console.log(`  - Appended file ${key}:`, file.name, file);
-      } else {
-        console.log(`  - Skipped file ${key} (no file)`);
-      }
-    });
-  
-    // 6. Add method override
-    formDataToSend.append('_method', 'PUT');
-    console.log("[DEBUG 8] Added _method=PUT");
-  
-    // 7. Verify final FormData contents
-    console.log("[DEBUG 9] Final FormData contents:");
-    for (let [key, value] of formDataToSend.entries()) {
-      if (value instanceof File) {
-        console.log(`  - ${key}:`, `File(${value.name}, ${value.size} bytes)`);
-      } else {
-        console.log(`  - ${key}:`, value);
-      }
+    if (!token) {
+      alert("Anda harus login terlebih dahulu.");
+      navigate("/dashboard");
+      return;
     }
-  
+
+    const formDataToSend = new FormData();
+    Object.entries(formData).forEach(([key, value]) => {
+      if (value) formDataToSend.append(key, value);
+    });
+    Object.entries(files).forEach(([key, file]) => {
+      if (file) formDataToSend.append(key, file);
+    });
+    formDataToSend.append('_method', 'PUT');
+
     try {
-      console.log("[DEBUG 10] Sending request to backend...");
-      
-      const response = await axios.post(
+      await axios.post(
         `http://127.0.0.1:8000/api/sertifikat/${id}`,
         formDataToSend,
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data"
-          }
+            "Content-Type": "multipart/form-data",
+          },
         }
       );
-      
-      console.log("[DEBUG 11] Request successful! Response:", response.data);
       alert("Data berhasil diperbarui!");
       navigate("/dashboard");
     } catch (error) {
-      console.error("[DEBUG 12] Request failed:", {
-        errorMessage: error.message,
-        responseData: error.response?.data,
-        requestConfig: {
-          url: error.config?.url,
-          method: error.config?.method,
-          headers: error.config?.headers,
-          data: error.config?.data
-        },
-        fullError: error
-      });
-      
+      console.error("Error:", error);
       alert(`Gagal memperbarui data. Error: ${error.response?.data?.message || error.message}`);
     }
   };
@@ -238,73 +187,66 @@ const EditSertifikat = () => {
             {loading ? (
               <p className="text-center">Memuat data...</p>
             ) : (
-              <form onSubmit={handleSubmit} className="mt-6">
-                <div className="grid grid-cols-2 gap-8">
-                  {/* Input untuk No Dokumen BASTW */}
-                  <div className="flex flex-col">
-                    <label className="block text-sm font-medium text-gray-400">
-                      No Dokumen BASTW
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full border-b-2 border-gray-300 p-2 focus:outline-none"
-                      value={formData.noDokumenBastw}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          noDokumenBastw: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-
-                  {/* Input untuk Dokumen BASTW */}
-                  <FilePreview field="dokBastw" label="Dokumen BASTW" />
-
-                  {/* Input untuk No Dokumen AIW */}
-                  <div className="flex flex-col">
-                    <label className="block text-sm font-medium text-gray-400">
-                      No Dokumen AIW
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full border-b-2 border-gray-300 p-2 focus:outline-none"
-                      value={formData.noDokumenAIW}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          noDokumenAIW: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-
-                  {/* Input untuk Dokumen AIW */}
-                  <FilePreview field="dokAiw" label="Dokumen AIW" />
-
-                  {/* Input untuk No Dokumen SW */}
-                  <div className="flex flex-col">
-                    <label className="block text-sm font-medium text-gray-400">
-                      No Dokumen SW
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full border-b-2 border-gray-300 p-2 focus:outline-none"
-                      value={formData.noDokumenSW}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          noDokumenSW: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-
-                  {/* Input untuk Dokumen SW */}
-                  <FilePreview field="dokSw" label="Dokumen SW" />
+              <form onSubmit={handleSubmit} className="mt-6 grid grid-cols-2 gap-8">
+                {/* Input untuk No Dokumen */}
+                <div className="flex flex-col">
+                  <label className="text-sm font-medium text-gray-400">No Dokumen</label>
+                  <input
+                    type="text"
+                    className="w-full border-b-2 border-gray-300 p-2 focus:outline-none"
+                    value={formData.noDokumen}
+                    onChange={(e) => setFormData({ ...formData, noDokumen: e.target.value })}
+                  />
                 </div>
 
-                <div className="flex justify-center mt-8">
+                {/* Input untuk Jenis Sertifikat */}
+                <div className="flex flex-col">
+                  <label className="text-sm font-medium text-gray-400">Jenis Sertifikat</label>
+                  <select
+                    className="w-full border-b-2 border-gray-300 p-2 focus:outline-none"
+                    value={formData.jenisSertifikat}
+                    onChange={(e) => setFormData({ ...formData, jenisSertifikat: e.target.value })}
+                  >
+                    <option value="">Pilih Jenis Sertifikat</option>
+                    <option value="BASTW">BASTW</option>
+                    <option value="AIW">AIW</option>
+                    <option value="SW">SW</option>
+                  </select>
+                </div>
+
+                {/* Input untuk Status Pengajuan */}
+                <div className="flex flex-col">
+                  <label className="text-sm font-medium text-gray-400">Status Pengajuan</label>
+                  <select
+                    className="w-full border-b-2 border-gray-300 p-2 focus:outline-none"
+                    value={formData.statusPengajuan}
+                    onChange={(e) => setFormData({ ...formData, statusPengajuan: e.target.value })}
+                  >
+                    <option value="">Pilih Status</option>
+                    <option value="Diproses">Diproses</option>
+                    <option value="Terbit">Terbit</option>
+                    <option value="Ditolak">Ditolak</option>
+                  </select>
+                </div>
+
+                {/* Input untuk Tanggal Pengajuan */}
+                <div className="flex flex-col">
+                  <label className="text-sm font-medium text-gray-400">Tanggal Pengajuan</label>
+                  <input
+                    type="date"
+                    className="w-full border-b-2 border-gray-300 p-2 focus:outline-none"
+                    value={formData.tanggalPengajuan}
+                    onChange={(e) => setFormData({ ...formData, tanggalPengajuan: e.target.value })}
+                  />
+                </div>
+
+                {/* Input untuk Dokumen Legalitas */}
+                <FilePreview field="dokLegalitas" label="Dokumen Legalitas" />
+
+                {/* Input untuk Dokumen Persyaratan */}
+                <FilePreview field="dokPersyaratan" label="Dokumen Persyaratan" />
+
+                <div className="col-span-2 flex justify-center mt-8">
                   <button
                     type="submit"
                     className="bg-[#3B82F6] text-white px-6 py-2 rounded-md hover:bg-[#2563EB]"
