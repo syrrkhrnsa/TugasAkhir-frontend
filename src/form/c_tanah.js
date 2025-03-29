@@ -165,7 +165,7 @@ const CreateTanah = () => {
           confirmButtonText: "OK",
         });
       }
-      navigate("/dashboard");
+      navigate("/sertifikat");
     } catch (error) {
       console.error("Gagal menambahkan data:", error);
       Swal.fire({
@@ -324,15 +324,27 @@ const CreateTanah = () => {
                   />
 
                   <label className="block text-sm font-medium text-gray-400 mt-6">
-                    Luas Tanah
+                    Luas Tanah m²
                   </label>
-                  <input
-                    type="text"
-                    className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                    value={luasTanah}
-                    onChange={(e) => setLuasTanah(e.target.value)}
-                    required
-                  />
+                  <div className="relative w-60">
+                    <input
+                      type="text"
+                      className="w-full border-b-2 border-gray-300 p-2 focus:outline-none text-left pr-10"
+                      value={luasTanah
+                        .replace(/\D/g, "")
+                        .replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
+                      onChange={(e) => {
+                        // Hapus semua karakter non-digit
+                        const numericValue = e.target.value.replace(/\D/g, "");
+                        // Simpan nilai numerik ke state (tanpa formatting)
+                        setLuasTanah(numericValue);
+                      }}
+                      required
+                    />
+                    <span className="absolute right-2 top-2 text-gray-500">
+                      m²
+                    </span>
+                  </div>
                 </div>
               </div>
               {/* Input Detail Lokasi */}
