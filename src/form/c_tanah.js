@@ -353,11 +353,31 @@ const CreateTanah = () => {
                   Preview Lokasi:
                 </h3>
                 <p className="text-gray-600 mt-2">
-                  {`${provinsiList.find((p) => p.id === provinsi)?.name}, ${
-                    kotaList.find((k) => k.id === kota)?.name
-                  }, ${kecamatanList.find((k) => k.id === kecamatan)?.name}, ${
-                    kelurahanList.find((k) => k.id === kelurahan)?.name
-                  }, ${detailLokasi}`}
+                  {detailLokasi || "Detail lokasi belum diisi"}
+                  {kelurahan
+                    ? `, ${
+                        kelurahanList.find((k) => k.id === kelurahan)?.name ||
+                        "Belum dipilih"
+                      }`
+                    : ""}
+                  {kecamatan
+                    ? `, ${
+                        kecamatanList.find((k) => k.id === kecamatan)?.name ||
+                        "Belum dipilih"
+                      }`
+                    : ""}
+                  {kota
+                    ? `, ${
+                        kotaList.find((k) => k.id === kota)?.name ||
+                        "Belum dipilih"
+                      }`
+                    : ""}
+                  {provinsi
+                    ? `, ${
+                        provinsiList.find((p) => p.id === provinsi)?.name ||
+                        "Belum dipilih"
+                      }`
+                    : ""}
                 </p>
               </div>
 
