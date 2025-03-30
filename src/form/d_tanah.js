@@ -50,7 +50,7 @@ const DetailTanah = () => {
           setSertifikatList(sertifikatResponse.data.data || []);
         } catch (sertifikatError) {
           console.error("Error fetching sertifikat:", sertifikatError);
-          setSertifikatList([]); // Set empty array if error occurs
+          setSertifikatList([]);
         }
       } catch (error) {
         setError(
@@ -122,152 +122,151 @@ const DetailTanah = () => {
       <Sidebar>
         <div className="flex-1 p-4">
           <div
-            className="bg-white shadow-lg rounded-lg p-10 mx-auto w-[90%] max-w-3xl"
+            className="bg-white shadow-lg rounded-xl p-6 mx-auto w-full max-w-6xl"
             style={{
-              boxShadow:
-                "0px 5px 15px rgba(0, 0, 0, 0.1), 0px -5px 15px rgba(0, 0, 0, 0.1), 5px 0px 15px rgba(0, 0, 0, 0.1), -5px 0px 15px rgba(0, 0, 0, 0.1)",
+              boxShadow: "0 4px 20px rgba(0, 0, 0, 0.08)",
             }}
           >
-            {/* Judul */}
-            <h2 className="text-center text-3xl font-bold">
-              <span className="text-[#FECC23]">Detail</span>{" "}
-              <span className="text-[#187556]">Tanah</span>
-            </h2>
-            <p className="text-center text-gray-500">PC Persis Banjaran</p>
-
-            {/* ID Tanah */}
-            <div className="mt-2 text-center text-sm text-gray-500">
-              ID Tanah: {tanah.id_tanah}
+            {/* Header Section */}
+            <div className="mb-6 text-center">
+              <h2 className="text-2xl font-bold text-gray-800">
+                <span className="text-[#FECC23]">Detail</span>{" "}
+                <span className="text-[#187556]">Tanah</span>
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">PC Persis Banjaran</p>
             </div>
 
-            {/* Informasi Tanah */}
-            <div className="mt-6 grid grid-cols-2 gap-x-24 justify-center">
-              {/* Kolom kiri */}
-              <div className="flex flex-col">
-                <span className="text-md text-[#000] font-bold text-center mt-4">
-                  Pimpinan Jamaah
-                </span>
-                <p className="mt-2 text-sm text-[#868686] font-semibold bg-gray-100 rounded-3xl text-center py-2 px-4">
-                  {tanah.NamaPimpinanJamaah}
-                </p>
-                <span className="text-md text-[#000] font-bold text-center mt-4">
-                  Lokasi
-                </span>
-                <p className="mt-2 text-sm text-[#868686] font-semibold bg-gray-100 rounded-3xl text-center py-2 px-4">
-                  {tanah.lokasi}
-                </p>
+            {/* Main Content */}
+            <div className="flex flex-col lg:flex-row gap-6">
+              {/* Left Column - Property Details */}
+              <div className="w-full lg:w-2/5">
+                <div className="space-y-4">
+                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                    <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                      Pimpinan Jamaah
+                    </div>
+                    <div className="text-sm font-medium text-gray-700">
+                      {tanah.NamaPimpinanJamaah || "-"}
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                    <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                      Lokasi
+                    </div>
+                    <div className="text-sm font-medium text-gray-700">
+                      {tanah.lokasi || "-"}
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                    <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                      Nama Wakif
+                    </div>
+                    <div className="text-sm font-medium text-gray-700">
+                      {tanah.NamaWakif || "-"}
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                    <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                      Luas Tanah
+                    </div>
+                    <div className="text-sm font-medium text-gray-700">
+                      {tanah.luasTanah
+                        ? `${Number(tanah.luasTanah).toLocaleString("id-ID")} m²`
+                        : "-"}
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {/* Kolom kanan */}
-              <div className="flex flex-col">
-                <span className="text-md text-[#000] font-bold text-center mt-4">
-                  Nama Wakif
-                </span>
-                <p className="mt-2 text-sm text-[#868686] font-semibold bg-gray-100 rounded-3xl text-center py-2 px-4">
-                  {tanah.NamaWakif}
-                </p>
-
-                <span className="text-md text-[#000] font-bold text-center mt-4">
-                  Luas Tanah
-                </span>
-                <p className="mt-2 text-sm text-[#868686] font-semibold bg-gray-100 rounded-3xl text-center py-2 px-4">
-                  {tanah.luasTanah
-                    ? `${Number(tanah.luasTanah).toLocaleString("id-ID")} m²`
-                    : "-"}
-                </p>
+              {/* Right Column - Legalitas Table */}
+              <div className="w-full lg:w-3/5">
+                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200 text-sm">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            No
+                          </th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            No Dokumen
+                          </th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Legalitas
+                          </th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                          </th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Dokumen
+                          </th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Keterangan
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {sertifikatList.length > 0 ? (
+                          sertifikatList.map((sertifikat, index) => (
+                            <tr key={sertifikat.id_sertifikat}>
+                              <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                                {index + 1}
+                              </td>
+                              <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                                {sertifikat.no_dokumen || "-"}
+                              </td>
+                              <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-700">
+                                {sertifikat.jenis_sertifikat}
+                              </td>
+                              <td className="px-3 py-2 whitespace-nowrap">
+                                <span
+                                  className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                    sertifikat.status === "disetujui"
+                                      ? "bg-green-100 text-green-800"
+                                      : sertifikat.status === "ditolak"
+                                      ? "bg-red-100 text-red-800"
+                                      : "bg-yellow-100 text-yellow-800"
+                                  }`}
+                                >
+                                  {sertifikat.status}
+                                </span>
+                              </td>
+                              <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                                <button
+                                  onClick={() =>
+                                    handlePreviewDokumen(sertifikat.dokumen)
+                                  }
+                                  className="text-blue-500 hover:text-blue-700"
+                                  disabled={!sertifikat.dokumen}
+                                >
+                                  <FaEye className="inline" />
+                                </button>
+                              </td>
+                              <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                                {calculateDayDifference(
+                                  sertifikat.tanggal_pengajuan
+                                )}
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td
+                              colSpan="6"
+                              className="px-3 py-4 text-center text-sm text-gray-500"
+                            >
+                              Belum ada data sertifikat untuk tanah ini
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
-            </div>
-
-            {/* Tabel Sertifikat - Always shown */}
-            <div className="mt-10">
-              <h3 className="text-lg font-bold mb-4">Legalitas</h3>
-              <table className="min-w-full text-xs bg-white border border-gray-300">
-                <thead>
-                  <tr>
-                    <th className="py-2 px-4 font-medium border-b-2">No</th>
-                    <th className="py-2 px-4 font-medium border-b-2">
-                      ID Sertifikat
-                    </th>
-                    <th className="py-2 px-4 font-medium border-b-2">
-                      Jenis Sertifikat
-                    </th>
-                    <th className="py-2 px-4 font-medium border-b-2">
-                      No Dokumen
-                    </th>
-                    <th className="py-2 px-4 font-medium border-b-2">Status</th>
-                    <th className="py-2 px-4 font-medium border-b-2">
-                      Tanggal
-                    </th>
-                    <th className="py-2 px-4 font-medium border-b-2">
-                      Dokumen
-                    </th>
-                    <th className="py-2 px-4 font-medium border-b-2">
-                      Keterangan
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sertifikatList.length > 0 ? (
-                    sertifikatList.map((sertifikat, index) => (
-                      <tr key={sertifikat.id_sertifikat}>
-                        <td className="py-2 px-4 border-b text-center">
-                          {index + 1}
-                        </td>
-                        <td className="py-2 px-4 border-b text-center text-xs">
-                          {sertifikat.id_sertifikat}
-                        </td>
-                        <td className="py-2 px-4 border-b text-center">
-                          {sertifikat.jenis_sertifikat}
-                        </td>
-                        <td className="py-2 px-4 border-b text-center">
-                          {sertifikat.no_dokumen || "-"}
-                        </td>
-                        <td className="py-2 px-4 border-b text-center">
-                          <div
-                            className={`inline-block px-8 py-2 rounded-[30px] ${
-                              sertifikat.status === "disetujui"
-                                ? "bg-[#AFFEB5] text-[#187556]"
-                                : sertifikat.status === "ditolak"
-                                ? "bg-[#FEC5D0] text-[#D80027]"
-                                : "bg-[#FFEFBA] text-[#FECC23]"
-                            }`}
-                          >
-                            {sertifikat.status}
-                          </div>
-                        </td>
-                        <td className="py-2 px-4 border-b text-center">
-                          {new Date(
-                            sertifikat.tanggal_pengajuan
-                          ).toLocaleDateString()}
-                        </td>
-                        <td className="py-2 px-4 border-b text-center">
-                          <button
-                            onClick={() =>
-                              handlePreviewDokumen(sertifikat.dokumen)
-                            }
-                            className="text-blue-500 hover:text-blue-700 flex items-center justify-center mx-auto"
-                            disabled={!sertifikat.dokumen}
-                          >
-                            <FaEye />
-                          </button>
-                        </td>
-                        <td className="py-2 px-4 border-b text-center">
-                          {calculateDayDifference(sertifikat.tanggal_pengajuan)}
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td
-                        colSpan="8"
-                        className="py-4 text-center text-sm text-gray-500"
-                      >
-                        Belum ada data sertifikat untuk tanah ini
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
             </div>
           </div>
         </div>

@@ -15,8 +15,8 @@ import {
 const DashboardLayout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isOpen, setIsOpen] = useState(true); // Toggle sidebar
-  const [unreadCount, setUnreadCount] = useState(0); // State for unread notifications
+  const [isOpen, setIsOpen] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const menuItems = [
     { name: "Dashboard", path: "/dashboard", icon: <FaTh /> },
@@ -24,52 +24,87 @@ const DashboardLayout = ({ children }) => {
     { name: "Legalitas", path: "/sertifikat", icon: <FaCertificate /> },
   ];
 
-  // Fetch unread notifications count
-  const fetchUnreadNotificationsCount = async () => {
+  // Initialize last login time on first load and reset on logout
+  const updateLoginTime = () => {
+    const now = new Date().toISOString();
+    localStorage.setItem("lastLoginTime", now);
+    localStorage.removeItem("lastViewedNotifications");
+  };
+
+  // Fetch notifications and calculate unread count
+  const fetchNotifications = async () => {
     try {
       const token = localStorage.getItem("token");
+      if (!token) return;
+
       const response = await axios.get("http://127.0.0.1:8000/api/notifications", {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",
         },
       });
-      setUnreadCount(response.data.data.length); // Set unread notifications count
+
+      if (response.data && Array.isArray(response.data.data)) {
+        const lastLoginTime = localStorage.getItem("lastLoginTime");
+        const lastViewedTime = localStorage.getItem("lastViewedNotifications") || lastLoginTime;
+
+        // Count notifications newer than last viewed time
+        const newNotifications = response.data.data.filter(
+          notification => new Date(notification.created_at) > new Date(lastViewedTime)
+        );
+        setUnreadCount(newNotifications.length);
+      }
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
     }
   };
 
+  // Reset count when visiting notifications page
   useEffect(() => {
-    fetchUnreadNotificationsCount(); // Fetch notifications on mount
+    if (location.pathname === "/notifikasi") {
+      const now = new Date().toISOString();
+      localStorage.setItem("lastViewedNotifications", now);
+      setUnreadCount(0);
+    }
+  }, [location.pathname]);
+
+  // Initialize login time and fetch notifications on mount
+  useEffect(() => {
+    if (!localStorage.getItem("lastLoginTime")) {
+      updateLoginTime();
+    }
+    
+    fetchNotifications();
+    
+    // Poll every 30 seconds for new notifications
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
   }, []);
 
-  // Handle logout
   const handleLogout = async () => {
     try {
       const token = localStorage.getItem("token");
 
-      if (!token) {
-        console.error("Token tidak ditemukan!");
-        navigate("/login");
-        return;
+      if (token) {
+        await axios.post(
+          "http://127.0.0.1:8000/api/logout",
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: "application/json",
+            },
+          }
+        );
       }
 
-      await axios.post(
-        "http://127.0.0.1:8000/api/logout",
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-          },
-        }
-      );
-
+      // Clear user session data
       localStorage.removeItem("token");
+      setUnreadCount(0);
+      
       navigate("/login");
     } catch (error) {
-      console.error("Logout failed:", error.response ? error.response.data : error.message);
+      console.error("Logout failed:", error);
     }
   };
 
@@ -77,12 +112,16 @@ const DashboardLayout = ({ children }) => {
     <div className="flex w-full h-screen bg-gray-100 overflow-hidden">
       {/* SIDEBAR */}
       <div
-        className={`fixed top-4 left-4 bottom-4 bg-white shadow-xl rounded-3xl p-5 flex flex-col transition-all duration-300
-          ${isOpen ? "w-56" : "w-20"}`}
+        className={`fixed top-4 left-4 bottom-4 bg-white shadow-xl rounded-3xl p-5 flex flex-col transition-all duration-300 ${
+          isOpen ? "w-56" : "w-20"
+        }`}
       >
         {/* TOGGLE BUTTON */}
         <div className="flex items-center justify-between mb-6">
-          <button onClick={() => setIsOpen(!isOpen)} className="text-gray-500">
+          <button 
+            onClick={() => setIsOpen(!isOpen)} 
+            className="text-gray-500 hover:text-gray-700"
+          >
             <FaBars size={15} />
           </button>
         </div>
@@ -96,10 +135,10 @@ const DashboardLayout = ({ children }) => {
           <img src={logo} alt="Logo" className="w-8 h-10" />
           <div className="ml-3">
             <h1 className="text-sm font-bold">
-              <span className="text-hijau">Waqf</span>{" "}
-              <span className="text-kuning">Management</span>
+              <span className="text-green-600">Waqf</span>{" "}
+              <span className="text-yellow-500">Management</span>
             </h1>
-            <p className="text-xs font-bold text-hijau">PC Persis Banjaran</p>
+            <p className="text-xs font-bold text-green-600">PC Persis Banjaran</p>
           </div>
         </div>
 
@@ -111,7 +150,7 @@ const DashboardLayout = ({ children }) => {
               key={menu.name}
               className={`w-full mx-auto p-3 flex items-center mb-3 cursor-pointer rounded-xl transition-all ${
                 isActive
-                  ? "bg-kuning shadow-md text-white"
+                  ? "bg-yellow-500 shadow-md text-white"
                   : "text-gray-500 hover:bg-gray-200"
               }`}
               onClick={() => navigate(menu.path)}
@@ -150,34 +189,40 @@ const DashboardLayout = ({ children }) => {
 
       {/* MAIN CONTENT */}
       <div
-        className={`flex flex-col flex-1 h-full transition-all duration-300 overflow-auto
-          ${isOpen ? "ml-56" : "ml-20"} p-4 md:p-8`}
+        className={`flex flex-col flex-1 h-full transition-all duration-300 overflow-auto ${
+          isOpen ? "ml-56" : "ml-20"
+        } p-4 md:p-8`}
       >
         {/* HEADER */}
         <header className="bg-white rounded-xl shadow-md px-6 py-3 md:px-10 md:py-4 flex justify-between items-center">
           <h1 className="text-lg font-bold text-gray-700"></h1>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
             <div 
-              className="relative cursor-pointer" 
+              className="relative cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => {
-                navigate("/notifikasi"); // Navigate to notifications page
+                const now = new Date().toISOString();
+                localStorage.setItem("lastViewedNotifications", now);
+                setUnreadCount(0);
+                navigate("/notifikasi");
               }}
             >
-              <img src={message} alt="Message" className="w-6 h-6 object-cover" />
+              <img src={message} alt="Notifications" className="w-6 h-6" />
               {unreadCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-1">
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                   {unreadCount}
                 </span>
               )}
             </div>
-            <span className="text-yellow-500 font-semibold">Hi,</span>
-            <span className="text-green-600 font-semibold">User   !</span>
-            <div className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center bg-gray-200 rounded-full">
-              <img
-                src={user}
-                alt="Profile"
-                className="w-full h-full object-cover rounded-full"
-              />
+            <div className="flex items-center gap-2">
+              <span className="text-yellow-500 font-semibold">Hi,</span>
+              <span className="text-green-600 font-semibold">User!</span>
+              <div className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center bg-gray-200 rounded-full">
+                <img
+                  src={user}
+                  alt="Profile"
+                  className="w-full h-full object-cover rounded-full"
+                />
+              </div>
             </div>
           </div>
         </header>
