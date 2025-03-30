@@ -1019,7 +1019,7 @@ const EditTanah = () => {
                               <option value="">Pilih Status</option>
                               <option value="Proses">Proses</option>
                               <option value="Terbit">Terbit</option>
-                              <option value="Tolak">Tolak</option>
+                              <option value="Tolak">Ditolak</option>
                             </select>
                           </div>
                         </div>
