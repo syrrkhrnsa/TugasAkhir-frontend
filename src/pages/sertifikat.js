@@ -37,6 +37,7 @@ const Legalitas = () => {
   // Fetch data with ownership filtering
   const fetchData = useCallback(async () => {
     const token = localStorage.getItem("token");
+    const userName = localStorage.getItem("user_name");
     if (!token) {
       setError("Unauthorized: Silakan login terlebih dahulu.");
       setLoading(false);
@@ -44,11 +45,10 @@ const Legalitas = () => {
     }
 
     try {
-      // Build URLs with filters
-      const tanahUrl = isPimpinanJamaah
-        ? `http://127.0.0.1:8000/api/tanah?filter[user_id]=${userId}`
-        : "http://127.0.0.1:8000/api/tanah";
+      // Endpoint yang sama untuk semua role
+      const tanahUrl = "http://127.0.0.1:8000/api/tanah";
 
+      // Untuk approval, filter khusus untuk Pimpinan Jamaah
       const approvalUrl = isPimpinanJamaah
         ? `http://127.0.0.1:8000/api/approvals/type/tanah?user_id=${userId}`
         : "http://127.0.0.1:8000/api/approvals/type/tanah";
@@ -60,8 +60,19 @@ const Legalitas = () => {
         }),
       ]);
 
+      // Data tanah sudah difilter oleh backend, cukup set langsung
       setTanahDisetujui(tanahResponse.data.data || []);
-      setApprovalTanah(approvalResponse.data.data || []);
+
+      // Filter approval untuk Pimpinan Jamaah
+      let filteredApproval = approvalResponse.data.data || [];
+      if (isPimpinanJamaah) {
+        filteredApproval = filteredApproval.filter(
+          (approval) =>
+            (approval.NamaPimpinanJamaah ||
+              approval.data?.details?.NamaPimpinanJamaah) === userName
+        );
+      }
+      setApprovalTanah(filteredApproval);
     } catch (error) {
       console.error("Gagal mengambil data:", error);
       setError("Gagal memuat data tanah");
@@ -76,46 +87,49 @@ const Legalitas = () => {
 
   // Combine and filter data
   const combinedData = useMemo(() => {
-    return [
-      ...tanahDisetujui.map((item) => ({
-        ...item,
-        status: "disetujui",
-        isFromApproval: false,
-      })),
-      ...approvalTanah
-        .filter((approval) => {
-          const isDuplicate = tanahDisetujui.some(
-            (approvedItem) =>
-              approvedItem.NamaPimpinanJamaah ===
-                (approval.NamaPimpinanJamaah ||
-                  approval.data?.details?.NamaPimpinanJamaah) &&
-              approvedItem.NamaWakif ===
-                (approval.NamaWakif || approval.data?.details?.NamaWakif) &&
-              approvedItem.lokasi ===
-                (approval.lokasi || approval.data?.details?.lokasi) &&
-              approvedItem.luasTanah ===
-                (approval.luasTanah || approval.data?.details?.luasTanah)
-          );
-          return (
-            !isDuplicate &&
-            (approval.status === "ditinjau" || !approval.status) &&
-            (!isPimpinanJamaah || approval.user_id === userId)
-          );
-        })
-        .map((approval) => ({
-          ...approval,
-          id_approval: approval.id,
-          status: approval.status || "ditinjau",
-          isFromApproval: true,
-          NamaPimpinanJamaah:
-            approval.NamaPimpinanJamaah ||
-            approval.data?.details?.NamaPimpinanJamaah,
-          NamaWakif: approval.NamaWakif || approval.data?.details?.NamaWakif,
-          lokasi: approval.lokasi || approval.data?.details?.lokasi,
-          luasTanah: approval.luasTanah || approval.data?.details?.luasTanah,
+    // Untuk Pimpinan Jamaah: gabungkan data tanah dan approval miliknya
+    if (isPimpinanJamaah) {
+      const allTanah = [
+        ...tanahDisetujui.map((item) => ({
+          ...item,
+          status: item.status || "disetujui",
+          isFromApproval: false,
         })),
-    ];
-  }, [tanahDisetujui, approvalTanah, isPimpinanJamaah, userId]);
+      ];
+
+      // Tambahkan data approval yang belum ada di tanahDisetujui
+      approvalTanah.forEach((approval) => {
+        // Cek duplikat
+        const isDuplicate = allTanah.some(
+          (item) =>
+            item.id_tanah ===
+            (approval.id_tanah || approval.data?.details?.id_tanah)
+        );
+
+        if (
+          !isDuplicate &&
+          (approval.status === "ditinjau" || !approval.status)
+        ) {
+          allTanah.push({
+            ...(approval.data?.details || approval),
+            id_tanah: approval.id_tanah || approval.data?.details?.id_tanah,
+            id_approval: approval.id,
+            status: approval.status || "ditinjau",
+            isFromApproval: true,
+          });
+        }
+      });
+
+      return allTanah;
+    }
+
+    // Untuk Pimpinan Cabang/Bidgar Wakaf: hanya data tanah dengan status disetujui
+    return tanahDisetujui.map((item) => ({
+      ...item,
+      status: "disetujui",
+      isFromApproval: false,
+    }));
+  }, [tanahDisetujui, approvalTanah, isPimpinanJamaah]);
 
   // Search and pagination
   const filteredData = combinedData.filter(
