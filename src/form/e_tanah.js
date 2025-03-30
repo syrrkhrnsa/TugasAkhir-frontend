@@ -584,7 +584,7 @@ const EditTanah = () => {
       <Sidebar>
         <div className="flex-1 p-4">
           <div
-            className="bg-white shadow-lg rounded-lg p-10 mx-auto w-[70%] "
+            className="bg-white shadow-lg rounded-lg p-6 mx-auto w-[95%]"
             style={{
               boxShadow:
                 "0px 5px 15px rgba(0, 0, 0, 0.1), 0px -5px 15px rgba(0, 0, 0, 0.1), 5px 0px 15px rgba(0, 0, 0, 0.1), -5px 0px 15px rgba(0, 0, 0, 0.1)",
@@ -594,59 +594,65 @@ const EditTanah = () => {
               <span className="text-[#FECC23]">Edit</span>{" "}
               <span className="text-[#187556]">Tanah</span>
             </h2>
-            <p className="text-center text-gray-500">PC Persis Banjaran</p>
+            <p className="text-center text-gray-500 text-xs">PC Persis Banjaran</p>
 
             {loading ? (
               <p className="text-center text-gray-500 mt-6">Memuat data...</p>
             ) : (
               <>
-                <form onSubmit={handleSubmit} className="mt-6">
-                  <div className="grid grid-cols-2 gap-8 justify-center">
-                    <div className="flex flex-col items-left">
-                      <label className="block text-sm font-medium text-gray-400">
-                        Pimpinan Jamaah
-                      </label>
-                      <select
-                        className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                        value={NamaPimpinanJamaah}
-                        onChange={(e) => setNamaPimpinanJamaah(e.target.value)}
-                        required
-                      >
-                        <option value="" disabled>
-                          Pilih Pimpinan Jamaah
-                        </option>
-                        {users.map((user) => (
-                          <option key={user.id} value={user.name}>
-                            {user.name}
+                <form onSubmit={handleSubmit} className="mt-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                    {/* Kolom 1: Pimpinan Jamaah dan Lokasi */}
+                    <div className="lg:col-span-3 space-y-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">
+                          Pimpinan Jamaah
+                        </label>
+                        <select
+                          className="w-full border-b border-gray-300 p-1 focus:outline-none focus:border-[#187556] text-xs"
+                          value={NamaPimpinanJamaah}
+                          onChange={(e) => setNamaPimpinanJamaah(e.target.value)}
+                          required
+                        >
+                          <option value="" disabled>
+                            Pilih Pimpinan Jamaah
                           </option>
-                        ))}
-                      </select>
-                      <label className="block text-sm font-medium text-gray-400 mt-6">
-                        Provinsi
-                      </label>
-                      <select
-                        className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                        value={provinsi}
-                        onChange={(e) => setProvinsi(e.target.value)}
-                        required
-                      >
-                        <option value="" disabled>
-                          Pilih Provinsi
-                        </option>
-                        {provinsiList.map((prov) => (
-                          <option key={prov.id} value={prov.id}>
-                            {prov.name}
+                          {users.map((user) => (
+                            <option key={user.id} value={user.name}>
+                              {user.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">
+                          Provinsi
+                        </label>
+                        <select
+                          className="w-full border-b border-gray-300 p-1 focus:outline-none focus:border-[#187556] text-xs"
+                          value={provinsi}
+                          onChange={(e) => setProvinsi(e.target.value)}
+                          required
+                        >
+                          <option value="" disabled>
+                            Pilih Provinsi
                           </option>
-                        ))}
-                      </select>
+                          {provinsiList.map((prov) => (
+                            <option key={prov.id} value={prov.id}>
+                              {prov.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
 
                       {provinsi && (
-                        <>
-                          <label className="block text-sm font-medium text-gray-400 mt-6">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">
                             Kabupaten/Kota
                           </label>
                           <select
-                            className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
+                            className="w-full border-b border-gray-300 p-1 focus:outline-none focus:border-[#187556] text-xs"
                             value={kota}
                             onChange={(e) => setKota(e.target.value)}
                             required
@@ -660,16 +666,16 @@ const EditTanah = () => {
                               </option>
                             ))}
                           </select>
-                        </>
+                        </div>
                       )}
 
                       {kota && (
-                        <>
-                          <label className="block text-sm font-medium text-gray-400 mt-6">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">
                             Kecamatan
                           </label>
                           <select
-                            className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
+                            className="w-full border-b border-gray-300 p-1 focus:outline-none focus:border-[#187556] text-xs"
                             value={kecamatan}
                             onChange={(e) => setKecamatan(e.target.value)}
                             required
@@ -683,16 +689,16 @@ const EditTanah = () => {
                               </option>
                             ))}
                           </select>
-                        </>
+                        </div>
                       )}
 
                       {kecamatan && (
-                        <>
-                          <label className="block text-sm font-medium text-gray-400 mt-6">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">
                             Kelurahan/Desa
                           </label>
                           <select
-                            className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
+                            className="w-full border-b border-gray-300 p-1 focus:outline-none focus:border-[#187556] text-xs"
                             value={kelurahan}
                             onChange={(e) => setKelurahan(e.target.value)}
                             required
@@ -706,355 +712,326 @@ const EditTanah = () => {
                               </option>
                             ))}
                           </select>
-                        </>
+                        </div>
                       )}
                     </div>
-                    <div className="flex flex-col items-left">
-                      <label className="block text-sm font-medium text-gray-400">
-                        Nama Wakif
-                      </label>
-                      <input
-                        type="text"
-                        className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                        value={NamaWakif}
-                        onChange={(e) => setNamaWakif(e.target.value)}
-                        required
-                      />
 
-                      <label className="block text-sm font-medium text-gray-400 mt-6">
-                        Luas Tanah m²
-                      </label>
-                      <div className="relative w-60">
+                    {/* Kolom 2: Form fields */}
+                    <div className="lg:col-span-3 space-y-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">
+                          Nama Wakif
+                        </label>
                         <input
                           type="text"
-                          className="w-full border-b-2 border-gray-300 p-2 focus:outline-none text-left pr-10"
-                          value={luasTanah
-                            .replace(/\D/g, "")
-                            .replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
-                          onChange={(e) => {
-                            // Hapus semua karakter non-digit
-                            const numericValue = e.target.value.replace(
-                              /\D/g,
-                              ""
-                            );
-                            // Simpan nilai numerik ke state (tanpa formatting)
-                            setLuasTanah(numericValue);
-                          }}
+                          className="w-full border-b border-gray-300 p-1 focus:outline-none focus:border-[#187556] text-xs"
+                          value={NamaWakif}
+                          onChange={(e) => setNamaWakif(e.target.value)}
                           required
                         />
-                        <span className="absolute right-2 top-2 text-gray-500">
-                          m²
-                        </span>
                       </div>
-                      <label className="block text-sm font-medium text-gray-400 mt-6">
-                        Detail Lokasi
-                      </label>
-                      <input
-                        type="text"
-                        className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                        value={detailLokasi}
-                        onChange={(e) => setDetailLokasi(e.target.value)}
-                        required
-                      />
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">
+                          Luas Tanah (m²)
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            className="w-full border-b border-gray-300 p-1 focus:outline-none focus:border-[#187556] text-xs pr-8"
+                            value={luasTanah
+                              .replace(/\D/g, "")
+                              .replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
+                            onChange={(e) => {
+                              const numericValue = e.target.value.replace(/\D/g, "");
+                              setLuasTanah(numericValue);
+                            }}
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">
+                          Detail Lokasi
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full border-b border-gray-300 p-1 focus:outline-none focus:border-[#187556] text-xs"
+                          value={detailLokasi}
+                          onChange={(e) => setDetailLokasi(e.target.value)}
+                          required
+                        />
+                      </div>
+
+                      {/* Preview Lokasi */}
+                      <div className="bg-gray-50 p-2 rounded-md text-xs">
+                        <h3 className="font-medium text-gray-700 mb-1">
+                          Preview Lokasi:
+                        </h3>
+                        <p className="text-gray-600">
+                          {detailLokasi || "Detail lokasi belum diisi"}
+                          {kelurahan
+                            ? `, ${
+                                kelurahanList.find((k) => k.id === kelurahan)
+                                  ?.name || "Belum dipilih"
+                              }`
+                            : ""}
+                          {kecamatan
+                            ? `, ${
+                                kecamatanList.find((k) => k.id === kecamatan)
+                                  ?.name || "Belum dipilih"
+                              }`
+                            : ""}
+                          {kota
+                            ? `, ${
+                                kotaList.find((k) => k.id === kota)?.name ||
+                                "Belum dipilih"
+                              }`
+                            : ""}
+                          {provinsi
+                            ? `, ${
+                                provinsiList.find((p) => p.id === provinsi)?.name ||
+                                "Belum dipilih"
+                              }`
+                            : ""}
+                        </p>
+                      </div>
+
+                      <div className="flex justify-center pt-2">
+                        <button
+                          type="submit"
+                          className="bg-[#3B82F6] text-white px-6 py-2 rounded-md hover:bg-[#2563EB]"
+                        >
+                          Simpan
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                  <div className="bg-gray-100 p-4 rounded-md mt-8 shadow-md">
-                    <h3 className="text-lg font-semibold text-gray-700">
-                      Preview Lokasi:
-                    </h3>
-                    <p className="text-gray-600 mt-2">
-                      {detailLokasi || "Detail lokasi belum diisi"}
-                      {kelurahan
-                        ? `, ${
-                            kelurahanList.find((k) => k.id === kelurahan)
-                              ?.name || "Belum dipilih"
-                          }`
-                        : ""}
-                      {kecamatan
-                        ? `, ${
-                            kecamatanList.find((k) => k.id === kecamatan)
-                              ?.name || "Belum dipilih"
-                          }`
-                        : ""}
-                      {kota
-                        ? `, ${
-                            kotaList.find((k) => k.id === kota)?.name ||
-                            "Belum dipilih"
-                          }`
-                        : ""}
-                      {provinsi
-                        ? `, ${
-                            provinsiList.find((p) => p.id === provinsi)?.name ||
-                            "Belum dipilih"
-                          }`
-                        : ""}
-                    </p>
-                  </div>
-                  <div className="flex justify-center mt-8">
-                    <button
-                      type="submit"
-                      className="bg-[#3B82F6] text-white px-6 py-2 rounded-md hover:bg-[#2563EB]"
-                    >
-                      Simpan
-                    </button>
+
+                    {/* Kolom 3: Legalitas Table - Wider column */}
+                    <div className="lg:col-span-6 space-y-3">
+                      <div className="flex justify-between items-center">
+                        <button
+                          onClick={() =>
+                            navigate("/sertifikat/create", {
+                              state: {
+                                idTanah: tanahData.id_tanah,
+                                pimpinanName: tanahData.pimpinan_jamaah?.nama,
+                              },
+                            })
+                          }
+                          className="bg-[#3B82F6] text-white px-2 py-1 text-xs rounded hover:bg-[#2563EB] flex items-center"
+                        >
+                          <FaPlus className="mr-1 text-xs" />
+                          Create Sertifikat
+                        </button>
+                      </div>
+
+                      <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200 text-xs">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">
+                                No
+                              </th>
+                              <th className="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">
+                                No Dokumen
+                              </th>
+                              <th className="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">
+                                Legalitas
+                              </th>
+                              <th className="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">
+                                Status
+                              </th>
+                              {isPimpinanJamaah && (
+                                <th className="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">
+                                  Approval
+                                </th>
+                              )}
+                              <th className="px-2 py-1 text-left font-medium text-gray-500 uppercase tracking-wider">
+                                Aksi
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {sertifikatList.length > 0 ? (
+                              sertifikatList.map((sertifikat, index) => (
+                                <tr key={sertifikat.id_sertifikat}>
+                                  <td className="px-2 py-1 whitespace-nowrap text-gray-500">
+                                    {index + 1}
+                                  </td>
+                                  <td className="px-2 py-1 whitespace-nowrap text-gray-500">
+                                    {sertifikat.no_dokumen || "-"}
+                                  </td>
+                                  <td className="px-2 py-1 whitespace-nowrap font-medium text-gray-700">
+                                    {sertifikat.jenis_sertifikat || "-"}
+                                  </td>
+                                  <td className="px-2 py-1 whitespace-nowrap">
+                                    <div className="flex items-center">
+                                      <span
+                                        className={`px-1 inline-flex text-xs leading-4 font-semibold rounded-full ${
+                                          sertifikat.status_pengajuan === "Terbit"
+                                            ? "bg-green-100 text-green-800"
+                                            : sertifikat.status_pengajuan === "Ditolak"
+                                            ? "bg-red-100 text-red-800"
+                                            : "bg-yellow-100 text-yellow-800"
+                                        }`}
+                                      >
+                                        {sertifikat.status_pengajuan || "Proses"}
+                                      </span>
+                                      <button
+                                        className="ml-1 bg-gray-100 text-gray-700 px-1 py-0.5 rounded hover:bg-gray-200 text-xs"
+                                        onClick={() => openModal(sertifikat)}
+                                      >
+                                        <FaEdit size={10} />
+                                      </button>
+                                    </div>
+                                  </td>
+                                  {isPimpinanJamaah && (
+                                    <td className="px-2 py-1 whitespace-nowrap">
+                                      <span
+                                        className={`px-1 inline-flex text-xs leading-4 font-semibold rounded-full ${
+                                          sertifikat.status === "disetujui"
+                                            ? "bg-green-100 text-green-800"
+                                            : sertifikat.status === "ditolak"
+                                            ? "bg-red-100 text-red-800"
+                                            : "bg-yellow-100 text-yellow-800"
+                                        }`}
+                                      >
+                                        {sertifikat.status || "-"}
+                                      </span>
+                                    </td>
+                                  )}
+                                  <td className="px-2 py-1 whitespace-nowrap">
+                                    <div className="flex gap-1">
+                                      <button
+                                        onClick={() =>
+                                          handlePreviewDokumen(sertifikat.dokumen)
+                                        }
+                                        className="text-blue-500 hover:text-blue-700 p-0.5"
+                                        title="Lihat Dokumen"
+                                      >
+                                        <FaEye size={10} />
+                                      </button>
+                                      <button
+                                        onClick={() =>
+                                          handleUpdateSertifikat(
+                                            sertifikat.id_sertifikat
+                                          )
+                                        }
+                                        className="text-yellow-500 hover:text-yellow-700 p-0.5"
+                                        title="Edit"
+                                      >
+                                        <FaEdit size={10} />
+                                      </button>
+                                      <button
+                                        onClick={() =>
+                                          handleDeleteSertifikat(
+                                            sertifikat.id_sertifikat
+                                          )
+                                        }
+                                        className="text-red-500 hover:text-red-700 p-0.5"
+                                        title="Hapus"
+                                      >
+                                        <FaTrash size={10} />
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr>
+                                <td
+                                  colSpan={isPimpinanJamaah ? 6 : 5}
+                                  className="px-3 py-2 text-center text-xs text-gray-500"
+                                >
+                                  Tidak ada data sertifikat
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   </div>
                 </form>
 
-                <div className="mt-10">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-bold">Legalitas</h3>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() =>
-                          navigate("/sertifikat/create", {
-                            state: {
-                              idTanah: tanahData.id_tanah,
-                              pimpinanName: tanahData.pimpinan_jamaah?.nama,
-                            },
-                          })
-                        }
-                        className="bg-[#3B82F6] text-white px-2 py-2 text-xs rounded-md hover:bg-[#2563EB] flex items-center"
-                      >
-                        <FaPlus className="mr-2 text-xs" />
-                        Create Sertifikat
-                      </button>
-                    </div>
-                  </div>
+                {isModalOpen && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+                      <div className="p-4">
+                        <h3 className="text-sm font-medium leading-6 text-gray-900">
+                          Update Legalitas
+                        </h3>
 
-                  <table className="min-w-full text-xs bg-white border border-gray-300">
-                    <thead>
-                      <tr>
-                        <th className="py-2 px-4 font-medium border-b-2">No</th>
-                        <th className="py-2 px-4 font-medium border-b-2">
-                          No Dokumen
-                        </th>
-                        <th className="py-2 px-4 font-medium border-b-2">
-                          Legalitas
-                        </th>
-                        <th className="py-2 px-4 font-medium border-b-2">
-                          Tanggal Pengajuan
-                        </th>
-                        <th className="py-2 px-4 font-medium border-b-2">
-                          Dokumen
-                        </th>
-                        {isPimpinanJamaah && (
-                          <th className="px-4 py-2 text-center font-medium border-b-2">
-                            Status Approval
-                          </th>
-                        )}
-                        <th className="py-2 px-4 font-medium border-b-2">
-                          Keterangan
-                        </th>
-                        <th className="py-2 px-4 font-medium border-b-2">
-                          Aksi
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sertifikatList.length > 0 ? (
-                        sertifikatList.map((sertifikat, index) => (
-                          <tr key={sertifikat.id_sertifikat}>
-                            <td className="py-2 px-4 border-b text-center">
-                              {index + 1}
-                            </td>
-                            <td className="py-2 px-4 border-b text-center">
-                              {sertifikat.no_dokumen || "-"}
-                            </td>
-                            <td className="py-2 px-4 border-b text-center">
-                              <div
-                                className={`inline-block px-4 py-1 rounded-[30px] ${
-                                  sertifikat.status_pengajuan === "Terbit"
-                                    ? "bg-[#AFFEB5] text-[#187556]"
-                                    : sertifikat.status_pengajuan === "Ditolak"
-                                    ? "bg-[#FEC5D0] text-[#D80027]"
-                                    : "bg-[#fffcd6] text-[#FECC23]"
-                                }`}
-                              >
-                                {`${sertifikat.status_pengajuan || "Proses"} ${
-                                  sertifikat.jenis_sertifikat || ""
-                                }`}
-                                <button
-                                  className="ml-2 bg-[#fff] text-[#000] px-2 py-1 rounded-md hover:bg-[#848483] hover:text-[#000] text-xs"
-                                  onClick={() => openModal(sertifikat)}
-                                >
-                                  <FaEdit />
-                                </button>
-                              </div>
-                            </td>
-                            <td className="py-2 px-4 border-b text-center">
-                              {sertifikat.tanggal_pengajuan
-                                ? new Date(
-                                    sertifikat.tanggal_pengajuan
-                                  ).toLocaleDateString()
-                                : "-"}
-                            </td>
-                            <td className="py-2 px-4 border-b text-center">
-                              <div className="flex justify-center">
-                                {sertifikat.dokumen ? (
-                                  <button
-                                    onClick={() =>
-                                      handlePreviewDokumen(sertifikat.dokumen)
-                                    }
-                                    className="group relative p-1 text-blue-500 hover:text-blue-600 transition-colors"
-                                    title="Lihat Dokumen"
-                                    aria-label={`Preview dokumen ${
-                                      sertifikat.jenis_sertifikat || ""
-                                    }`}
-                                  >
-                                    <FaEye className="text-lg" />
-                                    <span className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                                      Lihat Dokumen
-                                    </span>
-                                  </button>
-                                ) : (
-                                  <span
-                                    className="text-gray-400 text-xs italic"
-                                    title="Dokumen belum diupload"
-                                  >
-                                    Tidak tersedia
-                                  </span>
-                                )}
-                              </div>
-                            </td>
-                            {isPimpinanJamaah && (
-                              <td className="text-xs text-center px-4 py-2 whitespace-nowrap font-semibold border-b">
-                                <div
-                                  className={`inline-block px-4 py-1 rounded-[30px] ${
-                                    sertifikat.status === "disetujui"
-                                      ? "bg-[#AFFEB5] text-[#187556]"
-                                      : sertifikat.status === "ditolak"
-                                      ? "bg-[#FEC5D0] text-[#D80027]"
-                                      : "bg-[#FFEFBA] text-[#ffc400]"
-                                  }`}
-                                >
-                                  {sertifikat.status}
-                                </div>
-                              </td>
-                            )}
-                            <td className="py-2 px-4 border-b text-center">
-                              {sertifikat.created_at
-                                ? calculateDayDifference(sertifikat.created_at)
-                                : "-"}
-                            </td>
-                            <td className="py-2 px-4 border-b text-center">
-                              <div className="flex justify-center gap-2">
-                                <button
-                                  onClick={() =>
-                                    handleUpdateSertifikat(
-                                      sertifikat.id_sertifikat
-                                    )
-                                  }
-                                  className="bg-[#F59E0B] text-white p-1 rounded-md hover:bg-[#D97706]"
-                                  title="Update"
-                                >
-                                  <FaEdit className="text-xs" />
-                                </button>
-                                <button
-                                  onClick={() =>
-                                    handleDeleteSertifikat(
-                                      sertifikat.id_sertifikat
-                                    )
-                                  }
-                                  className="bg-red-500 text-white p-1 rounded-md hover:bg-red-600"
-                                  title="Hapus"
-                                >
-                                  <FaTrash className="text-xs" />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td
-                            colSpan={isPimpinanJamaah ? 8 : 7}
-                            className="py-4 text-center"
+                        {/* Dropdown Jenis Sertifikat */}
+                        <div className="mt-3">
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Jenis Sertifikat
+                          </label>
+                          <select
+                            value={selectedJenisSertifikat}
+                            onChange={(e) =>
+                              setSelectedJenisSertifikat(e.target.value)
+                            }
+                            className="mt-1 block w-full pl-2 pr-8 py-1.5 text-xs border border-gray-300 focus:outline-none focus:ring-[#187556] focus:border-[#187556] rounded"
                           >
-                            Tidak ada data sertifikat
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-
-                  {isModalOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                      <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
-                        <div className="p-6">
-                          <h3 className="text-lg font-medium leading-6 text-gray-900">
-                            Update Legalitas
-                          </h3>
-
-                          {/* Dropdown Jenis Sertifikat */}
-                          <div className="mt-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Jenis Sertifikat
-                            </label>
-                            <select
-                              value={selectedJenisSertifikat}
-                              onChange={(e) =>
-                                setSelectedJenisSertifikat(e.target.value)
-                              }
-                              className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-[#187556] focus:border-[#187556] sm:text-sm rounded-md"
-                            >
-                              <option value="">Pilih Jenis Sertifikat</option>
-                              <option value="BASTW">BASTW</option>
-                              <option value="AIW">AIW</option>
-                              <option value="SW">SW</option>
-                            </select>
-                          </div>
-
-                          {/* Dropdown Status Pengajuan */}
-                          <div className="mt-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Status Pengajuan
-                            </label>
-                            <select
-                              value={selectedStatusPengajuan}
-                              onChange={(e) =>
-                                setSelectedStatusPengajuan(e.target.value)
-                              }
-                              className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-[#187556] focus:border-[#187556] sm:text-sm rounded-md"
-                            >
-                              <option value="">Pilih Status</option>
-                              <option value="Proses">Proses</option>
-                              <option value="Terbit">Terbit</option>
-                              <option value="Tolak">Tolak</option>
-                            </select>
-                          </div>
+                            <option value="">Pilih Jenis Sertifikat</option>
+                            <option value="BASTW">BASTW</option>
+                            <option value="AIW">AIW</option>
+                            <option value="SW">SW</option>
+                          </select>
                         </div>
 
-                        <div className="bg-gray-50 px-6 py-4 flex justify-end rounded-b-lg">
-                          <button
-                            type="button"
-                            onClick={closeModal}
-                            className="mr-3 inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#187556]"
-                          >
-                            Batal
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleUpdateLegalitas}
-                            disabled={
-                              !selectedJenisSertifikat &&
-                              !selectedStatusPengajuan
+                        {/* Dropdown Status Pengajuan */}
+                        <div className="mt-3">
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Status Pengajuan
+                          </label>
+                          <select
+                            value={selectedStatusPengajuan}
+                            onChange={(e) =>
+                              setSelectedStatusPengajuan(e.target.value)
                             }
-                            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[#187556] hover:bg-[#146347] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#187556] disabled:opacity-50"
+                            className="mt-1 block w-full pl-2 pr-8 py-1.5 text-xs border border-gray-300 focus:outline-none focus:ring-[#187556] focus:border-[#187556] rounded"
                           >
-                            {isProcessing ? "Menyimpan..." : "Simpan Perubahan"}
-                          </button>
+                            <option value="">Pilih Status</option>
+                            <option value="Proses">Proses</option>
+                            <option value="Terbit">Terbit</option>
+                            <option value="Tolak">Tolak</option>
+                          </select>
                         </div>
                       </div>
+                      
+                      <div className="bg-gray-50 px-6 py-4 flex justify-end rounded-b-lg">
+                        <button
+                          type="button"
+                          onClick={closeModal}
+                          className="mr-3 inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#187556]"
+                        >
+                          Batal
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleUpdateLegalitas}
+                          disabled={
+                            !selectedJenisSertifikat &&
+                            !selectedStatusPengajuan
+                          }
+                          className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[#187556] hover:bg-[#146347] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#187556] disabled:opacity-50"
+                        >
+                          {isProcessing ? "Menyimpan..." : "Simpan Perubahan"}
+                        </button>
+                      </div>
                     </div>
-                  )}
-                </div>
-              </>
-            )}
+                  </div>
+                )}
+                </>
+              )}
+            </div>
           </div>
-        </div>
-      </Sidebar>
-    </div>
-  );
-};
-
+        </Sidebar>
+      </div>
+      );
+    };
 export default EditTanah;
