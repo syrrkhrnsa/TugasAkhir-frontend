@@ -21,8 +21,11 @@ const Approval = () => {
     const isSertifikat = 
       details.no_dokumen !== undefined ||
       details.dokumen !== undefined ||
+      details.jenis_sertifikat !== undefined ||
       details.previous_data?.no_dokumen !== undefined ||
-      details.updated_data?.no_dokumen !== undefined;
+      details.updated_data?.no_dokumen !== undefined ||
+      details.previous_data?.jenis_sertifikat !== undefined ||
+      details.updated_data?.jenis_sertifikat !== undefined;
     
     const isTanah = 
       details.NamaPimpinanJamaah !== undefined ||
@@ -45,7 +48,6 @@ const Approval = () => {
         },
       });
       
-      // Pastikan response.data.data ada dan berupa array
       if (response.data && Array.isArray(response.data.data)) {
         const sortedMessages = response.data.data.sort((a, b) => 
           new Date(b.created_at) - new Date(a.created_at)
@@ -115,19 +117,21 @@ const Approval = () => {
       setApprovalStatus(newApprovalStatus);
       localStorage.setItem("approvalStatus", JSON.stringify(newApprovalStatus));
       
-      // Refresh notifikasi setelah approve
       await fetchNotifications();
       
-      // Jika bukan Pimpinan Jamaah, cari notifikasi baru untuk Pimpinan
       if (!isPimpinanJamaah) {
-        setTimeout(fetchNotifications, 1000); // Beri jeda untuk memastikan notifikasi terupdate
+        setTimeout(fetchNotifications, 1000);
       }
     } catch (error) {
       console.error("Gagal menyetujui data:", error);
+      let errorMessage = 'Terjadi kesalahan saat menyetujui data.';
+      if (error.response && error.response.data && error.response.data.message) {
+        errorMessage = error.response.data.message;
+      }
       Swal.fire({
         icon: 'error',
         title: 'Gagal!',
-        text: 'Terjadi kesalahan saat menyetujui data.',
+        text: errorMessage,
       });
     }
   };
@@ -156,19 +160,21 @@ const Approval = () => {
       setApprovalStatus(newApprovalStatus);
       localStorage.setItem("approvalStatus", JSON.stringify(newApprovalStatus));
       
-      // Refresh notifikasi setelah reject
       await fetchNotifications();
       
-      // Jika bukan Pimpinan Jamaah, cari notifikasi baru untuk Pimpinan
       if (!isPimpinanJamaah) {
         setTimeout(fetchNotifications, 1000);
       }
     } catch (error) {
       console.error("Gagal menolak data:", error);
+      let errorMessage = 'Terjadi kesalahan saat menolak data.';
+      if (error.response && error.response.data && error.response.data.message) {
+        errorMessage = error.response.data.message;
+      }
       Swal.fire({
         icon: 'error',
         title: 'Gagal!',
-        text: 'Terjadi kesalahan saat menolak data.',
+        text: errorMessage,
       });
     }
   };
@@ -199,10 +205,14 @@ const Approval = () => {
       fetchNotifications();
     } catch (error) {
       console.error("Gagal menyetujui data:", error);
+      let errorMessage = 'Terjadi kesalahan saat menyetujui data.';
+      if (error.response && error.response.data && error.response.data.message) {
+        errorMessage = error.response.data.message;
+      }
       Swal.fire({
         icon: 'error',
         title: 'Gagal!',
-        text: 'Terjadi kesalahan saat menyetujui data.',
+        text: errorMessage,
       });
     }
   };
@@ -233,10 +243,14 @@ const Approval = () => {
       fetchNotifications();
     } catch (error) {
       console.error("Gagal menolak data:", error);
+      let errorMessage = 'Terjadi kesalahan saat menolak data.';
+      if (error.response && error.response.data && error.response.data.message) {
+        errorMessage = error.response.data.message;
+      }
       Swal.fire({
         icon: 'error',
         title: 'Gagal!',
-        text: 'Terjadi kesalahan saat menolak data.',
+        text: errorMessage,
       });
     }
   };
@@ -334,7 +348,8 @@ const Approval = () => {
       { key: 'dokumen', label: 'Dokumen' },
       { key: 'jenis_sertifikat', label: 'Jenis Sertifikat' },
       { key: 'status_pengajuan', label: 'Status Pengajuan' },
-      { key: 'tanggal_pengajuan', label: 'Tanggal Pengajuan' }
+      { key: 'tanggal_pengajuan', label: 'Tanggal Pengajuan' },
+      { key: 'id_tanah', label: 'ID Tanah' }
     ];
 
     return (
@@ -601,7 +616,7 @@ const Approval = () => {
             ) : (
               <div className="h-full flex flex-col items-center justify-center p-12 text-center">
                 <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                 </svg>
                 <h3 className="mt-2 text-lg font-medium text-gray-900">Tidak ada pesan dipilih</h3>
                 <p className="mt-1 text-sm text-gray-500 max-w-md">
