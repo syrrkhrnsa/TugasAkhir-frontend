@@ -511,7 +511,7 @@ const Legalitas = () => {
                                 )}
                                 {renderActionButton(
                                   item,
-                                  (id) => navigate(`/tanah/history/${id}`),
+                                  (id) => navigate(`/log?type=tanah&id=${id}`),
                                   <FaHistory />,
                                   "Riwayat"
                                 )}
