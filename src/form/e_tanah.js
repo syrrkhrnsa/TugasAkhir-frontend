@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import axios from "axios";
-import { FaEye, FaPlus, FaEdit, FaTrash } from "react-icons/fa";
+import { FaEye, FaPlus, FaEdit, FaTrash, FaHistory } from "react-icons/fa";
 import { getUserId, getRoleId } from "../utils/Auth";
 import Swal from "sweetalert2";
 
@@ -805,6 +805,13 @@ const EditTanah = () => {
                     <h3 className="text-lg font-bold">Legalitas</h3>
                     <div className="flex gap-2">
                       <button
+                        onClick={() => navigate("/log?type=sertifikat")}
+                        className="bg-[#10B981] text-white px-2 py-2 text-xs rounded-md hover:bg-[#059669] flex items-center"
+                      >
+                        <FaHistory className="mr-2 text-xs" />
+                        Riwayat Sertifikat
+                      </button>
+                      <button
                         onClick={() =>
                           navigate("/sertifikat/create", {
                             state: {
@@ -938,6 +945,17 @@ const EditTanah = () => {
                             </td>
                             <td className="py-2 px-4 border-b text-center">
                               <div className="flex justify-center gap-2">
+                                <button
+                                  onClick={() =>
+                                    navigate(
+                                      `/log?type=sertifikat&id=${sertifikat.id_sertifikat}`
+                                    )
+                                  }
+                                  className="bg-[#10B981] text-white p-1 rounded-md hover:bg-[#059669]"
+                                  title="Riwayat"
+                                >
+                                  <FaHistory className="text-xs" />
+                                </button>
                                 <button
                                   onClick={() =>
                                     handleUpdateSertifikat(
