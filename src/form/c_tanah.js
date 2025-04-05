@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import axios from "axios";
-import { getRoleId } from "../utils/Auth";
+import { getRoleId, getUserName } from "../utils/Auth";
 import Swal from "sweetalert2";
 
 const CreateTanah = () => {
@@ -26,8 +26,18 @@ const CreateTanah = () => {
     kecamatanList.find((k) => k.id === kecamatan)?.name
   }, ${kelurahanList.find((k) => k.id === kelurahan)?.name}, ${detailLokasi}`;
 
+  const roleId = getRoleId();
+  const isPimpinanJamaah = roleId === "326f0dde-2851-4e47-ac5a-de6923447317";
+
+  useEffect(() => {
+    if (isPimpinanJamaah) {
+      setPimpinanJamaah(getUserName() || "");
+    }
+  }, [isPimpinanJamaah]);
+
   // Ambil data pengguna
   useEffect(() => {
+    if (isPimpinanJamaah) return; // Skip for Pimpinan Jamaah
     const fetchUsers = async () => {
       const token = localStorage.getItem("token");
       if (!token) {
@@ -51,7 +61,7 @@ const CreateTanah = () => {
     };
 
     fetchUsers();
-  }, []);
+  }, [isPimpinanJamaah]);
 
   // Ambil data provinsi saat komponen dimuat
   useEffect(() => {
@@ -145,9 +155,6 @@ const CreateTanah = () => {
           },
         }
       );
-      const roleId = getRoleId();
-      const isPimpinanJamaah =
-        roleId === "326f0dde-2851-4e47-ac5a-de6923447317";
 
       // Tampilkan pesan berdasarkan role
       if (isPimpinanJamaah) {
@@ -204,21 +211,31 @@ const CreateTanah = () => {
                   <label className="block text-sm font-medium text-gray-400">
                     Pimpinan Jamaah
                   </label>
-                  <select
-                    className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                    value={pimpinanJamaah}
-                    onChange={(e) => setPimpinanJamaah(e.target.value)}
-                    required
-                  >
-                    <option value="" disabled>
-                      Pilih Pimpinan Jamaah
-                    </option>
-                    {users.map((user) => (
-                      <option key={user.id} value={user.name}>
-                        {user.name}
+                  {isPimpinanJamaah ? (
+                    <input
+                      type="text"
+                      className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left bg-gray-100"
+                      value={pimpinanJamaah}
+                      disabled
+                      required
+                    />
+                  ) : (
+                    <select
+                      className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
+                      value={pimpinanJamaah}
+                      onChange={(e) => setPimpinanJamaah(e.target.value)}
+                      required
+                    >
+                      <option value="" disabled>
+                        Pilih Pimpinan Jamaah
                       </option>
-                    ))}
-                  </select>
+                      {users.map((user) => (
+                        <option key={user.id} value={user.name}>
+                          {user.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                   {/* Dropdown Provinsi */}
                   <label className="block text-sm font-medium text-gray-400 mt-6">
                     Provinsi

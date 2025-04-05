@@ -308,18 +308,48 @@ const Legalitas = () => {
     }
   };
 
-  // Render function for action buttons
   const renderActionButton = (item, action, icon, label) => {
-    const isOwner = !isPimpinanJamaah || item.user_id === userId;
-    const isDisabled = item.isFromApproval && item.status !== "disetujui";
+    // Get the current user's role
+    const currentUserRole = getRoleId();
 
-    if (isDisabled || !isOwner) {
+    // Define role IDs for reference
+    const rolePimpinanJamaah = "326f0dde-2851-4e47-ac5a-de6923447317";
+    const rolePimpinanCabang = "3594bece-a684-4287-b0a2-7429199772a3";
+    const roleBidgarWakaf = "26b2b64e-9ae3-4e2e-9063-590b1bb00480";
+
+    // Check if the current user is Pimpinan Jamaah
+    const isCurrentUserPimpinanJamaah = currentUserRole === rolePimpinanJamaah;
+
+    // Check if the data creator is Pimpinan Jamaah
+    const isCreatorPimpinanJamaah = item.user_role === rolePimpinanJamaah;
+
+    // Check if the data creator is Bidgar Wakaf or Pimpinan Cabang
+    const isCreatorAdmin = [roleBidgarWakaf, rolePimpinanCabang].includes(
+      item.user_role
+    );
+
+    // Determine if the button should be disabled
+    let isDisabled = item.isFromApproval && item.status !== "disetujui";
+
+    // Special case: If current user is Pimpinan Jamaah and data was created by another Pimpinan Jamaah
+    if (
+      isCurrentUserPimpinanJamaah &&
+      isCreatorPimpinanJamaah &&
+      item.user_id !== userId
+    ) {
+      isDisabled = true;
+    }
+
+    // Special case: If current user is Pimpinan Jamaah and data was created by admin (Bidgar/Pimpinan Cabang)
+    if (isCurrentUserPimpinanJamaah && isCreatorAdmin) {
+      isDisabled = false; // Allow access even though user_id doesn't match
+    }
+
+    if (isDisabled) {
       return (
         <button
-          className={`p-1 ${
-            isOwner ? "text-gray-400" : "text-gray-300"
-          } cursor-not-allowed`}
-          title={!isOwner ? "Anda tidak memiliki akses" : label}
+          className={`p-1 text-gray-400 cursor-not-allowed`}
+          title={label}
           disabled
         >
           {icon}
@@ -479,8 +509,7 @@ const Legalitas = () => {
                                   }`}
                                 >
                                   {item.legalitas || "-"}
-                                  {(!isPimpinanJamaah ||
-                                    item.user_id === userId) && (
+                                  {
                                     <button
                                       className="ml-2 bg-white text-black px-2 py-1 rounded-md hover:bg-gray-200 text-xs"
                                       onClick={() => openModal(item)}
@@ -491,7 +520,7 @@ const Legalitas = () => {
                                     >
                                       <FaEdit />
                                     </button>
-                                  )}
+                                  }
                                 </div>
                               </div>
                             </td>
