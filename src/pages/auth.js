@@ -165,30 +165,6 @@ const Login = () => {
                 Login
               </button>
             </form>
-
-            {/* Divider */}
-            <div className="flex items-center py-3">
-              <div className="flex-grow border-t border-gray-300"></div>
-              <span className="px-2 text-fontlogin text-xs">OR</span>
-              <div className="flex-grow border-t border-gray-300"></div>
-            </div>
-
-            {/* Login with Google */}
-            <div className="flex justify-center">
-              <button
-                type="button"
-                className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-50"
-              >
-                <img
-                  src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
-                  alt="Google"
-                  className="w-4 h-4 mr-2"
-                />
-                <span className="text-xs font-medium text-fontlogin">
-                  Login with Google
-                </span>
-              </button>
-            </div>
           </div>
         </div>
       </div>

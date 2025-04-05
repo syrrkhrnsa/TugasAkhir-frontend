@@ -266,7 +266,7 @@ const Legalitas = () => {
       }
     } catch (error) {
       console.error("Error fetching legalitas:", error);
-      Swal.fire("Error", "Gagal mengambil data legalitas", "error");
+      Swal.fire("warning", "data legalitas belum tersedia", "warning");
     }
   };
 
