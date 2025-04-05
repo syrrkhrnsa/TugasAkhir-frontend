@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import axios from "axios";
 import { getRoleId } from "../utils/Auth";
-import Swal from 'sweetalert2';
+import Swal from "sweetalert2";
 
 const Approval = () => {
   const [search, setSearch] = useState("");
@@ -15,10 +15,10 @@ const Approval = () => {
 
   const getMessageType = (message) => {
     if (!message?.data?.details) return null;
-    
+
     const details = message.data.details;
-    
-    const isSertifikat = 
+
+    const isSertifikat =
       details.no_dokumen !== undefined ||
       details.dokumen !== undefined ||
       details.jenis_sertifikat !== undefined ||
@@ -26,31 +26,34 @@ const Approval = () => {
       details.updated_data?.no_dokumen !== undefined ||
       details.previous_data?.jenis_sertifikat !== undefined ||
       details.updated_data?.jenis_sertifikat !== undefined;
-    
-    const isTanah = 
+
+    const isTanah =
       details.NamaPimpinanJamaah !== undefined ||
       details.NamaWakif !== undefined ||
       details.previous_data?.NamaPimpinanJamaah !== undefined ||
       details.updated_data?.NamaPimpinanJamaah !== undefined;
-    
-    if (isSertifikat) return 'sertifikat';
-    if (isTanah) return 'tanah';
+
+    if (isSertifikat) return "sertifikat";
+    if (isTanah) return "tanah";
     return null;
   };
 
   const fetchNotifications = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get("http://127.0.0.1:8000/api/notifications", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
-      
+      const response = await axios.get(
+        "http://127.0.0.1:8000/api/notifications",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        }
+      );
+
       if (response.data && Array.isArray(response.data.data)) {
-        const sortedMessages = response.data.data.sort((a, b) => 
-          new Date(b.created_at) - new Date(a.created_at)
+        const sortedMessages = response.data.data.sort(
+          (a, b) => new Date(b.created_at) - new Date(a.created_at)
         );
         setMessages(sortedMessages);
       } else {
@@ -60,9 +63,9 @@ const Approval = () => {
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
       Swal.fire({
-        icon: 'error',
-        title: 'Gagal memuat notifikasi',
-        text: 'Terjadi kesalahan saat memuat daftar notifikasi.',
+        icon: "error",
+        title: "Gagal memuat notifikasi",
+        text: "Terjadi kesalahan saat memuat daftar notifikasi.",
       });
     }
   };
@@ -88,92 +91,117 @@ const Approval = () => {
     setViewedMessages((prev) => {
       const updated = new Set(prev);
       updated.add(msg.id);
-      localStorage.setItem("viewedMessages", JSON.stringify(Array.from(updated)));
+      localStorage.setItem(
+        "viewedMessages",
+        JSON.stringify(Array.from(updated))
+      );
       return updated;
     });
   };
 
   const handleApprove = async () => {
     if (!selectedMessage) return;
-  
+
     const token = localStorage.getItem("token");
     const approvalId = selectedMessage.data.id_approval;
-  
+
     try {
-      await axios.post(`http://127.0.0.1:8000/api/approvals/${approvalId}/approve`, {}, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
-  
+      await axios.post(
+        `http://127.0.0.1:8000/api/approvals/${approvalId}/approve`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        }
+      );
+
       Swal.fire({
-        icon: 'success',
-        title: 'Berhasil!',
-        text: 'Data telah disetujui dan notifikasi telah dikirim ke Pimpinan Jamaah.',
+        icon: "success",
+        title: "Berhasil!",
+        text: "Data telah disetujui dan notifikasi telah dikirim ke Pimpinan Jamaah.",
       });
-  
-      const newApprovalStatus = { ...approvalStatus, [selectedMessage.id]: "approved" };
+
+      const newApprovalStatus = {
+        ...approvalStatus,
+        [selectedMessage.id]: "approved",
+      };
       setApprovalStatus(newApprovalStatus);
       localStorage.setItem("approvalStatus", JSON.stringify(newApprovalStatus));
-      
+
       await fetchNotifications();
-      
+
       if (!isPimpinanJamaah) {
         setTimeout(fetchNotifications, 1000);
       }
     } catch (error) {
       console.error("Gagal menyetujui data:", error);
-      let errorMessage = 'Terjadi kesalahan saat menyetujui data.';
-      if (error.response && error.response.data && error.response.data.message) {
+      let errorMessage = "Terjadi kesalahan saat menyetujui data.";
+      if (
+        error.response &&
+        error.response.data &&
+        error.response.data.message
+      ) {
         errorMessage = error.response.data.message;
       }
       Swal.fire({
-        icon: 'error',
-        title: 'Gagal!',
+        icon: "error",
+        title: "Gagal!",
         text: errorMessage,
       });
     }
   };
-  
+
   const handleReject = async () => {
     if (!selectedMessage) return;
-  
+
     const token = localStorage.getItem("token");
     const approvalId = selectedMessage.data.id_approval;
-  
+
     try {
-      await axios.post(`http://127.0.0.1:8000/api/approvals/${approvalId}/reject`, {}, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
-  
+      await axios.post(
+        `http://127.0.0.1:8000/api/approvals/${approvalId}/reject`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        }
+      );
+
       Swal.fire({
-        icon: 'success',
-        title: 'Berhasil!',
-        text: 'Data telah ditolak dan notifikasi telah dikirim ke Pimpinan Jamaah.',
+        icon: "success",
+        title: "Berhasil!",
+        text: "Data telah ditolak dan notifikasi telah dikirim ke Pimpinan Jamaah.",
       });
-  
-      const newApprovalStatus = { ...approvalStatus, [selectedMessage.id]: "rejected" };
+
+      const newApprovalStatus = {
+        ...approvalStatus,
+        [selectedMessage.id]: "rejected",
+      };
       setApprovalStatus(newApprovalStatus);
       localStorage.setItem("approvalStatus", JSON.stringify(newApprovalStatus));
-      
+
       await fetchNotifications();
-      
+
       if (!isPimpinanJamaah) {
         setTimeout(fetchNotifications, 1000);
       }
     } catch (error) {
       console.error("Gagal menolak data:", error);
-      let errorMessage = 'Terjadi kesalahan saat menolak data.';
-      if (error.response && error.response.data && error.response.data.message) {
+      let errorMessage = "Terjadi kesalahan saat menolak data.";
+      if (
+        error.response &&
+        error.response.data &&
+        error.response.data.message
+      ) {
         errorMessage = error.response.data.message;
       }
       Swal.fire({
-        icon: 'error',
-        title: 'Gagal!',
+        icon: "error",
+        title: "Gagal!",
         text: errorMessage,
       });
     }
@@ -181,37 +209,48 @@ const Approval = () => {
 
   const handleUpdateApprove = async () => {
     if (!selectedMessage) return;
-  
+
     const token = localStorage.getItem("token");
     const approvalId = selectedMessage.data.id_approval;
-  
+
     try {
-      await axios.post(`http://127.0.0.1:8000/api/approvals/${approvalId}/update/approve`, {}, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
-  
+      await axios.post(
+        `http://127.0.0.1:8000/api/approvals/${approvalId}/update/approve`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        }
+      );
+
       Swal.fire({
-        icon: 'success',
-        title: 'Berhasil!',
-        text: 'Data telah disetujui dan disimpan.',
+        icon: "success",
+        title: "Berhasil!",
+        text: "Data telah disetujui dan disimpan.",
       });
-  
-      const newApprovalStatus = { ...approvalStatus, [selectedMessage.id]: "approved" };
+
+      const newApprovalStatus = {
+        ...approvalStatus,
+        [selectedMessage.id]: "approved",
+      };
       setApprovalStatus(newApprovalStatus);
       localStorage.setItem("approvalStatus", JSON.stringify(newApprovalStatus));
       fetchNotifications();
     } catch (error) {
       console.error("Gagal menyetujui data:", error);
-      let errorMessage = 'Terjadi kesalahan saat menyetujui data.';
-      if (error.response && error.response.data && error.response.data.message) {
+      let errorMessage = "Terjadi kesalahan saat menyetujui data.";
+      if (
+        error.response &&
+        error.response.data &&
+        error.response.data.message
+      ) {
         errorMessage = error.response.data.message;
       }
       Swal.fire({
-        icon: 'error',
-        title: 'Gagal!',
+        icon: "error",
+        title: "Gagal!",
         text: errorMessage,
       });
     }
@@ -219,37 +258,48 @@ const Approval = () => {
 
   const handleUpdateReject = async () => {
     if (!selectedMessage) return;
-  
+
     const token = localStorage.getItem("token");
     const approvalId = selectedMessage.data.id_approval;
-  
+
     try {
-      await axios.post(`http://127.0.0.1:8000/api/approvals/${approvalId}/update/reject`, {}, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
-  
+      await axios.post(
+        `http://127.0.0.1:8000/api/approvals/${approvalId}/update/reject`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        }
+      );
+
       Swal.fire({
-        icon: 'success',
-        title: 'Berhasil!',
-        text: 'Data telah ditolak.',
+        icon: "success",
+        title: "Berhasil!",
+        text: "Data telah ditolak.",
       });
-  
-      const newApprovalStatus = { ...approvalStatus, [selectedMessage.id]: "rejected" };
+
+      const newApprovalStatus = {
+        ...approvalStatus,
+        [selectedMessage.id]: "rejected",
+      };
       setApprovalStatus(newApprovalStatus);
       localStorage.setItem("approvalStatus", JSON.stringify(newApprovalStatus));
       fetchNotifications();
     } catch (error) {
       console.error("Gagal menolak data:", error);
-      let errorMessage = 'Terjadi kesalahan saat menolak data.';
-      if (error.response && error.response.data && error.response.data.message) {
+      let errorMessage = "Terjadi kesalahan saat menolak data.";
+      if (
+        error.response &&
+        error.response.data &&
+        error.response.data.message
+      ) {
         errorMessage = error.response.data.message;
       }
       Swal.fire({
-        icon: 'error',
-        title: 'Gagal!',
+        icon: "error",
+        title: "Gagal!",
         text: errorMessage,
       });
     }
@@ -257,31 +307,57 @@ const Approval = () => {
 
   const renderTanahData = (data, title) => {
     const excludedFields = [
-      'id_tanah', 'user_id', 'status', 
-      'created_at', 'updated_at', 'id',
-      'message', 'approval_status'
+      "id_tanah",
+      "user_id",
+      "status",
+      "created_at",
+      "updated_at",
+      "id",
+      "message",
+      "approval_status",
     ];
 
-    if (!data) return (
-      <div className="bg-red-50 border-l-4 border-red-400 p-4">
-        <div className="flex">
-          <div className="flex-shrink-0">
-            <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <div className="ml-3">
-            <p className="text-sm text-red-700">Data tidak tersedia</p>
+    if (!data)
+      return (
+        <div className="bg-red-50 border-l-4 border-red-400 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg
+                className="h-5 w-5 text-red-400"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-700">Data tidak tersedia</p>
+            </div>
           </div>
         </div>
-      </div>
-    );
+      );
 
     return (
       <div className="mb-8">
         <h3 className="text-lg font-semibold mb-4 text-gray-800 border-b pb-2 flex items-center">
-          <svg className="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+          <svg
+            className="w-5 h-5 mr-2 text-gray-600"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+            ></path>
           </svg>
           {title}
         </h3>
@@ -289,10 +365,16 @@ const Approval = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
                   Field
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
                   Value
                 </th>
               </tr>
@@ -304,12 +386,16 @@ const Approval = () => {
                   <tr key={key} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900 capitalize">
-                        {key.replace(/_/g, ' ')}
+                        {key.replace(/_/g, " ")}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-500">
-                        {value || <span className="text-gray-400 italic">Belum diisi</span>}
+                        {value || (
+                          <span className="text-gray-400 italic">
+                            Belum diisi
+                          </span>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -323,40 +409,66 @@ const Approval = () => {
 
   const renderSertifikatData = (data, title) => {
     const excludedFields = [
-      'id_sertifikat', 'user_id', 'status', 
-      'created_at', 'updated_at', 'id',
-      'message', 'approval_status', 'id_tanah'
+      "id_sertifikat",
+      "user_id",
+      "status",
+      "created_at",
+      "updated_at",
+      "id",
+      "message",
+      "approval_status",
+      "id_tanah",
+      "jenis_sertifikat",
+      "status_pengajuan",
     ];
 
-    if (!data) return (
-      <div className="bg-red-50 border-l-4 border-red-400 p-4">
-        <div className="flex">
-          <div className="flex-shrink-0">
-            <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <div className="ml-3">
-            <p className="text-sm text-red-700">Data tidak tersedia</p>
+    if (!data)
+      return (
+        <div className="bg-red-50 border-l-4 border-red-400 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg
+                className="h-5 w-5 text-red-400"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-700">Data tidak tersedia</p>
+            </div>
           </div>
         </div>
-      </div>
-    );
+      );
 
     const displayFields = [
-      { key: 'no_dokumen', label: 'No Dokumen' },
-      { key: 'dokumen', label: 'Dokumen' },
-      { key: 'jenis_sertifikat', label: 'Jenis Sertifikat' },
-      { key: 'status_pengajuan', label: 'Status Pengajuan' },
-      { key: 'tanggal_pengajuan', label: 'Tanggal Pengajuan' },
-      { key: 'id_tanah', label: 'ID Tanah' }
+      { key: "no_dokumen", label: "No Dokumen" },
+      { key: "dokumen", label: "Dokumen" },
+      { key: "tanggal_pengajuan", label: "Tanggal Pengajuan" },
     ];
 
     return (
       <div className="mb-8">
         <h3 className="text-lg font-semibold mb-4 text-gray-800 border-b pb-2 flex items-center">
-          <svg className="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          <svg
+            className="w-5 h-5 mr-2 text-gray-600"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            ></path>
           </svg>
           {title}
         </h3>
@@ -364,10 +476,16 @@ const Approval = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
                   Field
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
                   Value
                 </th>
               </tr>
@@ -382,13 +500,17 @@ const Approval = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-500">
-                      {key === 'tanggal_pengajuan' && data[key] 
-                        ? new Date(data[key]).toLocaleDateString('id-ID', {
-                            day: '2-digit',
-                            month: 'long',
-                            year: 'numeric'
+                      {key === "tanggal_pengajuan" && data[key]
+                        ? new Date(data[key]).toLocaleDateString("id-ID", {
+                            day: "2-digit",
+                            month: "long",
+                            year: "numeric",
                           })
-                        : data[key] || <span className="text-gray-400 italic">Belum diisi</span>}
+                        : data[key] || (
+                            <span className="text-gray-400 italic">
+                              Belum diisi
+                            </span>
+                          )}
                     </div>
                   </td>
                 </tr>
@@ -408,13 +530,23 @@ const Approval = () => {
       <Sidebar>
         <div className="px-6 py-4 border-b border-gray-200 bg-white flex justify-between items-center">
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">Persetujuan Perubahan</h1>
+            <h1 className="text-xl font-semibold text-gray-900">
+              Persetujuan Perubahan
+            </h1>
             <p className="text-sm text-gray-500">PC Persis Banjaran</p>
           </div>
           <div className="relative w-64">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg className="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+              <svg
+                className="h-5 w-5 text-gray-400"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                  clipRule="evenodd"
+                />
               </svg>
             </div>
             <input
@@ -440,8 +572,13 @@ const Approval = () => {
                 {messages.map((msg) => {
                   const details = msg.data.details || {};
                   const isMsgCreating = !details.previous_data;
-                  const namaPimpinan = isPimpinanJamaah ? msg.data.approvername : (msg.data.username || "Unknown");
-                  const message = details.message || msg.data.message || "Tidak ada pesan tersedia";
+                  const namaPimpinan = isPimpinanJamaah
+                    ? msg.data.approvername
+                    : msg.data.username || "Unknown";
+                  const message =
+                    details.message ||
+                    msg.data.message ||
+                    "Tidak ada pesan tersedia";
 
                   const formattedDate = new Intl.DateTimeFormat("id-ID", {
                     day: "2-digit",
@@ -456,8 +593,8 @@ const Approval = () => {
                     <li
                       key={msg.id}
                       className={`px-4 py-4 cursor-pointer transition-colors ${
-                        selectedMessage?.id === msg.id 
-                          ? "bg-blue-50 border-l-4 border-blue-500" 
+                        selectedMessage?.id === msg.id
+                          ? "bg-blue-50 border-l-4 border-blue-500"
                           : "hover:bg-gray-50"
                       }`}
                       onClick={() => handleSelectMessage(msg)}
@@ -484,12 +621,16 @@ const Approval = () => {
                               </time>
                             </div>
                             <div className="mt-2">
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                isMsgCreating 
-                                  ? "bg-green-100 text-green-800" 
-                                  : "bg-blue-100 text-blue-800"
-                              }`}>
-                                {isMsgCreating ? "Pembuatan Baru" : "Perubahan Data"}
+                              <span
+                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                  isMsgCreating
+                                    ? "bg-green-100 text-green-800"
+                                    : "bg-blue-100 text-blue-800"
+                                }`}
+                              >
+                                {isMsgCreating
+                                  ? "Pembuatan Baru"
+                                  : "Perubahan Data"}
                               </span>
                             </div>
                           </div>
@@ -512,57 +653,97 @@ const Approval = () => {
                   </h2>
                 </div>
                 <div className="flex-1 overflow-y-auto p-6">
-                  {messageType === 'sertifikat' ? (
+                  {messageType === "sertifikat" ? (
                     isCreating ? (
-                      renderSertifikatData(selectedMessage.data.details, "Detail Sertifikat")
+                      renderSertifikatData(
+                        selectedMessage.data.details,
+                        "Detail Sertifikat"
+                      )
                     ) : (
                       <div className="space-y-8">
-                        {renderSertifikatData(selectedMessage.data.details.previous_data, "Data Sebelumnya")}
-                        {renderSertifikatData(selectedMessage.data.details.updated_data, "Data Terbaru")}
+                        {renderSertifikatData(
+                          selectedMessage.data.details.previous_data,
+                          "Data Sebelumnya"
+                        )}
+                        {renderSertifikatData(
+                          selectedMessage.data.details.updated_data,
+                          "Data Terbaru"
+                        )}
                       </div>
                     )
-                  ) : messageType === 'tanah' ? (
+                  ) : messageType === "tanah" ? (
                     isCreating ? (
-                      renderTanahData(selectedMessage.data.details, "Detail Tanah")
+                      renderTanahData(
+                        selectedMessage.data.details,
+                        "Detail Tanah"
+                      )
                     ) : (
                       <div className="space-y-8">
-                        {renderTanahData(selectedMessage.data.details.previous_data, "Data Sebelumnya")}
-                        {renderTanahData(selectedMessage.data.details.updated_data, "Data Terbaru")}
+                        {renderTanahData(
+                          selectedMessage.data.details.previous_data,
+                          "Data Sebelumnya"
+                        )}
+                        {renderTanahData(
+                          selectedMessage.data.details.updated_data,
+                          "Data Terbaru"
+                        )}
                       </div>
                     )
                   ) : (
                     <div className="rounded-md bg-yellow-50 p-4">
                       <div className="flex">
                         <div className="flex-shrink-0">
-                          <svg className="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          <svg
+                            className="h-5 w-5 text-yellow-400"
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                              clipRule="evenodd"
+                            />
                           </svg>
                         </div>
                         <div className="ml-3">
-                          <h3 className="text-sm font-medium text-yellow-800">Format tidak dikenali</h3>
+                          <h3 className="text-sm font-medium text-yellow-800">
+                            Format tidak dikenali
+                          </h3>
                           <div className="mt-2 text-sm text-yellow-700">
-                            <p>Format data tidak sesuai dengan yang diharapkan. Silakan periksa kembali.</p>
+                            <p>
+                              Format data tidak sesuai dengan yang diharapkan.
+                              Silakan periksa kembali.
+                            </p>
                           </div>
                         </div>
                       </div>
                     </div>
                   )}
                 </div>
-                
+
                 {/* Approval Actions */}
                 <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
                   {isPimpinanJamaah ? (
                     <div>
                       {approvalStatus[selectedMessage.id] === "approved" ? (
                         <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                          <svg className="-ml-1 mr-1.5 h-2.5 w-2.5 text-green-500" fill="currentColor" viewBox="0 0 8 8">
+                          <svg
+                            className="-ml-1 mr-1.5 h-2.5 w-2.5 text-green-500"
+                            fill="currentColor"
+                            viewBox="0 0 8 8"
+                          >
                             <circle cx="4" cy="4" r="3" />
                           </svg>
                           Data disetujui
                         </span>
                       ) : approvalStatus[selectedMessage.id] === "rejected" ? (
                         <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
-                          <svg className="-ml-1 mr-1.5 h-2.5 w-2.5 text-red-500" fill="currentColor" viewBox="0 0 8 8">
+                          <svg
+                            className="-ml-1 mr-1.5 h-2.5 w-2.5 text-red-500"
+                            fill="currentColor"
+                            viewBox="0 0 8 8"
+                          >
                             <circle cx="4" cy="4" r="3" />
                           </svg>
                           Data ditolak
@@ -573,14 +754,22 @@ const Approval = () => {
                     <>
                       {approvalStatus[selectedMessage.id] === "approved" ? (
                         <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                          <svg className="-ml-1 mr-1.5 h-2.5 w-2.5 text-green-500" fill="currentColor" viewBox="0 0 8 8">
+                          <svg
+                            className="-ml-1 mr-1.5 h-2.5 w-2.5 text-green-500"
+                            fill="currentColor"
+                            viewBox="0 0 8 8"
+                          >
                             <circle cx="4" cy="4" r="3" />
                           </svg>
                           Data disetujui
                         </span>
                       ) : approvalStatus[selectedMessage.id] === "rejected" ? (
                         <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
-                          <svg className="-ml-1 mr-1.5 h-2.5 w-2.5 text-red-500" fill="currentColor" viewBox="0 0 8 8">
+                          <svg
+                            className="-ml-1 mr-1.5 h-2.5 w-2.5 text-red-500"
+                            fill="currentColor"
+                            viewBox="0 0 8 8"
+                          >
                             <circle cx="4" cy="4" r="3" />
                           </svg>
                           Data ditolak
@@ -588,22 +777,44 @@ const Approval = () => {
                       ) : (
                         <div className="flex space-x-3">
                           <button
-                            onClick={isCreating ? handleApprove : handleUpdateApprove}
+                            onClick={
+                              isCreating ? handleApprove : handleUpdateApprove
+                            }
                             type="button"
                             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
                           >
-                            <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            <svg
+                              className="-ml-1 mr-2 h-5 w-5"
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                clipRule="evenodd"
+                              />
                             </svg>
                             Setujui
                           </button>
                           <button
-                            onClick={isCreating ? handleReject : handleUpdateReject}
+                            onClick={
+                              isCreating ? handleReject : handleUpdateReject
+                            }
                             type="button"
                             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                           >
-                            <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                            <svg
+                              className="-ml-1 mr-2 h-5 w-5"
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                clipRule="evenodd"
+                              />
                             </svg>
                             Tolak
                           </button>
@@ -615,12 +826,26 @@ const Approval = () => {
               </>
             ) : (
               <div className="h-full flex flex-col items-center justify-center p-12 text-center">
-                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                <svg
+                  className="mx-auto h-12 w-12 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="1"
+                    d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  ></path>
                 </svg>
-                <h3 className="mt-2 text-lg font-medium text-gray-900">Tidak ada pesan dipilih</h3>
+                <h3 className="mt-2 text-lg font-medium text-gray-900">
+                  Tidak ada pesan dipilih
+                </h3>
                 <p className="mt-1 text-sm text-gray-500 max-w-md">
-                  Pilih pesan dari daftar di sebelah kiri untuk melihat detail permintaan persetujuan.
+                  Pilih pesan dari daftar di sebelah kiri untuk melihat detail
+                  permintaan persetujuan.
                 </p>
               </div>
             )}
