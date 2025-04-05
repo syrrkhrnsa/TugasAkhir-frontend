@@ -238,11 +238,6 @@ const Legalitas = () => {
 
   // Modal functions
   const openModal = async (item) => {
-    if (isPimpinanJamaah && item.user_id !== userId) {
-      Swal.fire("Error", "Anda tidak memiliki akses", "error");
-      return;
-    }
-
     setSelectedItem(item);
     setIsModalOpen(true);
     const token = localStorage.getItem("token");

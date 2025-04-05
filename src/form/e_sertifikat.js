@@ -14,8 +14,6 @@ const EditSertifikat = () => {
 
   const [formData, setFormData] = useState({
     no_dokumen: "",
-    jenis_sertifikat: "",
-    status_pengajuan: "",
     tanggal_pengajuan: "",
     id_tanah: "",
     status: "ditinjau",
@@ -49,8 +47,6 @@ const EditSertifikat = () => {
         setOriginalData(sertifikat);
         setFormData({
           no_dokumen: sertifikat.no_dokumen || "",
-          jenis_sertifikat: sertifikat.jenis_sertifikat || "",
-          status_pengajuan: sertifikat.status_pengajuan || "",
           tanggal_pengajuan: sertifikat.tanggal_pengajuan
             ? sertifikat.tanggal_pengajuan.split("T")[0]
             : "",
@@ -132,15 +128,11 @@ const EditSertifikat = () => {
     }
 
     // Validate required fields
-    if (
-      !formData.jenis_sertifikat ||
-      !formData.status_pengajuan ||
-      !formData.tanggal_pengajuan
-    ) {
+    if (!formData.tanggal_pengajuan) {
       Swal.fire({
         icon: "error",
         title: "Data tidak lengkap",
-        text: "Harap isi semua field yang wajib diisi",
+        text: "Harap isi tanggal pengajuan",
       });
       setIsSubmitting(false);
       return;
@@ -336,70 +328,6 @@ const EditSertifikat = () => {
                     {!formData.tanggal_pengajuan && (
                       <p className="text-red-500 text-xs mt-1">
                         Tanggal pengajuan wajib diisi
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Jenis Sertifikat */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Jenis Sertifikat <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      className={`w-full px-3 py-2 border ${
-                        !formData.jenis_sertifikat
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      } rounded-md focus:outline-none focus:ring-2 focus:ring-[#187556]`}
-                      value={formData.jenis_sertifikat}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          jenis_sertifikat: e.target.value,
-                        })
-                      }
-                      required
-                    >
-                      <option value="">Pilih Jenis Sertifikat</option>
-                      <option value="BASTW">BASTW</option>
-                      <option value="AIW">AIW</option>
-                      <option value="SW">Sertifikat Wakaf (SW)</option>
-                    </select>
-                    {!formData.jenis_sertifikat && (
-                      <p className="text-red-500 text-xs mt-1">
-                        Jenis sertifikat wajib dipilih
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Status Pengajuan */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Status Pengajuan <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      className={`w-full px-3 py-2 border ${
-                        !formData.status_pengajuan
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      } rounded-md focus:outline-none focus:ring-2 focus:ring-[#187556]`}
-                      value={formData.status_pengajuan}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          status_pengajuan: e.target.value,
-                        })
-                      }
-                      required
-                    >
-                      <option value="">Pilih Status</option>
-                      <option value="Diproses">Diproses</option>
-                      <option value="Terbit">Terbit</option>
-                      <option value="Ditolak">Ditolak</option>
-                    </select>
-                    {!formData.status_pengajuan && (
-                      <p className="text-red-500 text-xs mt-1">
-                        Status pengajuan wajib dipilih
                       </p>
                     )}
                   </div>
