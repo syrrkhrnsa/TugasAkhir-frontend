@@ -390,7 +390,7 @@ const EditTanah = () => {
     return `${dayDifference} hari`;
   };
 
-  const handlePreviewDokumen = (dokumen) => {
+  const handlePreviewDokumen = async (dokumen) => {
     if (!dokumen) {
       Swal.fire({
         icon: "warning",
@@ -400,26 +400,26 @@ const EditTanah = () => {
       });
       return;
     }
-
-    // Jika dokumen adalah PDF
-    if (dokumen.endsWith(".pdf")) {
-      // Buka PDF di tab baru
-      window.open(`http://127.0.0.1:8000/storage/${dokumen}`, "_blank");
-    }
-    // Jika dokumen adalah gambar (jpg, jpeg, png)
-    else if (dokumen.match(/\.(jpg|jpeg|png)$/i)) {
+  
+    try {
+      const fileUrl = `http://127.0.0.1:8000/storage/${dokumen}`;
+      
+      // Cek dulu apakah file ada
+      const response = await fetch(fileUrl, { method: 'HEAD' });
+      
+      if (!response.ok) {
+        throw new Error('File not found');
+      }
+  
+      window.open(fileUrl, "_blank");
+    } catch (error) {
+      console.error("Error accessing document:", error);
       Swal.fire({
-        imageUrl: `http://127.0.0.1:8000/storage/${dokumen}`,
-        imageAlt: "Preview Dokumen",
-        showConfirmButton: false,
-        showCloseButton: true,
-        width: "80%",
+        icon: "error",
+        title: "Dokumen Tidak Ditemukan",
+        text: "File dokumen tidak ditemukan di server",
+        confirmButtonText: "OK",
       });
-    }
-    // Format dokumen lainnya
-    else {
-      // Alternatif: download dokumen
-      window.open(`http://127.0.0.1:8000/storage/${dokumen}`, "_blank");
     }
   };
 
@@ -938,11 +938,11 @@ const EditTanah = () => {
                                 </div>
                               </td>
                             )}
-                            <td className="py-2 px-4 border-b text-center">
-                              {sertifikat.created_at
-                                ? calculateDayDifference(sertifikat.created_at)
-                                : "-"}
-                            </td>
+                              <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                                {calculateDayDifference(
+                                  sertifikat.tanggal_pengajuan
+                                )}
+                              </td>
                             <td className="py-2 px-4 border-b text-center">
                               <div className="flex justify-center gap-2">
                                 <button

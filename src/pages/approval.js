@@ -155,10 +155,10 @@ const Approval = () => {
 
   const handleReject = async () => {
     if (!selectedMessage) return;
-
+  
     const token = localStorage.getItem("token");
     const approvalId = selectedMessage.data.id_approval;
-
+  
     try {
       await axios.post(
         `http://127.0.0.1:8000/api/approvals/${approvalId}/reject`,
@@ -170,22 +170,22 @@ const Approval = () => {
           },
         }
       );
-
+  
       Swal.fire({
         icon: "success",
         title: "Berhasil!",
         text: "Data telah ditolak dan notifikasi telah dikirim ke Pimpinan Jamaah.",
       });
-
+  
       const newApprovalStatus = {
         ...approvalStatus,
         [selectedMessage.id]: "rejected",
       };
       setApprovalStatus(newApprovalStatus);
       localStorage.setItem("approvalStatus", JSON.stringify(newApprovalStatus));
-
+  
       await fetchNotifications();
-
+  
       if (!isPimpinanJamaah) {
         setTimeout(fetchNotifications, 1000);
       }
@@ -206,6 +206,7 @@ const Approval = () => {
       });
     }
   };
+  
 
   const handleUpdateApprove = async () => {
     if (!selectedMessage) return;
@@ -301,6 +302,35 @@ const Approval = () => {
         icon: "error",
         title: "Gagal!",
         text: errorMessage,
+      });
+    }
+  };
+
+  const handlePreviewDokumen = async (dokumen) => {
+    if (!dokumen) {
+      Swal.fire({
+        icon: "warning",
+        title: "Dokumen Tidak Tersedia",
+        text: "Dokumen belum diupload",
+        confirmButtonText: "OK",
+      });
+      return;
+    }
+  
+    try {
+      const fileUrl = `http://127.0.0.1:8000/storage/${dokumen}`;
+      
+      // Coba akses file langsung tanpa pengecekan HEAD terlebih dahulu
+      // Karena masalah CORS mungkin menghalangi pengecekan HEAD
+      window.open(fileUrl, "_blank");
+      
+    } catch (error) {
+      console.error("Error accessing document:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Gagal Membuka Dokumen",
+        text: "Tidak dapat membuka dokumen. Pastikan server berjalan dan konfigurasi CORS sudah benar.",
+        confirmButtonText: "OK",
       });
     }
   };
@@ -407,7 +437,7 @@ const Approval = () => {
     );
   };
 
-  const renderSertifikatData = (data, title) => {
+  const renderSertifikatData = (data, title, handlePreviewDokumen) => {
     const excludedFields = [
       "id_sertifikat",
       "user_id",
@@ -421,7 +451,7 @@ const Approval = () => {
       "jenis_sertifikat",
       "status_pengajuan",
     ];
-
+  
     if (!data)
       return (
         <div className="bg-red-50 border-l-4 border-red-400 p-4">
@@ -446,13 +476,13 @@ const Approval = () => {
           </div>
         </div>
       );
-
+  
     const displayFields = [
       { key: "no_dokumen", label: "No Dokumen" },
       { key: "dokumen", label: "Dokumen" },
       { key: "tanggal_pengajuan", label: "Tanggal Pengajuan" },
     ];
-
+  
     return (
       <div className="mb-8">
         <h3 className="text-lg font-semibold mb-4 text-gray-800 border-b pb-2 flex items-center">
@@ -476,16 +506,10 @@ const Approval = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Field
                 </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Value
                 </th>
               </tr>
@@ -500,17 +524,32 @@ const Approval = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-500">
-                      {key === "tanggal_pengajuan" && data[key]
-                        ? new Date(data[key]).toLocaleDateString("id-ID", {
-                            day: "2-digit",
-                            month: "long",
-                            year: "numeric",
-                          })
-                        : data[key] || (
-                            <span className="text-gray-400 italic">
-                              Belum diisi
-                            </span>
-                          )}
+                      {key === "tanggal_pengajuan" && data[key] ? (
+                        new Date(data[key]).toLocaleDateString("id-ID", {
+                          day: "2-digit",
+                          month: "long",
+                          year: "numeric",
+                        })
+                      ) : key === "dokumen" ? (
+                        data[key] ? (
+                          <button
+                            onClick={() => handlePreviewDokumen(data[key])}
+                            className="text-blue-600 hover:underline"
+                          >
+                            Lihat Dokumen
+                          </button>
+                        ) : (
+                          <span className="text-gray-400 italic">
+                            Belum diupload
+                          </span>
+                        )
+                      ) : (
+                        data[key] || (
+                          <span className="text-gray-400 italic">
+                            Belum diisi
+                          </span>
+                        )
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -657,17 +696,20 @@ const Approval = () => {
                     isCreating ? (
                       renderSertifikatData(
                         selectedMessage.data.details,
-                        "Detail Sertifikat"
+                        "Detail Sertifikat",
+                        handlePreviewDokumen
                       )
                     ) : (
                       <div className="space-y-8">
                         {renderSertifikatData(
                           selectedMessage.data.details.previous_data,
-                          "Data Sebelumnya"
+                          "Data Sebelumnya",
+                          handlePreviewDokumen
                         )}
                         {renderSertifikatData(
                           selectedMessage.data.details.updated_data,
-                          "Data Terbaru"
+                          "Data Terbaru",
+                          handlePreviewDokumen
                         )}
                       </div>
                     )
