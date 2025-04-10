@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
-import { FaSearch, FaArrowLeft } from "react-icons/fa";
+import { FaSearch, FaArrowLeft, FaEye } from "react-icons/fa";
 import Swal from "sweetalert2";
 import { getRoleId, getUserId } from "../utils/Auth";
 
@@ -13,6 +13,8 @@ const Log = () => {
   const [search, setSearch] = useState("");
   const [title, setTitle] = useState("Riwayat Tanah Wakaf");
   const [subtitle, setSubtitle] = useState("PC Persis Banjaran");
+  const [selectedLog, setSelectedLog] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -20,13 +22,6 @@ const Log = () => {
   const queryParams = new URLSearchParams(location.search);
   const type = queryParams.get("type") || "tanah";
   const id = queryParams.get("id");
-
-  // Role constants for easier reference
-  const ROLES = {
-    PIMPINAN_CABANG: "3594bece-a684-4287-b0a2-7429199772a3",
-    BIDGAR_WAKAF: "26b2b64e-9ae3-4e2e-9063-590b1bb00480",
-    PIMPINAN_JAMAAT: "326f0dde-2851-4e47-ac5a-de6923447317",
-  };
 
   useEffect(() => {
     const fetchLogs = async () => {
@@ -43,7 +38,6 @@ const Log = () => {
         let pageTitle = "";
         let pageSubtitle = "";
 
-        // Determine endpoint based on parameters
         if (type === "tanah") {
           if (id) {
             endpoint = `/log-tanah/${id}`;
@@ -76,22 +70,14 @@ const Log = () => {
           }
         );
 
-        // Format response data
         let logsData = response.data.data || response.data;
         logsData = Array.isArray(logsData) ? logsData : [logsData];
 
-        // Filter logs based on user role
         const currentRoleId = getRoleId();
         const currentUserId = getUserId();
 
-        console.log("Current Role ID:", currentRoleId);
-        console.log("Current User ID:", currentUserId);
-        console.log("Logs before filtering:", logsData);
-
-        // Pimpinan Jamaah can only see their own logs
         if (currentRoleId === "326f0dde-2851-4e47-ac5a-de6923447317") {
           logsData = logsData.filter((log) => {
-            // For all log types, check both nama_user and perubahan.user_id
             return (
               log.nama_user === currentUserId ||
               (log.perubahan?.user_id &&
@@ -100,7 +86,6 @@ const Log = () => {
           });
         }
 
-        console.log("Logs after filtering:", logsData);
         setLogs(logsData);
       } catch (error) {
         console.error("Gagal mengambil data log:", error);
@@ -127,38 +112,82 @@ const Log = () => {
     );
   });
 
+  const formatAction = (action) => {
+    if (!action) return "Aksi tidak diketahui";
+    return action.charAt(0).toUpperCase() + action.slice(1).toLowerCase();
+  };
+
+  const getActionColor = (action) => {
+    if (!action) return "bg-gray-100 text-gray-800";
+    
+    const lowerAction = action.toLowerCase();
+    if (lowerAction.includes("create") || lowerAction.includes("tambah")) {
+      return "bg-blue-100 text-blue-800";
+    } else if (lowerAction.includes("update") || lowerAction.includes("ubah")) {
+      return "bg-yellow-100 text-yellow-800";
+    } else if (lowerAction.includes("delete") || lowerAction.includes("hapus")) {
+      return "bg-red-100 text-red-800";
+    } else if (lowerAction.includes("verifikasi") || lowerAction.includes("approve")) {
+      return "bg-green-100 text-green-800";
+    }
+    return "bg-gray-100 text-gray-800";
+  };
+
   const formatChanges = (changes) => {
-    if (!changes) return "-";
+    if (!changes) return <div className="text-gray-500">Tidak ada perubahan detail</div>;
 
     if (typeof changes === "string") {
       try {
         const parsed = JSON.parse(changes);
         return formatChanges(parsed);
       } catch {
-        return changes;
+        return <div className="whitespace-pre-wrap">{changes}</div>;
       }
     }
 
     if (typeof changes === "object") {
-      return Object.entries(changes)
-        .map(([key, value]) => {
-          if (typeof value === "object" && value !== null) {
-            return `${key}: ${JSON.stringify(value)}`;
-          }
-          return `${key}: ${value}`;
-        })
-        .join(", ");
+      // Filter out unwanted fields
+      const filteredChanges = Object.entries(changes).filter(
+        ([key]) => 
+          !key.toLowerCase().includes("id") && 
+          !key.toLowerCase().includes("created_at") && 
+          !key.toLowerCase().includes("updated_at")
+      );
+
+      if (filteredChanges.length === 0) {
+        return <div className="text-gray-500">Tidak ada perubahan detail yang relevan</div>;
+      }
+
+      return (
+        <div className="space-y-2">
+          {filteredChanges.map(([key, value]) => (
+            <div key={key} className="border-b border-gray-100 pb-2 last:border-0">
+              <div className="font-medium text-gray-700">{key}:</div>
+              <div className="text-gray-900 break-words">
+                {typeof value === "object" && value !== null
+                  ? JSON.stringify(value, null, 2)
+                  : String(value)}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
     }
 
-    return String(changes);
+    return <div className="whitespace-pre-wrap">{String(changes)}</div>;
+  };
+
+  const viewLogDetails = (log) => {
+    setSelectedLog(log);
+    setShowDetailModal(true);
   };
 
   return (
     <div className="relative">
       <Sidebar>
         {/* Header Section */}
-        <div className="relative mb-4 flex justify-between items-center p-4 bg-white shadow-sm rounded-lg">
-          <div className="flex items-center space-x-4">
+        <div className="relative mb-4 flex flex-col md:flex-row justify-between items-start md:items-center p-4 bg-white shadow-sm rounded-lg">
+          <div className="flex items-center space-x-4 mb-4 md:mb-0">
             <button
               onClick={() => navigate(-1)}
               className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-full transition-colors"
@@ -168,17 +197,17 @@ const Log = () => {
             </button>
             <div>
               <h2 className="text-xl font-medium">{title}</h2>
-              <p className="text-gray-500">{subtitle}</p>
+              <p className="text-gray-500 text-sm">{subtitle}</p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="w-full md:w-auto">
             <div className="relative">
               <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Cari"
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#187556] focus:border-transparent"
+                placeholder="Cari riwayat..."
+                className="w-full md:w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#187556] focus:border-transparent"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -188,13 +217,7 @@ const Log = () => {
 
         {/* Main Content */}
         <div className="flex-1 p-4">
-          <div
-            className="bg-white shadow-lg rounded-lg p-6"
-            style={{
-              boxShadow:
-                "0px 5px 15px rgba(0, 0, 0, 0.1), 0px -5px 15px rgba(0, 0, 0, 0.1), 5px 0px 15px rgba(0, 0, 0, 0.1), -5px 0px 15px rgba(0, 0, 0, 0.1)",
-            }}
-          >
+          <div className="bg-white shadow-lg rounded-lg overflow-hidden">
             {loading ? (
               <div className="p-8 text-center">
                 <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#187556]"></div>
@@ -205,60 +228,86 @@ const Log = () => {
                 <p className="text-red-500 font-medium">{error}</p>
                 <button
                   onClick={() => window.location.reload()}
-                  className="mt-2 px-4 py-2 bg-[#187556] text-white rounded-md hover:bg-[#146347]"
+                  className="mt-2 px-4 py-2 bg-[#187556] text-white rounded-md hover:bg-[#146347] transition-colors"
                 >
                   Coba Lagi
                 </button>
               </div>
             ) : (
-              <div className="container">
-                <table className="min-w-full border-collapse">
-                  <thead>
-                    <tr className="border-b border-gray-300">
-                      <th className="px-4 py-2 text-left font-medium">No</th>
-                      <th className="px-4 py-2 text-left font-medium">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        No
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Penanggung Jawab
                       </th>
-                      <th className="px-4 py-2 text-left font-medium">
-                        Deskripsi Perubahan
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Deskripsi
                       </th>
-                      <th className="px-4 py-2 text-left font-medium">
-                        Stempel Waktu
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Detail
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Waktu
                       </th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="bg-white divide-y divide-gray-200">
                     {filteredLogs.length > 0 ? (
                       filteredLogs.map((log, index) => (
                         <tr
                           key={index}
-                          className="border-b border-gray-300 hover:bg-gray-50"
+                          className="hover:bg-gray-50 transition-colors"
                         >
-                          <td className="px-4 py-2">{index + 1}</td>
-                          <td className="px-4 py-2">{log.nama_user || "-"}</td>
-                          <td className="px-4 py-2">
-                            <div className="whitespace-pre-wrap break-words">
-                              {log.aksi
-                                ? `${log.aksi} - ${formatChanges(
-                                    log.perubahan
-                                  )}`
-                                : formatChanges(log.perubahan)}
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {index + 1}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <div className="font-medium">
+                              {log.nama_user || "-"}
                             </div>
                           </td>
-                          <td className="px-4 py-2">
-                            {log.tanggal && log.waktu
-                              ? `${log.tanggal} ${log.waktu}`
-                              : log.created_at
-                              ? new Date(log.created_at).toLocaleString()
-                              : "-"}
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <span className={`px-2 py-1 rounded-md ${getActionColor(log.aksi)}`}>
+                              {formatAction(log.aksi)}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <button
+                              onClick={() => viewLogDetails(log)}
+                              className="flex items-center text-[#187556] hover:text-[#146347]"
+                            >
+                              <FaEye className="mr-1" /> Lihat
+                            </button>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {log.tanggal && log.waktu ? (
+                              <>
+                                <div>{log.tanggal}</div>
+                                <div className="text-gray-400">{log.waktu}</div>
+                              </>
+                            ) : log.created_at ? (
+                              new Date(log.created_at).toLocaleString("id-ID", {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
+                            ) : (
+                              "-"
+                            )}
                           </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
                         <td
-                          colSpan={4}
-                          className="px-4 py-2 text-center text-gray-500"
+                          colSpan={5}
+                          className="px-6 py-4 text-center text-sm text-gray-500"
                         >
                           Tidak ada data riwayat yang ditemukan
                         </td>
@@ -270,6 +319,92 @@ const Log = () => {
             )}
           </div>
         </div>
+
+        {/* Detail Modal */}
+        {showDetailModal && selectedLog && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="text-lg font-medium text-gray-900">
+                    Detail Perubahan
+                  </h3>
+                  <button
+                    onClick={() => setShowDetailModal(false)}
+                    className="text-gray-400 hover:text-gray-500"
+                  >
+                    <span className="sr-only">Close</span>
+                    <svg
+                      className="h-6 w-6"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-500">Aksi</h4>
+                      <p className="mt-1 text-sm text-gray-900">
+                        {formatAction(selectedLog.aksi)}
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-500">Penanggung Jawab</h4>
+                      <p className="mt-1 text-sm text-gray-900">
+                        {selectedLog.nama_user || "-"}
+                      </p>
+                    </div>
+                    <div className="col-span-2">
+                      <h4 className="text-sm font-medium text-gray-500">Waktu</h4>
+                      <p className="mt-1 text-sm text-gray-900">
+                        {selectedLog.tanggal && selectedLog.waktu
+                          ? `${selectedLog.tanggal} ${selectedLog.waktu}`
+                          : selectedLog.created_at
+                          ? new Date(selectedLog.created_at).toLocaleString(
+                              "id-ID",
+                              {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              }
+                            )
+                          : "-"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-500 mb-2">Detail Perubahan</h4>
+                    <div className="mt-2 p-4 bg-gray-50 rounded-md text-sm">
+                      {formatChanges(selectedLog.perubahan)}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex justify-end">
+                  <button
+                    onClick={() => setShowDetailModal(false)}
+                    className="px-4 py-2 bg-[#187556] text-white rounded-md hover:bg-[#146347] transition-colors text-sm"
+                  >
+                    Tutup
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </Sidebar>
     </div>
   );
