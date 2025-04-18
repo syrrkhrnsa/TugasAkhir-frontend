@@ -35,6 +35,15 @@ const EditTanah = () => {
   const [kotaList, setKotaList] = useState([]);
   const [kecamatanList, setKecamatanList] = useState([]);
   const [kelurahanList, setKelurahanList] = useState([]);
+  const [jenisTanah, setJenisTanah] = useState("");
+  const [batasTimur, setBatasTimur] = useState("");
+  const [batasSelatan, setBatasSelatan] = useState("");
+  const [batasBarat, setBatasBarat] = useState("");
+  const [batasUtara, setBatasUtara] = useState("");
+  const [panjangTanah, setPanjangTanah] = useState("");
+  const [lebarTanah, setLebarTanah] = useState("");
+  const [catatan, setCatatan] = useState("");
+  const [alamatWakif, setAlamatWakif] = useState("");
   const [detailLokasi, setDetailLokasi] = useState("");
   const lokasiLengkap = `${
     provinsiList.find((p) => p.id === provinsi)?.name
@@ -221,6 +230,12 @@ const EditTanah = () => {
     }
   }, [tanahData, provinsiList]);
 
+  const jenisTanahOptions = [
+    { value: "", label: "Pilih Jenis Tanah" },
+    { value: "Darat", label: "Darat" },
+    { value: "Sawah", label: "Sawah" },
+  ];
+
   const fetchTanah = async () => {
     const token = localStorage.getItem("token");
 
@@ -253,6 +268,15 @@ const EditTanah = () => {
         setNamaPimpinanJamaah(tanah.NamaPimpinanJamaah || "");
         setNamaWakif(tanah.NamaWakif || "");
         setLuasTanah(tanah.luasTanah || "");
+        setJenisTanah(tanah.jenis_tanah || "");
+        setBatasTimur(tanah.batas_timur || "");
+        setBatasSelatan(tanah.batas_selatan || "");
+        setBatasBarat(tanah.batas_barat || "");
+        setBatasUtara(tanah.batas_utara || "");
+        setPanjangTanah(tanah.panjang_tanah || "");
+        setLebarTanah(tanah.lebar_tanah || "");
+        setCatatan(tanah.catatan || "");
+        setAlamatWakif(tanah.alamat_wakif || "");
 
         if (tanah.lokasi) {
           const [provName, kabName, kecName, kelName, detail] =
@@ -339,6 +363,15 @@ const EditTanah = () => {
           lokasi: lokasiLengkap,
           luasTanah,
           detailLokasi,
+          jenis_tanah: jenisTanah,
+          batas_timur: batasTimur,
+          batas_selatan: batasSelatan,
+          batas_barat: batasBarat,
+          batas_utara: batasUtara,
+          panjang_tanah: panjangTanah,
+          lebar_tanah: lebarTanah,
+          catatan: catatan,
+          alamat_wakif: alamatWakif,
         },
         {
           headers: {
@@ -358,6 +391,15 @@ const EditTanah = () => {
               NamaWakif,
               lokasi: lokasiLengkap,
               luasTanah,
+              jenis_tanah: jenisTanah,
+              batas_timur: batasTimur,
+              batas_selatan: batasSelatan,
+              batas_barat: batasBarat,
+              batas_utara: batasUtara,
+              panjang_tanah: panjangTanah,
+              lebar_tanah: lebarTanah,
+              catatan: catatan,
+              alamat_wakif: alamatWakif,
             }
           : tanah
       );
@@ -584,7 +626,7 @@ const EditTanah = () => {
       <Sidebar>
         <div className="flex-1 p-4">
           <div
-            className="bg-white shadow-lg rounded-lg p-10 mx-auto w-[70%] "
+            className="bg-white shadow-lg rounded-lg p-10 mx-auto w-[80%] max-w-5xl"
             style={{
               boxShadow:
                 "0px 5px 15px rgba(0, 0, 0, 0.1), 0px -5px 15px rgba(0, 0, 0, 0.1), 5px 0px 15px rgba(0, 0, 0, 0.1), -5px 0px 15px rgba(0, 0, 0, 0.1)",
@@ -602,6 +644,7 @@ const EditTanah = () => {
               <>
                 <form onSubmit={handleSubmit} className="mt-6">
                   <div className="grid grid-cols-2 gap-8 justify-center">
+                    {/* Kolom kiri */}
                     <div className="flex flex-col items-left">
                       <label className="block text-sm font-medium text-gray-400">
                         Pimpinan Jamaah
@@ -621,6 +664,7 @@ const EditTanah = () => {
                           </option>
                         ))}
                       </select>
+
                       <label className="block text-sm font-medium text-gray-400 mt-6">
                         Provinsi
                       </label>
@@ -708,7 +752,47 @@ const EditTanah = () => {
                           </select>
                         </>
                       )}
+
+                      {/* New fields - Column 1 */}
+                      <label className="block text-sm font-medium text-gray-400 mt-6">
+                        Jenis Tanah
+                      </label>
+                      <select
+                        className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
+                        value={jenisTanah}
+                        onChange={(e) => setJenisTanah(e.target.value)}
+                      >
+                        {jenisTanahOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+
+                      <label className="block text-sm font-medium text-gray-400 mt-6">
+                        Batas Timur
+                      </label>
+                      <input
+                        type="text"
+                        className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
+                        value={batasTimur}
+                        onChange={(e) => setBatasTimur(e.target.value)}
+                        placeholder="Batas sebelah timur"
+                      />
+
+                      <label className="block text-sm font-medium text-gray-400 mt-6">
+                        Batas Selatan
+                      </label>
+                      <input
+                        type="text"
+                        className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
+                        value={batasSelatan}
+                        onChange={(e) => setBatasSelatan(e.target.value)}
+                        placeholder="Batas sebelah selatan"
+                      />
                     </div>
+
+                    {/* Kolom kanan */}
                     <div className="flex flex-col items-left">
                       <label className="block text-sm font-medium text-gray-400">
                         Nama Wakif
@@ -732,12 +816,10 @@ const EditTanah = () => {
                             .replace(/\D/g, "")
                             .replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
                           onChange={(e) => {
-                            // Hapus semua karakter non-digit
                             const numericValue = e.target.value.replace(
                               /\D/g,
                               ""
                             );
-                            // Simpan nilai numerik ke state (tanpa formatting)
                             setLuasTanah(numericValue);
                           }}
                           required
@@ -746,18 +828,97 @@ const EditTanah = () => {
                           m²
                         </span>
                       </div>
+
+                      {/* New fields - Column 2 */}
                       <label className="block text-sm font-medium text-gray-400 mt-6">
-                        Detail Lokasi
+                        Batas Barat
                       </label>
                       <input
                         type="text"
                         className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                        value={detailLokasi}
-                        onChange={(e) => setDetailLokasi(e.target.value)}
-                        required
+                        value={batasBarat}
+                        onChange={(e) => setBatasBarat(e.target.value)}
+                        placeholder="Batas sebelah barat"
+                      />
+
+                      <label className="block text-sm font-medium text-gray-400 mt-6">
+                        Batas Utara
+                      </label>
+                      <input
+                        type="text"
+                        className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
+                        value={batasUtara}
+                        onChange={(e) => setBatasUtara(e.target.value)}
+                        placeholder="Batas sebelah utara"
+                      />
+
+                      <label className="block text-sm font-medium text-gray-400 mt-6">
+                        Panjang Tanah
+                      </label>
+                      <input
+                        type="text"
+                        className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
+                        value={panjangTanah}
+                        onChange={(e) => setPanjangTanah(e.target.value)}
+                        placeholder="Dalam meter"
                       />
                     </div>
                   </div>
+
+                  {/* Additional fields in full width */}
+                  <div className="mt-6 grid grid-cols-2 gap-8">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400">
+                        Lebar Tanah
+                      </label>
+                      <input
+                        type="text"
+                        className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
+                        value={lebarTanah}
+                        onChange={(e) => setLebarTanah(e.target.value)}
+                        placeholder="Dalam meter"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400">
+                        Alamat Wakif
+                      </label>
+                      <input
+                        type="text"
+                        className="w-full border-b-2 border-gray-300 p-2 focus:outline-none text-left"
+                        value={alamatWakif}
+                        onChange={(e) => setAlamatWakif(e.target.value)}
+                        placeholder="Alamat lengkap wakif"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-6">
+                    <label className="block text-sm font-medium text-gray-400">
+                      Catatan
+                    </label>
+                    <textarea
+                      className="w-full border-2 border-gray-300 rounded-md p-2 focus:outline-none text-left"
+                      rows="3"
+                      value={catatan}
+                      onChange={(e) => setCatatan(e.target.value)}
+                      placeholder="Tambahkan catatan jika diperlukan"
+                    />
+                  </div>
+
+                  <label className="block text-sm font-medium text-gray-400 mt-6">
+                    Detail Lokasi
+                  </label>
+                  <input
+                    type="text"
+                    className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
+                    value={detailLokasi}
+                    onChange={(e) => setDetailLokasi(e.target.value)}
+                    required
+                    placeholder="Detail alamat (nama jalan, nomor, dll)"
+                  />
+
                   <div className="bg-gray-100 p-4 rounded-md mt-8 shadow-md">
                     <h3 className="text-lg font-semibold text-gray-700">
                       Preview Lokasi:
@@ -790,6 +951,7 @@ const EditTanah = () => {
                         : ""}
                     </p>
                   </div>
+
                   <div className="flex justify-center mt-8">
                     <button
                       type="submit"
