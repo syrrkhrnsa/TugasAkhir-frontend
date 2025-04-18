@@ -174,9 +174,77 @@ const DetailTanah = () => {
                     </div>
                     <div className="text-sm font-medium text-gray-700">
                       {tanah.luasTanah
-                        ? `${Number(tanah.luasTanah).toLocaleString("id-ID")} m²`
+                        ? `${Number(tanah.luasTanah).toLocaleString(
+                            "id-ID"
+                          )} m²`
                         : "-"}
                     </div>
+                  </div>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                  <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                    Jenis Tanah
+                  </div>
+                  <div className="text-sm font-medium text-gray-700">
+                    {tanah.jenis_tanah || "-"}
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                  <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                    Batas-Batas Tanah
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm text-gray-700">
+                    <div>
+                      <span className="font-medium">Timur:</span>{" "}
+                      {tanah.batas_timur || "-"}
+                    </div>
+                    <div>
+                      <span className="font-medium">Selatan:</span>{" "}
+                      {tanah.batas_selatan || "-"}
+                    </div>
+                    <div>
+                      <span className="font-medium">Barat:</span>{" "}
+                      {tanah.batas_barat || "-"}
+                    </div>
+                    <div>
+                      <span className="font-medium">Utara:</span>{" "}
+                      {tanah.batas_utara || "-"}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                  <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                    Ukuran Tanah
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm text-gray-700">
+                    <div>
+                      <span className="font-medium">Panjang:</span>{" "}
+                      {tanah.panjang_tanah || "-"}
+                    </div>
+                    <div>
+                      <span className="font-medium">Lebar:</span>{" "}
+                      {tanah.lebar_tanah || "-"}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                  <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                    Alamat Wakif
+                  </div>
+                  <div className="text-sm font-medium text-gray-700">
+                    {tanah.alamat_wakif || "-"}
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                  <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                    Catatan
+                  </div>
+                  <div className="text-sm font-medium text-gray-700">
+                    {tanah.catatan || "-"}
                   </div>
                 </div>
               </div>
