@@ -1,22 +1,21 @@
 import React from "react";
-import { Bar } from "react-chartjs-2";
+import { useParams } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
+import PetaTanah from "../pages/PemetaanTanah";
 
-const Pemetaan = () => {
-  // Dummy data for the bar chart
+const PetaTanahPage = () => {
+  const { id } = useParams();
+
   return (
-    <div className="relative">
-      {/* Layout */}
-      <Sidebar>
-        <div className="relative mb-4 flex justify-between items-center">
-          <div className="ml-5">
-            <h2 className="text-xl font-medium">Pemetaan Geospasial</h2>
-            <p className="text-gray-500">PC Persis Banjaran</p>
-          </div>
+    <Sidebar>
+      <div className="p-4">
+        <div className="bg-white rounded-lg shadow-md p-4">
+          <h2 className="text-xl font-semibold mb-4">Pemetaan Tanah</h2>
+          <PetaTanah tanahId={id} />
         </div>
-      </Sidebar>
-    </div>
+      </div>
+    </Sidebar>
   );
 };
 
-export default Pemetaan;
+export default PetaTanahPage;
