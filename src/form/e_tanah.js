@@ -24,6 +24,8 @@ const EditTanah = () => {
   const [selectedItem, setSelectedItem] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  const [calculateLuas, setCalculateLuas] = useState(false);
+
   const roleId = getRoleId();
   const isPimpinanJamaah = roleId === "326f0dde-2851-4e47-ac5a-de6923447317";
   const [users, setUsers] = useState([]);
@@ -432,6 +434,10 @@ const EditTanah = () => {
     return `${dayDifference} hari`;
   };
 
+  const formatNumber = (num) => {
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  };
+
   const handlePreviewDokumen = async (dokumen) => {
     if (!dokumen) {
       Swal.fire({
@@ -569,6 +575,13 @@ const EditTanah = () => {
     }
   };
 
+  useEffect(() => {
+    if (calculateLuas && panjangTanah && lebarTanah) {
+      const luas = parseFloat(panjangTanah) * parseFloat(lebarTanah);
+      setLuasTanah(luas.toString());
+    }
+  }, [panjangTanah, lebarTanah, calculateLuas]);
+
   const handleDeleteSertifikat = async (sertifikatId) => {
     const result = await Swal.fire({
       title: "Apakah Anda yakin?",
@@ -643,54 +656,71 @@ const EditTanah = () => {
             ) : (
               <>
                 <form onSubmit={handleSubmit} className="mt-6">
-                  <div className="grid grid-cols-2 gap-8 justify-center">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {/* Kolom kiri */}
-                    <div className="flex flex-col items-left">
-                      <label className="block text-sm font-medium text-gray-400">
-                        Pimpinan Jamaah
-                      </label>
-                      <select
-                        className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                        value={NamaPimpinanJamaah}
-                        onChange={(e) => setNamaPimpinanJamaah(e.target.value)}
-                        required
-                      >
-                        <option value="" disabled>
-                          Pilih Pimpinan Jamaah
-                        </option>
-                        {users.map((user) => (
-                          <option key={user.id} value={user.name}>
-                            {user.name}
+                    <div className="space-y-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">
+                          Pimpinan Jamaah
+                        </label>
+                        <select
+                          className="w-full border-b-2 border-gray-300 p-2 focus:outline-none focus:border-[#187556] text-left rounded-t"
+                          value={NamaPimpinanJamaah}
+                          onChange={(e) => setNamaPimpinanJamaah(e.target.value)}
+                          required
+                        >
+                          <option value="" disabled>
+                            Pilih Pimpinan Jamaah
                           </option>
-                        ))}
-                      </select>
+                          {users.map((user) => (
+                            <option key={user.id} value={user.name}>
+                              {user.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
 
-                      <label className="block text-sm font-medium text-gray-400 mt-6">
-                        Provinsi
-                      </label>
-                      <select
-                        className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                        value={provinsi}
-                        onChange={(e) => setProvinsi(e.target.value)}
-                        required
-                      >
-                        <option value="" disabled>
-                          Pilih Provinsi
-                        </option>
-                        {provinsiList.map((prov) => (
-                          <option key={prov.id} value={prov.id}>
-                            {prov.name}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">
+                          Nama Wakif
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full border-b-2 border-gray-300 p-2 focus:outline-none focus:border-[#187556] text-left rounded-t"
+                          value={NamaWakif}
+                          onChange={(e) => setNamaWakif(e.target.value)}
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">
+                          Provinsi
+                        </label>
+                        <select
+                          className="w-full border-b-2 border-gray-300 p-2 focus:outline-none focus:border-[#187556] text-left rounded-t"
+                          value={provinsi}
+                          onChange={(e) => setProvinsi(e.target.value)}
+                          required
+                        >
+                          <option value="" disabled>
+                            Pilih Provinsi
                           </option>
-                        ))}
-                      </select>
+                          {provinsiList.map((prov) => (
+                            <option key={prov.id} value={prov.id}>
+                              {prov.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
 
                       {provinsi && (
-                        <>
-                          <label className="block text-sm font-medium text-gray-400 mt-6">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-1">
                             Kabupaten/Kota
                           </label>
                           <select
-                            className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
+                            className="w-full border-b-2 border-gray-300 p-2 focus:outline-none focus:border-[#187556] text-left rounded-t"
                             value={kota}
                             onChange={(e) => setKota(e.target.value)}
                             required
@@ -704,16 +734,16 @@ const EditTanah = () => {
                               </option>
                             ))}
                           </select>
-                        </>
+                        </div>
                       )}
 
                       {kota && (
-                        <>
-                          <label className="block text-sm font-medium text-gray-400 mt-6">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-1">
                             Kecamatan
                           </label>
                           <select
-                            className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
+                            className="w-full border-b-2 border-gray-300 p-2 focus:outline-none focus:border-[#187556] text-left rounded-t"
                             value={kecamatan}
                             onChange={(e) => setKecamatan(e.target.value)}
                             required
@@ -727,16 +757,16 @@ const EditTanah = () => {
                               </option>
                             ))}
                           </select>
-                        </>
+                        </div>
                       )}
 
                       {kecamatan && (
-                        <>
-                          <label className="block text-sm font-medium text-gray-400 mt-6">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-1">
                             Kelurahan/Desa
                           </label>
                           <select
-                            className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
+                            className="w-full border-b-2 border-gray-300 p-2 focus:outline-none focus:border-[#187556] text-left rounded-t"
                             value={kelurahan}
                             onChange={(e) => setKelurahan(e.target.value)}
                             required
@@ -750,214 +780,249 @@ const EditTanah = () => {
                               </option>
                             ))}
                           </select>
-                        </>
+                        </div>
                       )}
 
-                      {/* New fields - Column 1 */}
-                      <label className="block text-sm font-medium text-gray-400 mt-6">
-                        Jenis Tanah
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">
+                        Catatan
                       </label>
-                      <select
-                        className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                        value={jenisTanah}
-                        onChange={(e) => setJenisTanah(e.target.value)}
-                      >
-                        {jenisTanahOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-
-                      <label className="block text-sm font-medium text-gray-400 mt-6">
-                        Batas Timur
-                      </label>
-                      <input
-                        type="text"
-                        className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                        value={batasTimur}
-                        onChange={(e) => setBatasTimur(e.target.value)}
-                        placeholder="Batas sebelah timur"
+                      <textarea
+                        className="w-full border-2 border-gray-300 rounded-md p-2 focus:outline-none focus:border-[#187556] text-left"
+                        rows="3"
+                        value={catatan}
+                        onChange={(e) => setCatatan(e.target.value)}
+                        placeholder="Tambahkan catatan jika diperlukan"
                       />
-
-                      <label className="block text-sm font-medium text-gray-400 mt-6">
-                        Batas Selatan
-                      </label>
-                      <input
-                        type="text"
-                        className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                        value={batasSelatan}
-                        onChange={(e) => setBatasSelatan(e.target.value)}
-                        placeholder="Batas sebelah selatan"
-                      />
+                    </div>
                     </div>
 
                     {/* Kolom kanan */}
-                    <div className="flex flex-col items-left">
-                      <label className="block text-sm font-medium text-gray-400">
-                        Nama Wakif
-                      </label>
-                      <input
-                        type="text"
-                        className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                        value={NamaWakif}
-                        onChange={(e) => setNamaWakif(e.target.value)}
-                        required
-                      />
-
-                      <label className="block text-sm font-medium text-gray-400 mt-6">
-                        Luas Tanah m²
-                      </label>
-                      <div className="relative w-60">
-                        <input
-                          type="text"
-                          className="w-full border-b-2 border-gray-300 p-2 focus:outline-none text-left pr-10"
-                          value={luasTanah
-                            .replace(/\D/g, "")
-                            .replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
-                          onChange={(e) => {
-                            const numericValue = e.target.value.replace(
-                              /\D/g,
-                              ""
-                            );
-                            setLuasTanah(numericValue);
-                          }}
-                          required
-                        />
-                        <span className="absolute right-2 top-2 text-gray-500">
-                          m²
-                        </span>
+                    <div className="space-y-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">
+                          Jenis Tanah
+                        </label>
+                        <select
+                          className="w-full border-b-2 border-gray-300 p-2 focus:outline-none focus:border-[#187556] text-left rounded-t"
+                          value={jenisTanah}
+                          onChange={(e) => setJenisTanah(e.target.value)}
+                        >
+                          {jenisTanahOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
                       </div>
 
-                      {/* New fields - Column 2 */}
-                      <label className="block text-sm font-medium text-gray-400 mt-6">
-                        Batas Barat
-                      </label>
-                      <input
-                        type="text"
-                        className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                        value={batasBarat}
-                        onChange={(e) => setBatasBarat(e.target.value)}
-                        placeholder="Batas sebelah barat"
-                      />
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-1">
+                            Panjang Tanah (m)
+                          </label>
+                          <input
+                            type="number"
+                            className="w-full border-b-2 border-gray-300 p-2 focus:outline-none focus:border-[#187556] text-left rounded-t"
+                            value={panjangTanah}
+                            onChange={(e) => {
+                              setPanjangTanah(e.target.value);
+                              setCalculateLuas(true);
+                            }}
+                            placeholder="0"
+                            step="0.01"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-1">
+                            Lebar Tanah (m)
+                          </label>
+                          <input
+                            type="number"
+                            className="w-full border-b-2 border-gray-300 p-2 focus:outline-none focus:border-[#187556] text-left rounded-t"
+                            value={lebarTanah}
+                            onChange={(e) => {
+                              setLebarTanah(e.target.value);
+                              setCalculateLuas(true);
+                            }}
+                            placeholder="0"
+                            step="0.01"
+                          />
+                        </div>
+                      </div>
 
-                      <label className="block text-sm font-medium text-gray-400 mt-6">
-                        Batas Utara
-                      </label>
-                      <input
-                        type="text"
-                        className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                        value={batasUtara}
-                        onChange={(e) => setBatasUtara(e.target.value)}
-                        placeholder="Batas sebelah utara"
-                      />
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">
+                          Luas Tanah (m²)
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            className="w-full border-b-2 border-gray-300 p-2 focus:outline-none focus:border-[#187556] text-left rounded-t pr-10"
+                            value={
+                              luasTanah
+                                ? formatNumber(
+                                    parseFloat(luasTanah).toLocaleString("id-ID")
+                                  )
+                                : ""
+                            }
+                            onChange={(e) => {
+                              const numericValue = e.target.value.replace(
+                                /\D/g,
+                                ""
+                              );
+                              setLuasTanah(numericValue);
+                              setCalculateLuas(false);
+                            }}
+                            required
+                          />
+                          <span className="absolute right-2 top-2 text-gray-500">
+                            m²
+                          </span>
+                        </div>
+                        {calculateLuas && panjangTanah && lebarTanah && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Dihitung otomatis: {panjangTanah}m × {lebarTanah}m ={" "}
+                            {formatNumber(
+                              (
+                                parseFloat(panjangTanah) * parseFloat(lebarTanah)
+                              ).toLocaleString("id-ID")
+                            )}
+                            m²
+                          </p>
+                        )}
+                      </div>
 
-                      <label className="block text-sm font-medium text-gray-400 mt-6">
-                        Panjang Tanah
-                      </label>
-                      <input
-                        type="text"
-                        className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                        value={panjangTanah}
-                        onChange={(e) => setPanjangTanah(e.target.value)}
-                        placeholder="Dalam meter"
-                      />
+                      {/* Batas Timur dan Selatan */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-1">
+                            Batas Timur
+                          </label>
+                          <input
+                            type="text"
+                            className="w-full border-b-2 border-gray-300 p-2 focus:outline-none focus:border-[#187556] text-left"
+                            value={batasTimur}
+                            onChange={(e) => setBatasTimur(e.target.value)}
+                            placeholder="Batas timur"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-1">
+                            Batas Selatan
+                          </label>
+                          <input
+                            type="text"
+                            className="w-full border-b-2 border-gray-300 p-2 focus:outline-none focus:border-[#187556] text-left"
+                            value={batasSelatan}
+                            onChange={(e) => setBatasSelatan(e.target.value)}
+                            placeholder="Batas selatan"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Batas Barat dan Utara */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-1">
+                            Batas Barat
+                          </label>
+                          <input
+                            type="text"
+                            className="w-full border-b-2 border-gray-300 p-2 focus:outline-none focus:border-[#187556] text-left"
+                            value={batasBarat}
+                            onChange={(e) => setBatasBarat(e.target.value)}
+                            placeholder="Batas barat"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-1">
+                            Batas Utara
+                          </label>
+                          <input
+                            type="text"
+                            className="w-full border-b-2 border-gray-300 p-2 focus:outline-none focus:border-[#187556] text-left"
+                            value={batasUtara}
+                            onChange={(e) => setBatasUtara(e.target.value)}
+                            placeholder="Batas utara"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">
+                          Detail Lokasi
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full border-b-2 border-gray-300 p-2 focus:outline-none focus:border-[#187556] text-left rounded-t"
+                          value={detailLokasi}
+                          onChange={(e) => setDetailLokasi(e.target.value)}
+                          required
+                          placeholder="Detail alamat (nama jalan, nomor, dll)"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">
+                          Alamat Wakif
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full border-b-2 border-gray-300 p-2 focus:outline-none focus:border-[#187556] text-left rounded-t"
+                          value={alamatWakif}
+                          onChange={(e) => setAlamatWakif(e.target.value)}
+                          placeholder="Alamat lengkap wakif"
+                        />
+                      </div>
+                      
                     </div>
                   </div>
 
-                  {/* Additional fields in full width */}
-                  <div className="mt-6 grid grid-cols-2 gap-8">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-400">
-                        Lebar Tanah
-                      </label>
-                      <input
-                        type="text"
-                        className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                        value={lebarTanah}
-                        onChange={(e) => setLebarTanah(e.target.value)}
-                        placeholder="Dalam meter"
-                      />
+                  {/* Bagian bawah form (full width) */}
+                  <div className="mt-6 space-y-6">
+                    {/* Preview Lokasi */}
+                    <div className="bg-gray-100 p-4 rounded-md shadow-inner">
+                      <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                        Lokasi Tanah Wakaf:
+                      </h3>
+                      <p className="text-gray-600">
+                        {detailLokasi || "-"}
+                        {kelurahan
+                          ? `, ${
+                              kelurahanList.find((k) => k.id === kelurahan)
+                                ?.name || "Belum dipilih"
+                            }`
+                          : ""}
+                        {kecamatan
+                          ? `, ${
+                              kecamatanList.find((k) => k.id === kecamatan)
+                                ?.name || "Belum dipilih"
+                            }`
+                          : ""}
+                        {kota
+                          ? `, ${
+                              kotaList.find((k) => k.id === kota)?.name ||
+                              "Belum dipilih"
+                            }`
+                          : ""}
+                        {provinsi
+                          ? `, ${
+                              provinsiList.find((p) => p.id === provinsi)
+                                ?.name || "Belum dipilih"
+                            }`
+                          : ""}
+                      </p>
                     </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-400">
-                        Alamat Wakif
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                        value={alamatWakif}
-                        onChange={(e) => setAlamatWakif(e.target.value)}
-                        placeholder="Alamat lengkap wakif"
-                      />
-                    </div>
                   </div>
 
-                  <div className="mt-6">
-                    <label className="block text-sm font-medium text-gray-400">
-                      Catatan
-                    </label>
-                    <textarea
-                      className="w-full border-2 border-gray-300 rounded-md p-2 focus:outline-none text-left"
-                      rows="3"
-                      value={catatan}
-                      onChange={(e) => setCatatan(e.target.value)}
-                      placeholder="Tambahkan catatan jika diperlukan"
-                    />
-                  </div>
-
-                  <label className="block text-sm font-medium text-gray-400 mt-6">
-                    Detail Lokasi
-                  </label>
-                  <input
-                    type="text"
-                    className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                    value={detailLokasi}
-                    onChange={(e) => setDetailLokasi(e.target.value)}
-                    required
-                    placeholder="Detail alamat (nama jalan, nomor, dll)"
-                  />
-
-                  <div className="bg-gray-100 p-4 rounded-md mt-8 shadow-md">
-                    <h3 className="text-lg font-semibold text-gray-700">
-                      Preview Lokasi:
-                    </h3>
-                    <p className="text-gray-600 mt-2">
-                      {detailLokasi || "Detail lokasi belum diisi"}
-                      {kelurahan
-                        ? `, ${
-                            kelurahanList.find((k) => k.id === kelurahan)
-                              ?.name || "Belum dipilih"
-                          }`
-                        : ""}
-                      {kecamatan
-                        ? `, ${
-                            kecamatanList.find((k) => k.id === kecamatan)
-                              ?.name || "Belum dipilih"
-                          }`
-                        : ""}
-                      {kota
-                        ? `, ${
-                            kotaList.find((k) => k.id === kota)?.name ||
-                            "Belum dipilih"
-                          }`
-                        : ""}
-                      {provinsi
-                        ? `, ${
-                            provinsiList.find((p) => p.id === provinsi)?.name ||
-                            "Belum dipilih"
-                          }`
-                        : ""}
-                    </p>
-                  </div>
-
+                  {/* Tombol Simpan */}
                   <div className="flex justify-center mt-8">
                     <button
                       type="submit"
                       className="bg-[#3B82F6] text-white px-6 py-2 rounded-md hover:bg-[#2563EB]"
                     >
-                      Simpan
+                      Simpan Perubahan
                     </button>
                   </div>
                 </form>

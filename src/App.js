@@ -14,6 +14,7 @@ import CreateSertifikat from "./form/c_sertifikat.js";
 import DetailTanah from "./form/d_tanah.js";
 import Log from "./log/log.js";
 import Pemetaan from "./pages/pemetaan.js";
+import CreateFasilitas from "./form/c_fasilitas.js";
 
 function App() {
   return (
@@ -24,7 +25,8 @@ function App() {
 
         {/* Grouping Protected Routes */}
         <Route element={<ProtectedRoute />}>
-          {/* <Route path="/pemetaan" element={<Pemetaan />} /> */}
+          <Route path="/pemetaan" element={<Pemetaan />} />
+          <Route path="/fasilitas/create" element={<CreateFasilitas />} />
           <Route path="/sertifikat" element={<Sertifikat />} />
           <Route path="/sertifikat/edit/:id" element={<EditSertifikat />} />
           <Route path="/sertifikat/create" element={<CreateSertifikat />} />

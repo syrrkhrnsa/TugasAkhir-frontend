@@ -346,7 +346,16 @@ const Approval = () => {
       "message",
       "approval_status",
     ];
-
+  
+    // Field name mappings
+    const fieldNameMappings = {
+      "NamaPimpinanJamaah": "Nama Pimpinan Jamaah",
+      "NamaWakif": "Nama Wakif",
+      "lokasi": "Lokasi",
+      "luasTanah": "Luas Tanah",
+      // Add other field mappings as needed
+    };
+  
     if (!data)
       return (
         <div className="bg-red-50 border-l-4 border-red-400 p-4">
@@ -371,7 +380,7 @@ const Approval = () => {
           </div>
         </div>
       );
-
+  
     return (
       <div className="mb-8">
         <h3 className="text-lg font-semibold mb-4 text-gray-800 border-b pb-2 flex items-center">
@@ -416,7 +425,7 @@ const Approval = () => {
                   <tr key={key} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900 capitalize">
-                        {key.replace(/_/g, " ")}
+                        {fieldNameMappings[key] || key.replace(/_/g, " ")}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
