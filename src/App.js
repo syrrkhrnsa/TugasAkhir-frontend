@@ -14,6 +14,7 @@ import CreateSertifikat from "./form/c_sertifikat.js";
 import DetailTanah from "./form/d_tanah.js";
 import Log from "./log/log.js";
 import Pemetaan from "./pages/pemetaan.js";
+import Public from "./pages/Public.js";
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/lihat-data-wakaf" element={<Public />} />
 
         {/* Grouping Protected Routes */}
         <Route element={<ProtectedRoute />}>
