@@ -4,7 +4,7 @@ import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import { FaSearch, FaArrowLeft, FaEye } from "react-icons/fa";
 import Swal from "sweetalert2";
-import { getRoleId, getUserId } from "../utils/Auth";
+import { getRoleId, getUserId, getUserName } from "../utils/Auth";
 
 const Log = () => {
   const [logs, setLogs] = useState([]);
@@ -22,6 +22,7 @@ const Log = () => {
   const queryParams = new URLSearchParams(location.search);
   const type = queryParams.get("type") || "tanah";
   const id = queryParams.get("id");
+  const idTanah = queryParams.get("id_tanah");
 
   useEffect(() => {
     const fetchLogs = async () => {
@@ -41,8 +42,8 @@ const Log = () => {
         if (type === "tanah") {
           if (id) {
             endpoint = `/log-tanah/${id}`;
-            pageTitle = `Riwayat Tanah #${id.substring(0, 8)}`;
-            pageSubtitle = "Log perubahan untuk tanah tertentu";
+            pageTitle = `Riwayat Tanah Wakaf`;
+            pageSubtitle = "Log perubahan untuk tanah ini";
           } else {
             endpoint = "/log-tanah";
             pageTitle = "Riwayat Tanah Wakaf";
@@ -51,8 +52,12 @@ const Log = () => {
         } else if (type === "sertifikat") {
           if (id) {
             endpoint = `/log-sertifikat/${id}`;
-            pageTitle = `Riwayat Sertifikat #${id.substring(0, 8)}`;
-            pageSubtitle = "Log perubahan untuk sertifikat tertentu";
+            pageTitle = `Riwayat Sertifikat Wakaf`;
+            pageSubtitle = "Log perubahan untuk sertifikat ini";
+          } else if (idTanah) {
+            endpoint = `/log-sertifikat-by-tanah/${idTanah}`;
+            pageTitle = `Riwayat Sertifikat Wakaf`;
+            pageSubtitle = "Log perubahan sertifikat terkait tanah ini";
           } else {
             endpoint = "/log-sertifikat";
             pageTitle = "Riwayat Sertifikat Wakaf";
@@ -74,14 +79,13 @@ const Log = () => {
         logsData = Array.isArray(logsData) ? logsData : [logsData];
 
         const currentRoleId = getRoleId();
-        const currentUserId = getUserId();
+        const currentUserName = getUserName();
 
         if (currentRoleId === "326f0dde-2851-4e47-ac5a-de6923447317") {
           logsData = logsData.filter((log) => {
             return (
-              log.nama_user === currentUserId ||
-              (log.perubahan?.user_id &&
-                log.perubahan.user_id === currentUserId)
+              log.nama_user === currentUserName ||
+              (log.perubahan?.user_id && log.perubahan.user_id === getUserId())
             );
           });
         }
@@ -89,9 +93,15 @@ const Log = () => {
         setLogs(logsData);
       } catch (error) {
         console.error("Gagal mengambil data log:", error);
-        if (error.response && error.response.status === 401) {
-          setError("Sesi telah berakhir. Silakan login kembali.");
-          navigate("/login");
+        if (error.response) {
+          if (error.response.status === 401) {
+            setError("Sesi telah berakhir. Silakan login kembali.");
+            navigate("/login");
+          } else if (error.response.data && error.response.data.error) {
+            setError(error.response.data.error);
+          } else {
+            setError("Gagal memuat data riwayat");
+          }
         } else {
           setError("Gagal memuat data riwayat");
         }
@@ -101,68 +111,124 @@ const Log = () => {
     };
 
     fetchLogs();
-  }, [type, id, navigate]);
+  }, [type, id, idTanah, navigate]);
 
   const filteredLogs = logs.filter((log) => {
     const searchTerm = search.toLowerCase();
     return (
       log.nama_user?.toLowerCase().includes(searchTerm) ||
       log.aksi?.toLowerCase().includes(searchTerm) ||
-      JSON.stringify(log.perubahan).toLowerCase().includes(searchTerm)
+      (log.perubahan &&
+        typeof log.perubahan === "string" &&
+        log.perubahan.toLowerCase().includes(searchTerm)) ||
+      (log.perubahan &&
+        typeof log.perubahan === "object" &&
+        JSON.stringify(log.perubahan).toLowerCase().includes(searchTerm))
     );
   });
 
   const formatAction = (action) => {
     if (!action) return "Aksi tidak diketahui";
+    const actionMap = {
+      create: "Tambah",
+      update: "Ubah",
+      delete: "Hapus",
+      verifikasi: "Verifikasi",
+      approve: "Setujui",
+    };
+
+    const lowerAction = action.toLowerCase();
+    for (const [key, value] of Object.entries(actionMap)) {
+      if (lowerAction.includes(key)) {
+        return value;
+      }
+    }
     return action.charAt(0).toUpperCase() + action.slice(1).toLowerCase();
   };
 
   const getActionColor = (action) => {
     if (!action) return "bg-gray-100 text-gray-800";
-    
+
     const lowerAction = action.toLowerCase();
     if (lowerAction.includes("create") || lowerAction.includes("tambah")) {
       return "bg-blue-100 text-blue-800";
     } else if (lowerAction.includes("update") || lowerAction.includes("ubah")) {
       return "bg-yellow-100 text-yellow-800";
-    } else if (lowerAction.includes("delete") || lowerAction.includes("hapus")) {
+    } else if (
+      lowerAction.includes("delete") ||
+      lowerAction.includes("hapus")
+    ) {
       return "bg-red-100 text-red-800";
-    } else if (lowerAction.includes("verifikasi") || lowerAction.includes("approve")) {
+    } else if (
+      lowerAction.includes("verifikasi") ||
+      lowerAction.includes("approve")
+    ) {
       return "bg-green-100 text-green-800";
     }
     return "bg-gray-100 text-gray-800";
   };
 
   const formatChanges = (changes) => {
-    if (!changes) return <div className="text-gray-500">Tidak ada perubahan detail</div>;
+    if (!changes)
+      return <div className="text-gray-500">Tidak ada perubahan detail</div>;
 
+    // Handle perubahan dalam bentuk string
     if (typeof changes === "string") {
-      try {
-        const parsed = JSON.parse(changes);
-        return formatChanges(parsed);
-      } catch {
-        return <div className="whitespace-pre-wrap">{changes}</div>;
+      // Coba cari pola khusus untuk perubahan sertifikat
+      const sertifikatPattern =
+        /(Create|Update|Delete) data sertifikat di bagian (.+)/;
+      const match = changes.match(sertifikatPattern);
+
+      if (match) {
+        const action = match[1];
+        const fields = match[2].split(", ");
+        return (
+          <div className="space-y-2">
+            <div className="font-medium">Aksi: {formatAction(action)}</div>
+            <div className="font-medium">Bagian yang diubah:</div>
+            <ul className="list-disc pl-5">
+              {fields.map((field, index) => (
+                <li key={index}>{field.trim()}</li>
+              ))}
+            </ul>
+          </div>
+        );
       }
+
+      // Jika bukan pola khusus, tampilkan sebagai teks biasa
+      return <div className="whitespace-pre-wrap">{changes}</div>;
     }
 
+    // Handle perubahan dalam bentuk object
     if (typeof changes === "object") {
       // Filter out unwanted fields
       const filteredChanges = Object.entries(changes).filter(
-        ([key]) => 
-          !key.toLowerCase().includes("id") && 
-          !key.toLowerCase().includes("created_at") && 
-          !key.toLowerCase().includes("updated_at")
+        ([key]) =>
+          !key.toLowerCase().includes("id") &&
+          !key.toLowerCase().includes("created_at") &&
+          !key.toLowerCase().includes("updated_at") &&
+          changes[key] !== null && // Exclude null values
+          changes[key] !== "" // Exclude empty strings
       );
 
       if (filteredChanges.length === 0) {
-        return <div className="text-gray-500">Tidak ada perubahan detail yang relevan</div>;
+        return (
+          <div className="text-gray-500">
+            Tidak ada perubahan detail yang relevan
+          </div>
+        );
       }
 
       return (
         <div className="space-y-2">
           {filteredChanges.map(([key, value]) => (
-            <div key={key} className="border-b border-gray-100 pb-2 last:border-0">
-              <div className="font-medium text-gray-700">{key}:</div>
+            <div
+              key={key}
+              className="border-b border-gray-100 pb-2 last:border-0"
+            >
+              <div className="font-medium text-gray-700">
+                {key.replace(/_/g, " ")}:
+              </div>
               <div className="text-gray-900 break-words">
                 {typeof value === "object" && value !== null
                   ? JSON.stringify(value, null, 2)
@@ -196,7 +262,7 @@ const Log = () => {
               <FaArrowLeft className="text-lg" />
             </button>
             <div>
-              <h2 className="text-xl font-medium">{title}</h2>
+              <h2 className="text-xl font-medium text-gray-800">{title}</h2>
               <p className="text-gray-500 text-sm">{subtitle}</p>
             </div>
           </div>
@@ -269,16 +335,23 @@ const Log = () => {
                             <div className="font-medium">
                               {log.nama_user || "-"}
                             </div>
+                            <div className="text-xs text-gray-400">
+                              {log.role || "-"}
+                            </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            <span className={`px-2 py-1 rounded-md ${getActionColor(log.aksi)}`}>
+                            <span
+                              className={`px-2 py-1 rounded-md text-xs ${getActionColor(
+                                log.aksi
+                              )}`}
+                            >
                               {formatAction(log.aksi)}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             <button
                               onClick={() => viewLogDetails(log)}
-                              className="flex items-center text-[#187556] hover:text-[#146347]"
+                              className="flex items-center text-[#187556] hover:text-[#146347] text-sm"
                             >
                               <FaEye className="mr-1" /> Lihat
                             </button>
@@ -287,16 +360,32 @@ const Log = () => {
                             {log.tanggal && log.waktu ? (
                               <>
                                 <div>{log.tanggal}</div>
-                                <div className="text-gray-400">{log.waktu}</div>
+                                <div className="text-xs text-gray-400">
+                                  {log.waktu}
+                                </div>
                               </>
                             ) : log.created_at ? (
-                              new Date(log.created_at).toLocaleString("id-ID", {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })
+                              <>
+                                <div>
+                                  {new Date(log.created_at).toLocaleDateString(
+                                    "id-ID",
+                                    {
+                                      day: "2-digit",
+                                      month: "short",
+                                      year: "numeric",
+                                    }
+                                  )}
+                                </div>
+                                <div className="text-xs text-gray-400">
+                                  {new Date(log.created_at).toLocaleTimeString(
+                                    "id-ID",
+                                    {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    }
+                                  )}
+                                </div>
+                              </>
                             ) : (
                               "-"
                             )}
@@ -353,19 +442,25 @@ const Log = () => {
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <h4 className="text-sm font-medium text-gray-500">Aksi</h4>
+                      <h4 className="text-sm font-medium text-gray-500">
+                        Aksi
+                      </h4>
                       <p className="mt-1 text-sm text-gray-900">
                         {formatAction(selectedLog.aksi)}
                       </p>
                     </div>
                     <div>
-                      <h4 className="text-sm font-medium text-gray-500">Penanggung Jawab</h4>
+                      <h4 className="text-sm font-medium text-gray-500">
+                        Penanggung Jawab
+                      </h4>
                       <p className="mt-1 text-sm text-gray-900">
                         {selectedLog.nama_user || "-"}
                       </p>
                     </div>
                     <div className="col-span-2">
-                      <h4 className="text-sm font-medium text-gray-500">Waktu</h4>
+                      <h4 className="text-sm font-medium text-gray-500">
+                        Waktu
+                      </h4>
                       <p className="mt-1 text-sm text-gray-900">
                         {selectedLog.tanggal && selectedLog.waktu
                           ? `${selectedLog.tanggal} ${selectedLog.waktu}`
@@ -386,7 +481,9 @@ const Log = () => {
                   </div>
 
                   <div>
-                    <h4 className="text-sm font-medium text-gray-500 mb-2">Detail Perubahan</h4>
+                    <h4 className="text-sm font-medium text-gray-500 mb-2">
+                      Detail Perubahan
+                    </h4>
                     <div className="mt-2 p-4 bg-gray-50 rounded-md text-sm">
                       {formatChanges(selectedLog.perubahan)}
                     </div>

@@ -445,9 +445,11 @@ const Legalitas = () => {
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Luas Tanah
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Status
-                        </th>
+                        {isPimpinanJamaah && (
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                          </th>
+                        )}
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Legalitas
                         </th>
@@ -483,15 +485,18 @@ const Legalitas = () => {
                                   )} m²`
                                 : "-"}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span
-                                className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusStyle(
-                                  item.status
-                                )}`}
-                              >
-                                {item.status}
-                              </span>
-                            </td>
+                            {isPimpinanJamaah && (
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span
+                                  className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusStyle(
+                                    item.status
+                                  )}`}
+                                >
+                                  {item.status}
+                                </span>
+                              </td>
+                            )}
+
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="flex items-center">
                                 <div
@@ -504,18 +509,16 @@ const Legalitas = () => {
                                   }`}
                                 >
                                   {item.legalitas || "-"}
-                                  {
-                                    <button
-                                      className="ml-2 bg-white text-black px-2 py-1 rounded-md hover:bg-gray-200 text-xs"
-                                      onClick={() => openModal(item)}
-                                      disabled={
-                                        item.isFromApproval &&
-                                        item.status !== "disetujui"
-                                      }
-                                    >
-                                      <FaEdit />
-                                    </button>
-                                  }
+                                  <button
+                                    className="ml-2 bg-white text-black px-2 py-1 rounded-md hover:bg-gray-200 text-xs"
+                                    onClick={() => openModal(item)}
+                                    disabled={
+                                      item.isFromApproval &&
+                                      item.status !== "disetujui"
+                                    }
+                                  >
+                                    <FaEdit />
+                                  </button>
                                 </div>
                               </div>
                             </td>
