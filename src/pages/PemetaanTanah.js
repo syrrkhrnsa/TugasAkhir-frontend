@@ -5,7 +5,9 @@ import axios from "axios";
 import * as wellknown from "wellknown";
 import "leaflet-draw/dist/leaflet.draw.css";
 import "leaflet-draw";
-
+import { Link } from "react-router-dom";
+import { createRoot } from "react-dom/client";
+import { useNavigate } from "react-router-dom";
 
 // Fix for Leaflet marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -36,6 +38,24 @@ const PetaTanah = ({ tanahId }) => {
     jenis_geometri: "POLYGON",
     pemetaanTanahId: null,
   });
+  const navigate = useNavigate();
+  const [fasilitasDetailData, setFasilitasDetailData] = useState({});
+
+  const fetchFasilitasDetailData = async (id_pemetaan_fasilitas) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `http://127.0.0.1:8000/api/fasilitas/pemetaan/${id_pemetaan_fasilitas}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      return response.data.data || null;
+    } catch (err) {
+      console.error("Error fetching fasilitas detail data:", err);
+      return null;
+    }
+  };
 
   const wkbToGeoJSON = (geometryData) => {
     try {
@@ -293,6 +313,144 @@ const PetaTanah = ({ tanahId }) => {
     }
   };
 
+  const PopupContent = ({ item, onDelete, navigate }) => {
+    const [detailData, setDetailData] = useState(null);
+    const [showDetailModal, setShowDetailModal] = useState(false);
+
+    useEffect(() => {
+      const checkDetail = async () => {
+        const data = await fetchFasilitasDetailData(item.id_pemetaan_fasilitas);
+        setDetailData(data);
+      };
+      checkDetail();
+    }, [item.id_pemetaan_fasilitas]);
+
+    const handleDetailAction = () => {
+      if (detailData) {
+        setShowDetailModal(true);
+      } else {
+        navigate("/fasilitas/create", {
+          state: {
+            fasilitas: item,
+            tanahId: tanahId,
+          },
+        });
+      }
+    };
+
+    const handleAddInventaris = () => {
+      navigate("/inventaris/create", {
+        state: {
+          fasilitas: item,
+          tanahId: tanahId,
+        },
+      });
+    };
+
+    return (
+      <div className="p-4 min-w-[280px] max-w-[320px] bg-white rounded-lg shadow-md border border-gray-100">
+        <div className="mb-4">
+          <div className="flex items-start gap-3">
+            <div className="bg-blue-100 p-2.5 rounded-lg flex-shrink-0">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5 text-blue-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                />
+              </svg>
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-800 text-lg">
+                {item.nama_fasilitas}
+              </h3>
+              <div className="text-sm text-gray-600 mt-1">
+                {item.kategori_fasilitas}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+          <h4 className="text-xs font-bold text-gray-700 mb-1">KETERANGAN</h4>
+          <p className="text-sm text-gray-700">
+            {item.keterangan || "Tidak ada keterangan tambahan"}
+          </p>
+        </div>
+
+        <div className="mb-4 flex items-center">
+          <div className="bg-gray-100 rounded-full p-1.5 mr-2">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4 text-gray-600"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
+              />
+            </svg>
+          </div>
+          <div className="text-sm">
+            <span className="font-medium text-gray-600">Jenis Aset :</span>
+            <span className="ml-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-md text-xs font-medium">
+              {item.jenis_fasilitas || "Tidak tersedia"}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex justify-between items-center pt-3 border-t border-gray-200 gap-2">
+          <button
+            onClick={handleDetailAction}
+            className="flex items-center px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-md transition-colors text-xs font-medium flex-1 justify-center"
+          >
+            {detailData ? "Lihat Detail" : "Tambah Detail"}
+          </button>
+
+          <button
+            onClick={() => {
+              if (
+                window.confirm(
+                  "Apakah Anda yakin ingin menghapus fasilitas ini?"
+                )
+              ) {
+                onDelete(item.id_pemetaan_fasilitas);
+              }
+            }}
+            className="flex items-center px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-md transition-colors text-xs font-medium flex-1 justify-center"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-3.5 w-3.5 mr-1.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              />
+            </svg>
+            Hapus
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   const initializeMap = () => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
@@ -511,8 +669,9 @@ const PetaTanah = ({ tanahId }) => {
               },
               onEachFeature: function (feature, layer) {
                 const popupContent = document.createElement("div");
-                popupContent.className = "p-4 min-w-[240px] font-sans bg-white rounded-lg shadow-lg";
-                
+                popupContent.className =
+                  "p-4 min-w-[240px] font-sans bg-white rounded-lg shadow-lg";
+
                 popupContent.innerHTML = `
                   <div class="space-y-4">
                     <!-- Header -->
@@ -523,7 +682,9 @@ const PetaTanah = ({ tanahId }) => {
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                           </svg>
                         </div>
-                        <h3 class="text-lg font-semibold text-gray-800">${item.nama_pemetaan}</h3>
+                        <h3 class="text-lg font-semibold text-gray-800">${
+                          item.nama_pemetaan
+                        }</h3>
                       </div>
                     </div>
                 
@@ -536,7 +697,9 @@ const PetaTanah = ({ tanahId }) => {
                         </svg>
                         <div>
                           <div class="font-medium text-gray-700">Lokasi:</div>
-                          <div class="text-xs text-gray-600 mt-1">${tanahData.lokasi || 'Tidak tersedia'}</div>
+                          <div class="text-xs text-gray-600 mt-1">${
+                            tanahData.lokasi || "Tidak tersedia"
+                          }</div>
                         </div>
                       </div>
                 
@@ -548,9 +711,11 @@ const PetaTanah = ({ tanahId }) => {
                         <span>
                           <span class="font-medium text-gray-700">Luas Tanah:</span> 
                           ${
-                            tanahData.luasTanah 
-                            ? new Intl.NumberFormat('id-ID').format(tanahData.luasTanah) + ' m²' 
-                            : 'Tidak tersedia'
+                            tanahData.luasTanah
+                              ? new Intl.NumberFormat("id-ID").format(
+                                  tanahData.luasTanah
+                                ) + " m²"
+                              : "Tidak tersedia"
                           }
                         </span>
                       </div>
@@ -561,7 +726,9 @@ const PetaTanah = ({ tanahId }) => {
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 15c2.486 0 4.823.657 6.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
                         <span>
-                          <span class="font-medium text-gray-700">Nama Wakif:</span> ${tanahData.NamaWakif || 'Tidak tersedia'}
+                          <span class="font-medium text-gray-700">Nama Wakif:</span> ${
+                            tanahData.NamaWakif || "Tidak tersedia"
+                          }
                         </span>
                       </div>
                     </div>
@@ -570,40 +737,52 @@ const PetaTanah = ({ tanahId }) => {
                     <div class="mb-4">
                       <h4 class="font-medium text-sm text-gray-700 mb-2">Legalitas Tanah:</h4>
                       ${
-                        sertifikatData.length > 0 
-                        ? sertifikatData.map(sertifikat => `
+                        sertifikatData.length > 0
+                          ? sertifikatData
+                              .map(
+                                (sertifikat) => `
                           <div class="mb-2 p-2 bg-gray-100 rounded">
                             <div class="flex justify-between items-center">
-                              <span class="font-medium text-sm">${sertifikat.jenis_sertifikat || 'Tidak diketahui'}</span>
+                              <span class="font-medium text-sm">${
+                                sertifikat.jenis_sertifikat || "Tidak diketahui"
+                              }</span>
                               <span class="text-xs ${
-                                sertifikat.status_pengajuan === 'Terbit' ? 'bg-green-100 text-green-800' 
-                                : sertifikat.status_pengajuan === 'Ditolak' ? 'bg-red-100 text-red-800' 
-                                : 'bg-yellow-100 text-yellow-800'
+                                sertifikat.status_pengajuan === "Terbit"
+                                  ? "bg-green-100 text-green-800"
+                                  : sertifikat.status_pengajuan === "Ditolak"
+                                  ? "bg-red-100 text-red-800"
+                                  : "bg-yellow-100 text-yellow-800"
                               } px-2 py-1 rounded-full">
-                                ${sertifikat.status_pengajuan || 'Proses'}
+                                ${sertifikat.status_pengajuan || "Proses"}
                               </span>
                             </div>
                             <div class="text-xs text-gray-500 mt-2 space-y-1">
                               <div class="flex items-center">
-                                No: ${sertifikat.no_dokumen || 'Belum Tersedia'}
+                                No: ${sertifikat.no_dokumen || "Belum Tersedia"}
                               </div>
                               <div class="flex items-center">
                                 Tanggal Pengajuan: ${
-                                  sertifikat.tanggal_pengajuan 
-                                  ? new Date(sertifikat.tanggal_pengajuan).toLocaleDateString() 
-                                  : '-'
+                                  sertifikat.tanggal_pengajuan
+                                    ? new Date(
+                                        sertifikat.tanggal_pengajuan
+                                      ).toLocaleDateString()
+                                    : "-"
                                 }
                               </div>
                             </div>
                           </div>
-                        `).join('') 
-                        : '<p class="text-sm text-gray-500 italic">Belum ada data legalitas</p>'
+                        `
+                              )
+                              .join("")
+                          : '<p class="text-sm text-gray-500 italic">Belum ada data legalitas</p>'
                       }
                     </div>
 
                     <!-- Additional Notes -->
                     <div class="p-3 bg-gray-50 rounded-lg">
-                      <p class="text-sm text-gray-700">${item.keterangan || "Tidak ada keterangan tambahan"}</p>
+                      <p class="text-sm text-gray-700">${
+                        item.keterangan || "Tidak ada keterangan tambahan"
+                      }</p>
                     </div>
                 
                     <!-- Delete button -->
@@ -639,7 +818,8 @@ const PetaTanah = ({ tanahId }) => {
                 }).addTo(mapInstance);
 
                 const markerPopupContent = document.createElement("div");
-                markerPopupContent.className = "p-3 min-w-[220px] max-w-[260px] bg-white rounded-lg shadow-lg border border-gray-200";
+                markerPopupContent.className =
+                  "p-3 min-w-[220px] max-w-[260px] bg-white rounded-lg shadow-lg border border-gray-200";
                 markerPopupContent.innerHTML = `
                   <div class="mb-4">
                     <!-- Header with map-themed design -->
@@ -780,81 +960,22 @@ const PetaTanah = ({ tanahId }) => {
           try {
             const geoJSONLayer = L.geoJSON(item.geojson, {
               style: {
-                color: "#0066ff", // Blue for facility mapping
+                color: "#0066ff",
                 weight: 3,
                 opacity: 1,
                 fillOpacity: 0.3,
               },
               onEachFeature: function (feature, layer) {
                 const popupContent = document.createElement("div");
-                popupContent.className = "p-4 min-w-[280px] max-w-[320px] bg-white rounded-lg shadow-md border border-gray-100";
-                popupContent.innerHTML = `
-                  <div class="mb-4">
-                    <!-- Header with icon and title -->
-                    <div class="flex items-start gap-3">
-                      <div class="bg-blue-100 p-2.5 rounded-lg flex-shrink-0">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                        </svg>
-                      </div>
-                      <div>
-                        <h3 class="font-bold text-gray-800 text-lg">${item.nama_fasilitas}</h3>
-                        <div class="text-sm text-gray-600 mt-1">${item.kategori_fasilitas}</div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <!-- Description box -->
-                  <div class="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                    <h4 class="text-xs font-bold text-gray-700 mb-1">KETERANGAN</h4>
-                    <p class="text-sm text-gray-700">${item.keterangan || "Tidak ada keterangan tambahan"}</p>
-                  </div>
-                
-                  <!-- Asset type -->
-                  <div class="mb-4 flex items-center">
-                    <div class="bg-gray-100 rounded-full p-1.5 mr-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                      </svg>
-                    </div>
-                    <div class="text-sm">
-                      <span class="font-medium text-gray-600">Jenis Aset :</span>
-                      <span class="ml-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-md text-xs font-medium">
-                        ${item.jenis_fasilitas || "Tidak tersedia"}
-                      </span>
-                    </div>
-                  </div>
-                
-                  <!-- Action buttons -->
-                  <div class="flex justify-between items-center pt-3 border-t border-gray-200 gap-2">
-                    <a href="/fasilitas/create" class="flex items-center px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-md transition-colors text-xs font-medium flex-1 justify-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                      </svg>
-                      Tambah Detail
-                    </a>
-                    <button class="btn-delete-fasilitas flex items-center px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-md transition-colors text-xs font-medium flex-1 justify-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                      Hapus
-                    </button>
-                  </div>
-                `;          
-                
+                const root = createRoot(popupContent);
 
-                const deleteButton = popupContent.querySelector(
-                  ".btn-delete-fasilitas"
+                root.render(
+                  <PopupContent
+                    item={item}
+                    onDelete={deleteFasilitas}
+                    navigate={navigate}
+                  />
                 );
-                deleteButton.onclick = () => {
-                  if (
-                    window.confirm(
-                      "Apakah Anda yakin ingin menghapus fasilitas ini?"
-                    )
-                  ) {
-                    deleteFasilitas(item.id_pemetaan_fasilitas);
-                  }
-                };
 
                 layer.bindPopup(popupContent);
               },
@@ -935,34 +1056,36 @@ const PetaTanah = ({ tanahId }) => {
           <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
             <h2 className="text-xl font-bold mb-4">Data Fasilitas/Aset</h2>
             <div className="mb-4">
-        <label className="block text-gray-700 text-sm font-bold mb-2">
-          Jenis Fasilitas:
-        </label>
-        <div className="flex items-center space-x-4">
-          <label className="inline-flex items-center">
-            <input
-              type="radio"
-              name="jenis_fasilitas"
-              value="Tidak Bergerak"
-              checked={fasilitasFormData.jenis_fasilitas === "Tidak Bergerak"}
-              onChange={handleFasilitasInputChange}
-              className="form-radio h-4 w-4 text-blue-600"
-            />
-            <span className="ml-2 text-gray-700">Tidak Bergerak</span>
-          </label>
-          <label className="inline-flex items-center">
-            <input
-              type="radio"
-              name="jenis_fasilitas"
-              value="Bergerak"
-              checked={fasilitasFormData.jenis_fasilitas === "Bergerak"}
-              onChange={handleFasilitasInputChange}
-              className="form-radio h-4 w-4 text-blue-600"
-            />
-            <span className="ml-2 text-gray-700">Bergerak</span>
-          </label>
-        </div>
-      </div>
+              <label className="block text-gray-700 text-sm font-bold mb-2">
+                Jenis Fasilitas:
+              </label>
+              <div className="flex items-center space-x-4">
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio"
+                    name="jenis_fasilitas"
+                    value="Tidak Bergerak"
+                    checked={
+                      fasilitasFormData.jenis_fasilitas === "Tidak Bergerak"
+                    }
+                    onChange={handleFasilitasInputChange}
+                    className="form-radio h-4 w-4 text-blue-600"
+                  />
+                  <span className="ml-2 text-gray-700">Tidak Bergerak</span>
+                </label>
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio"
+                    name="jenis_fasilitas"
+                    value="Bergerak"
+                    checked={fasilitasFormData.jenis_fasilitas === "Bergerak"}
+                    onChange={handleFasilitasInputChange}
+                    className="form-radio h-4 w-4 text-blue-600"
+                  />
+                  <span className="ml-2 text-gray-700">Bergerak</span>
+                </label>
+              </div>
+            </div>
 
             <div className="mb-4">
               <label className="block text-gray-700 text-sm font-bold mb-2">
