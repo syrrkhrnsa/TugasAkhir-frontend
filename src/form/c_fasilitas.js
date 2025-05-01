@@ -20,7 +20,7 @@ const CreateFasilitas = () => {
     nama_fasilitas: "",
     kategori_fasilitas: "",
     catatan: "",
-    id_tanah: tanahId || "", // Tambahkan id_tanah dari props
+    lokasi: ""
   });
 
   const [files, setFiles] = useState({
@@ -40,7 +40,6 @@ const CreateFasilitas = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // If data was passed via state, use that (preferred method)
     if (pemetaanFasilitasData) {
       setFormData({
         id_pemetaan_fasilitas: pemetaanFasilitasData.id_pemetaan_fasilitas,
@@ -54,7 +53,6 @@ const CreateFasilitas = () => {
       return;
     }
 
-    // Fallback to API if no state data
     if (id) {
       fetchDataFromAPI();
     } else {
@@ -145,11 +143,7 @@ const CreateFasilitas = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
   
-    console.log('Form data before submit:', formData);
-    console.log('Files before submit:', files);
-  
     if (!validateForm()) {
-      console.log('Validation errors:', errors);
       Swal.fire("Error", "Harap isi semua field wajib", "error");
       return;
     }
@@ -163,17 +157,15 @@ const CreateFasilitas = () => {
       formDataToSend.append("id_tanah", formData.id_tanah);
       formDataToSend.append("catatan", formData.catatan);
   
-      if (files.view360) {
-        formDataToSend.append("file_360", files.view360);
+      if (files.file_360) {
+        formDataToSend.append("file_360", files.file_360);
       }
-      if (files.gambarFasilitas) {
-        formDataToSend.append("file_gambar", files.gambarFasilitas);
+      if (files.file_gambar) {
+        formDataToSend.append("file_gambar", files.file_gambar);
       }
-      if (files.dokumenPdf) {
-        formDataToSend.append("file_pdf", files.dokumenPdf);
+      if (files.file_pdf) {
+        formDataToSend.append("file_pdf", files.file_pdf);
       }
-  
-      console.log('FormData being sent:', formDataToSend);
   
       const response = await axios.post(
         "http://127.0.0.1:8000/api/fasilitas",
@@ -185,8 +177,6 @@ const CreateFasilitas = () => {
           },
         }
       );
-  
-      console.log('Response from server:', response.data);
   
       Swal.fire({
         title: "Success!",
@@ -302,40 +292,33 @@ const CreateFasilitas = () => {
               <div className="col-span-3">
                 <div className="flex gap-8">
                   <div className="flex-1">
-                  <div className="flex-1">
                     <UploadFile
-                      field="view360"
+                      field="file_360"
                       label="Unggah View 360 (gambar)"
-                      preview={filePreviews.view360}
+                      preview={filePreviews.file_360}
                       onChange={handleFileChange}
                       onRemove={handleRemoveFile}
                     />
                   </div>
                   <div className="flex-1">
-                  </div>
-                  <div className="flex-1">
                     <UploadFile
-                      field="gambarFasilitas"
+                      field="file_gambar"
                       label="Unggah Gambar Fasilitas"
-                      preview={filePreviews.gambarFasilitas}
+                      preview={filePreviews.file_gambar}
                       onChange={handleFileChange}
                       onRemove={handleRemoveFile}
                     />
-                  </div>
-                  <div className="flex-1">
                   </div>
                   <div className="flex-1">
                     <UploadFile
-                      field="dokumenPdf"
+                      field="file_pdf"
                       label="Unggah PDF"
-                      preview={filePreviews.dokumenPdf}
+                      preview={filePreviews.file_pdf}
                       onChange={handleFileChange}
                       onRemove={handleRemoveFile}
                     />
-                  </div>
                   </div>
                 </div>
-              </div>
               </div>
 
               {/* Buttons */}
