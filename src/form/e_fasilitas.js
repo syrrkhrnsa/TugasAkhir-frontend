@@ -5,17 +5,15 @@ import axios from "axios";
 import { FaEye, FaTimes } from "react-icons/fa";
 import Swal from "sweetalert2";
 
-const CreateFasilitas = () => {
+const EditFasilitas = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const location = useLocation();
   
-  // Get state passed from navigation
-  const { pemetaanFasilitasData, tanahData } = location.state || {};
-
   const [formData, setFormData] = useState({
-    id_pemetaan_fasilitas: id || "",
-    id_tanah: tanahData?.id_tanah || "",
+    id_fasilitas: "",
+    id_pemetaan_fasilitas: "",
+    id_tanah: "",
     jenis_fasilitas: "",
     nama_fasilitas: "",
     kategori_fasilitas: "",
@@ -29,6 +27,12 @@ const CreateFasilitas = () => {
     dokumenPdf: null,
   });
 
+  const [existingFiles, setExistingFiles] = useState({
+    view360: null,
+    gambarFasilitas: null,
+    dokumenPdf: null,
+  });
+
   const [filePreviews, setFilePreviews] = useState({
     view360: null,
     gambarFasilitas: null,
@@ -37,63 +41,104 @@ const CreateFasilitas = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // If data was passed via state, use that (preferred method)
-    if (pemetaanFasilitasData) {
-      setFormData({
-        id_pemetaan_fasilitas: pemetaanFasilitasData.id_pemetaan_fasilitas,
-        id_tanah: tanahData?.id_tanah || pemetaanFasilitasData.pemetaan_tanah?.id_tanah || "",
-        jenis_fasilitas: pemetaanFasilitasData.jenis_fasilitas,
-        nama_fasilitas: pemetaanFasilitasData.nama_fasilitas,
-        kategori_fasilitas: pemetaanFasilitasData.kategori_fasilitas,
-        catatan: "",
-        lokasi: tanahData?.lokasi || pemetaanFasilitasData.pemetaan_tanah?.lokasi || "",
-      });
-      return;
-    }
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await axios.get(
+          `http://127.0.0.1:8000/api/fasilitas/${id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
-    // Fallback to API if no state data
-    if (id) {
-      fetchDataFromAPI();
-    } else {
-      Swal.fire("Error", "ID Pemetaan Fasilitas tidak ditemukan", "error");
-      navigate("/fasilitas");
-    }
-  }, [id, pemetaanFasilitasData, tanahData, navigate]);
-
-  const fetchDataFromAPI = async () => {
-    setIsLoading(true);
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(
-        `http://127.0.0.1:8000/api/pemetaan/fasilitas-detail/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        // Check if response data exists
+        if (!response.data || !response.data.data) {
+          throw new Error("Invalid API response format");
         }
-      );
 
-      const data = response.data.data;
-      setFormData({
-        id_pemetaan_fasilitas: id,
-        id_tanah: data.pemetaan_tanah?.id_tanah || "",
-        jenis_fasilitas: data.jenis_fasilitas,
-        nama_fasilitas: data.nama_fasilitas,
-        kategori_fasilitas: data.kategori_fasilitas,
-        catatan: "",
-        lokasi: data.pemetaan_tanah?.lokasi || "",
-      });
-    } catch (error) {
-      console.error("Error fetching pemetaan fasilitas:", error);
-      Swal.fire("Error", "Gagal memuat data fasilitas", "error");
-      navigate("/fasilitas");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        const data = response.data.data;
+        
+        // Set form data with proper fallbacks
+        setFormData({
+          id_fasilitas: data.id_fasilitas || id,
+          id_pemetaan_fasilitas: data.id_pemetaan_fasilitas || "",
+          id_tanah: data.id_tanah || "",
+          jenis_fasilitas: data.jenis_fasilitas || 
+                         (data.pemetaan_fasilitas?.jenis_fasilitas || "Tidak Bergerak"),
+          nama_fasilitas: data.nama_fasilitas || 
+                         (data.pemetaan_fasilitas?.nama_fasilitas || ""),
+          kategori_fasilitas: data.kategori_fasilitas || 
+                            (data.pemetaan_fasilitas?.kategori_fasilitas || ""),
+          catatan: data.catatan || "",
+          lokasi: data.lokasi || 
+                (data.tanah?.lokasi || 
+                 data.pemetaan_fasilitas?.pemetaan_tanah?.lokasi || ""),
+        });
+
+        // Set existing files with null checks
+        const newExistingFiles = {
+          view360: data.file_360 ? 
+                  `http://127.0.0.1:8000/storage/${data.file_360}` : null,
+          gambarFasilitas: data.file_gambar ? 
+                         `http://127.0.0.1:8000/storage/${data.file_gambar}` : null,
+          dokumenPdf: data.file_pdf ? 
+                    `http://127.0.0.1:8000/storage/${data.file_pdf}` : null,
+        };
+
+        setExistingFiles(newExistingFiles);
+        setFilePreviews(newExistingFiles);
+
+      } catch (error) {
+        console.error("Error fetching fasilitas:", error);
+        
+        // Try to use location state if API fails
+        if (location.state?.detailData) {
+          const { detailData, pemetaanFasilitasData, tanahData } = location.state;
+          
+          setFormData({
+            id_fasilitas: detailData.id_fasilitas || id,
+            id_pemetaan_fasilitas: pemetaanFasilitasData?.id_pemetaan_fasilitas || "",
+            id_tanah: tanahData?.id_tanah || "",
+            jenis_fasilitas: pemetaanFasilitasData?.jenis_fasilitas || "Tidak Bergerak",
+            nama_fasilitas: pemetaanFasilitasData?.nama_fasilitas || "",
+            kategori_fasilitas: pemetaanFasilitasData?.kategori_fasilitas || "",
+            catatan: detailData.catatan || "",
+            lokasi: tanahData?.lokasi || "",
+          });
+          
+          const filesFromState = {
+            view360: detailData.file_360 ? 
+                   `http://127.0.0.1:8000/storage/${detailData.file_360}` : null,
+            gambarFasilitas: detailData.file_gambar ? 
+                           `http://127.0.0.1:8000/storage/${detailData.file_gambar}` : null,
+            dokumenPdf: detailData.file_pdf ? 
+                      `http://127.0.0.1:8000/storage/${detailData.file_pdf}` : null,
+          };
+          
+          setExistingFiles(filesFromState);
+          setFilePreviews(filesFromState);
+        } else {
+          Swal.fire({
+            title: "Error",
+            text: error.response?.data?.message || 
+                 "Gagal memuat data fasilitas",
+            icon: "error"
+          }).then(() => {
+            navigate(-1); // Go back if data can't be loaded
+          });
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [id, navigate, location.state]);
 
   const handleFileChange = (field, e) => {
     const file = e.target.files[0];
@@ -126,6 +171,32 @@ const CreateFasilitas = () => {
     document.getElementById(field).value = "";
   };
 
+  const handleRemoveExistingFile = async (field) => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(
+        `http://127.0.0.1:8000/api/fasilitas/${id}/remove-file`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          data: {
+            file_type: field === "view360" ? "file_360" : 
+                     field === "gambarFasilitas" ? "file_gambar" : "file_pdf"
+          }
+        }
+      );
+
+      setExistingFiles({ ...existingFiles, [field]: null });
+      setFilePreviews({ ...filePreviews, [field]: null });
+      
+      Swal.fire("Success", "File berhasil dihapus", "success");
+    } catch (error) {
+      console.error("Error removing file:", error);
+      Swal.fire("Error", "Gagal menghapus file", "error");
+    }
+  };
+
   const validateForm = () => {
     let isValid = true;
     const newErrors = {};
@@ -142,11 +213,7 @@ const CreateFasilitas = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
   
-    console.log('Form data before submit:', formData);
-    console.log('Files before submit:', files);
-  
     if (!validateForm()) {
-      console.log('Validation errors:', errors);
       Swal.fire("Error", "Harap isi semua field wajib", "error");
       return;
     }
@@ -156,8 +223,7 @@ const CreateFasilitas = () => {
   
     try {
       const formDataToSend = new FormData();
-      formDataToSend.append("id_pemetaan_fasilitas", formData.id_pemetaan_fasilitas);
-      formDataToSend.append("id_tanah", formData.id_tanah);
+      formDataToSend.append("_method", "PUT");
       formDataToSend.append("catatan", formData.catatan);
   
       if (files.view360) {
@@ -170,10 +236,8 @@ const CreateFasilitas = () => {
         formDataToSend.append("file_pdf", files.dokumenPdf);
       }
   
-      console.log('FormData being sent:', formDataToSend);
-  
       const response = await axios.post(
-        "http://127.0.0.1:8000/api/fasilitas",
+        `http://127.0.0.1:8000/api/fasilitas/${id}`,
         formDataToSend,
         {
           headers: {
@@ -183,11 +247,9 @@ const CreateFasilitas = () => {
         }
       );
   
-      console.log('Response from server:', response.data);
-  
       Swal.fire({
         title: "Success!",
-        text: "Fasilitas berhasil dibuat",
+        text: "Fasilitas berhasil diperbarui",
         icon: "success",
         confirmButtonText: "OK",
       }).then(() => {
@@ -230,7 +292,7 @@ const CreateFasilitas = () => {
         <div className="flex-1 p-4">
           <div className="bg-white shadow-lg rounded-lg p-10 mx-auto w-[90%] max-w-3xl">
             <h2 className="text-center text-3xl font-bold">
-              <span className="text-[#FECC23]">Detail</span>{" "}
+              <span className="text-[#FECC23]">Edit</span>{" "}
               <span className="text-[#187556]">Fasilitas</span>
             </h2>
 
@@ -299,28 +361,34 @@ const CreateFasilitas = () => {
                   <div className="flex-1">
                     <UploadFile
                       field="view360"
-                      label="Unggah View 360 (gambar)"
+                      label="View 360 (gambar)"
                       preview={filePreviews.view360}
+                      existingFile={existingFiles.view360}
                       onChange={handleFileChange}
                       onRemove={handleRemoveFile}
+                      onRemoveExisting={handleRemoveExistingFile}
                     />
                   </div>
                   <div className="flex-1">
                     <UploadFile
                       field="gambarFasilitas"
-                      label="Unggah Gambar Fasilitas"
+                      label="Gambar Fasilitas"
                       preview={filePreviews.gambarFasilitas}
+                      existingFile={existingFiles.gambarFasilitas}
                       onChange={handleFileChange}
                       onRemove={handleRemoveFile}
+                      onRemoveExisting={handleRemoveExistingFile}
                     />
                   </div>
                   <div className="flex-1">
                     <UploadFile
                       field="dokumenPdf"
-                      label="Unggah PDF"
+                      label="Dokumen PDF"
                       preview={filePreviews.dokumenPdf}
+                      existingFile={existingFiles.dokumenPdf}
                       onChange={handleFileChange}
                       onRemove={handleRemoveFile}
+                      onRemoveExisting={handleRemoveExistingFile}
                     />
                   </div>
                 </div>
@@ -342,7 +410,7 @@ const CreateFasilitas = () => {
                     isSubmitting || !formData.catatan ? "opacity-50 cursor-not-allowed" : ""
                   }`}
                 >
-                  {isSubmitting ? "Menyimpan..." : "Simpan"}
+                  {isSubmitting ? "Menyimpan..." : "Simpan Perubahan"}
                 </button>
               </div>
             </form>
@@ -353,9 +421,10 @@ const CreateFasilitas = () => {
   );
 };
 
-const UploadFile = ({ field, label, preview, onChange, onRemove }) => (
+const UploadFile = ({ field, label, preview, existingFile, onChange, onRemove, onRemoveExisting }) => (
   <div className="flex flex-col col-span-2">
     <label className="text-sm font-medium text-gray-400">{label}</label>
+    
     {preview ? (
       <div className="mt-2 flex items-center gap-2">
         <a
@@ -364,19 +433,31 @@ const UploadFile = ({ field, label, preview, onChange, onRemove }) => (
           rel="noopener noreferrer"
           className="text-blue-500 hover:text-blue-700 flex items-center"
         >
-          <FaEye className="mr-1" /> Lihat Preview
+          <FaEye className="mr-1" /> Lihat {existingFile ? "File" : "Preview"}
         </a>
-        <button
-          type="button"
-          onClick={() => onRemove(field)}
-          className="text-red-500 hover:text-red-700 flex items-center"
-        >
-          <FaTimes className="mr-1" /> Hapus
-        </button>
+        
+        {existingFile ? (
+          <button
+            type="button"
+            onClick={() => onRemoveExisting(field)}
+            className="text-red-500 hover:text-red-700 flex items-center"
+          >
+            <FaTimes className="mr-1" /> Hapus File
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => onRemove(field)}
+            className="text-red-500 hover:text-red-700 flex items-center"
+          >
+            <FaTimes className="mr-1" /> Hapus
+          </button>
+        )}
       </div>
     ) : (
       <p className="text-gray-400 text-sm italic mt-1">Maksimal ukuran 5MB</p>
     )}
+    
     <input
       id={field}
       type="file"
@@ -384,7 +465,11 @@ const UploadFile = ({ field, label, preview, onChange, onRemove }) => (
       className="w-full border-b-2 border-gray-300 p-2 mt-2"
       onChange={(e) => onChange(field, e)}
     />
+    
+    {existingFile && !preview && (
+      <p className="text-green-500 text-sm mt-1">File akan dihapus saat disimpan</p>
+    )}
   </div>
 );
 
-export default CreateFasilitas;
+export default EditFasilitas;
