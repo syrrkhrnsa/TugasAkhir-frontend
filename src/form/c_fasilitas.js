@@ -20,19 +20,19 @@ const CreateFasilitas = () => {
     nama_fasilitas: "",
     kategori_fasilitas: "",
     catatan: "",
-    lokasi: "",
+    id_tanah: tanahId || "", // Tambahkan id_tanah dari props
   });
 
   const [files, setFiles] = useState({
-    view360: null,
-    gambarFasilitas: null,
-    dokumenPdf: null,
+    file_360: null,
+    file_gambar: null,
+    file_pdf: null,
   });
 
   const [filePreviews, setFilePreviews] = useState({
-    view360: null,
-    gambarFasilitas: null,
-    dokumenPdf: null,
+    file_360: null,
+    file_gambar: null,
+    file_pdf: null,
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -106,12 +106,15 @@ const CreateFasilitas = () => {
       return;
     }
 
-    if (field === "dokumenPdf" && !file.type.includes("pdf")) {
+    if (field === "file_pdf" && !file.type.includes("pdf")) {
       Swal.fire("Error", "Unggahan dokumen harus file PDF", "error");
       return;
     }
 
-    if ((field === "view360" || field === "gambarFasilitas") && !file.type.startsWith("image/")) {
+    if (
+      (field === "file_360" || field === "file_gambar") &&
+      !file.type.startsWith("image/")
+    ) {
       Swal.fire("Error", "Unggahan harus berupa gambar", "error");
       return;
     }
@@ -198,7 +201,9 @@ const CreateFasilitas = () => {
       let errorMessage = error.response?.data?.message || "Terjadi kesalahan";
   
       if (error.response?.data?.errors) {
-        errorMessage = Object.values(error.response.data.errors).flat().join("\n");
+        errorMessage = Object.values(error.response.data.errors)
+          .flat()
+          .join("\n");
       }
   
       Swal.fire("Error", errorMessage, "error");
@@ -297,6 +302,7 @@ const CreateFasilitas = () => {
               <div className="col-span-3">
                 <div className="flex gap-8">
                   <div className="flex-1">
+                  <div className="flex-1">
                     <UploadFile
                       field="view360"
                       label="Unggah View 360 (gambar)"
@@ -304,6 +310,8 @@ const CreateFasilitas = () => {
                       onChange={handleFileChange}
                       onRemove={handleRemoveFile}
                     />
+                  </div>
+                  <div className="flex-1">
                   </div>
                   <div className="flex-1">
                     <UploadFile
@@ -315,6 +323,8 @@ const CreateFasilitas = () => {
                     />
                   </div>
                   <div className="flex-1">
+                  </div>
+                  <div className="flex-1">
                     <UploadFile
                       field="dokumenPdf"
                       label="Unggah PDF"
@@ -323,7 +333,9 @@ const CreateFasilitas = () => {
                       onRemove={handleRemoveFile}
                     />
                   </div>
+                  </div>
                 </div>
+              </div>
               </div>
 
               {/* Buttons */}
@@ -354,7 +366,7 @@ const CreateFasilitas = () => {
 };
 
 const UploadFile = ({ field, label, preview, onChange, onRemove }) => (
-  <div className="flex flex-col col-span-2">
+  <div className="flex flex-col">
     <label className="text-sm font-medium text-gray-400">{label}</label>
     {preview ? (
       <div className="mt-2 flex items-center gap-2">
@@ -380,7 +392,7 @@ const UploadFile = ({ field, label, preview, onChange, onRemove }) => (
     <input
       id={field}
       type="file"
-      accept={field === "dokumenPdf" ? ".pdf" : "image/*"}
+      accept={field === "file_pdf" ? ".pdf" : "image/*"}
       className="w-full border-b-2 border-gray-300 p-2 mt-2"
       onChange={(e) => onChange(field, e)}
     />

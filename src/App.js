@@ -1,25 +1,26 @@
-  import React from "react";
-  import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-  import Login from "./pages/auth.js";
-  import Landing from "./pages/landing.js";
-  import Dashboard from "./pages/dashboard.js";
-  import Sertifikat from "./pages/sertifikat.js";
-  import ProtectedRoute from "./utils/ProtectedRoute";
-  import CreateTanah from "./form/c_tanah.js";
-  import EditTanah from "./form/e_tanah.js";
-  import RiwayatTanah from "./log/log.js";
-  import PesanPerubahan from "./pages/approval.js";
-  import EditSertifikat from "./form/e_sertifikat.js";
-  import CreateSertifikat from "./form/c_sertifikat.js";
-  import DetailTanah from "./form/d_tanah.js";
-  import Log from "./log/log.js";
-  import Pemetaan from "./pages/pemetaan.js";
-  import Public from "./pages/Public.js";
-  import CreateFasilitas from "./form/c_fasilitas.js";
-  import EditFasilitas from "./form/e_fasilitas.js";
-  import ListInventaris from "./pages/inventaris.js";
-  import CreateInventaris from "./form/c_inventaris.js";
-  import EditInventaris from "./form/e_inventaris.js";
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Login from "./pages/auth.js";
+import Landing from "./pages/landing.js";
+import Dashboard from "./pages/dashboard.js";
+import Sertifikat from "./pages/sertifikat.js";
+import ProtectedRoute from "./utils/ProtectedRoute";
+import CreateTanah from "./form/c_tanah.js";
+import EditTanah from "./form/e_tanah.js";
+import RiwayatTanah from "./log/log.js";
+import PesanPerubahan from "./pages/approval.js";
+import EditSertifikat from "./form/e_sertifikat.js";
+import CreateSertifikat from "./form/c_sertifikat.js";
+import DetailTanah from "./form/d_tanah.js";
+import Log from "./log/log.js";
+import Pemetaan from "./pages/pemetaan.js";
+import PemetaanSidebar from "./pages/pemetaanSidebar.js";
+import Public from "./pages/Public.js";
+import CreateFasilitas from "./form/c_fasilitas.js";
+import EditFasilitas from "./form/e_fasilitas.js";
+import ListInventaris from "./pages/inventaris.js";
+import CreateInventaris from "./form/c_inventaris.js";
+import EditInventaris from "./form/e_inventaris.js";
 
   function App() {
     return (
@@ -31,7 +32,7 @@
 
           {/* Grouping Protected Routes */}
           <Route element={<ProtectedRoute />}>
-            <Route path="/pemetaan" element={<Pemetaan />} />
+            <Route path="/pemetaan" element={<PemetaanSidebar />} />
 
             <Route path="/fasilitas/create/:id" element={<CreateFasilitas />} />
             <Route path="/fasilitas/edit/:id" element={<EditFasilitas />} />
