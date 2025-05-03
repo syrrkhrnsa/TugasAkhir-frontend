@@ -1031,12 +1031,14 @@ const EditTanah = () => {
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-bold">Legalitas</h3>
                     <div className="flex gap-2">
-                      <button
-                        onClick={() => navigate("/log?type=sertifikat")}
+                    <button
+                        onClick={() =>
+                          navigate(`/log?type=sertifikat&id_tanah=${id}`)
+                        }
                         className="bg-[#10B981] text-white px-2 py-2 text-xs rounded-md hover:bg-[#059669] flex items-center"
                       >
                         <FaHistory className="mr-2 text-xs" />
-                        Riwayat Sertifikat
+                        Riwayat Perubahan Dokumen 
                       </button>
                       <button
                         onClick={() =>
@@ -1050,7 +1052,7 @@ const EditTanah = () => {
                         className="bg-[#3B82F6] text-white px-2 py-2 text-xs rounded-md hover:bg-[#2563EB] flex items-center"
                       >
                         <FaPlus className="mr-2 text-xs" />
-                        Create Sertifikat
+                        Tambah Dokumen
                       </button>
                     </div>
                   </div>
@@ -1073,7 +1075,7 @@ const EditTanah = () => {
                         </th>
                         {isPimpinanJamaah && (
                           <th className="px-4 py-2 text-center font-medium border-b-2">
-                            Status Approval
+                            Status Pengajuan
                           </th>
                         )}
                         <th className="py-2 px-4 font-medium border-b-2">

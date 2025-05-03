@@ -633,8 +633,12 @@ const PetaTanah = ({ tanahId }) => {
 
   useEffect(() => {
     if (tanahId) {
-      fetchTanahData();
-      fetchSertifikatData();
+      const fetchData = async () => {
+        await fetchTanahData();
+        await fetchSertifikatData();
+        await fetchPemetaanData();
+      };
+      fetchData();
     }
   }, [tanahId]);
 
@@ -1400,12 +1404,6 @@ if (fasilitasData.length > 0) {
     });
   };
 
-  useEffect(() => {
-    if (tanahId) {
-      fetchPemetaanData();
-    }
-  }, [tanahId]);
-
   // Fetch facilities data after land mapping data is loaded
   useEffect(() => {
     if (pemetaanData.length > 0) {
@@ -1414,18 +1412,18 @@ if (fasilitasData.length > 0) {
   }, [pemetaanData]);
 
   useEffect(() => {
-    if (loading || !mapRef.current) return;
-
+    if (loading || !mapRef.current || mapInstanceRef.current) return;
+  
     const mapInstance = initializeMap();
     renderMapData(mapInstance);
-
+  
     return () => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
     };
-  }, [loading, pemetaanData, fasilitasData, dataExists]);
+  }, [loading]); // Hanya tergantung pada loading
 
   return (
     <div className="relative">

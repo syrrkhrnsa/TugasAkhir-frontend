@@ -140,7 +140,7 @@ const CreateSertifikat = () => {
         <div className="flex-1 p-4">
           <div className="bg-white shadow-lg rounded-lg p-10 mx-auto w-[90%] max-w-3xl">
             <h2 className="text-center text-3xl font-bold">
-              <span className="text-[#FECC23]">Sertifikat</span>{" "}
+              <span className="text-[#FECC23]">Dokumen</span>{" "}
               <span className="text-[#187556]">Baru</span>
             </h2>
 
