@@ -23,49 +23,52 @@ import CreateInventaris from "./form/c_inventaris.js";
 import EditInventaris from "./form/e_inventaris.js";
 import DetailInventaris from "./form/d_inventaris.js";
 
-  function App() {
-    return (
-      <Router>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/lihat-data-wakaf" element={<Public />} />
+function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/lihat-data-wakaf" element={<Public />} />
 
-          {/* Grouping Protected Routes */}
-          <Route element={<ProtectedRoute />}>
-            <Route path="/pemetaan" element={<PemetaanSidebar />} />
+        {/* Grouping Protected Routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/pemetaan" element={<PemetaanSidebar />} />
 
-            <Route path="/fasilitas/create/:id" element={<CreateFasilitas />} />
-            <Route path="/fasilitas/edit/:id" element={<EditFasilitas />} />
+          <Route path="/fasilitas/create/:id" element={<CreateFasilitas />} />
+          <Route path="/fasilitas/edit/:id" element={<EditFasilitas />} />
 
-            <Route path="/inventaris/fasilitas/:id" element={<ListInventaris />} />
-            <Route path="/inventaris/create/:id" element={<CreateInventaris />} />
-            <Route path="/inventaris/edit/:id" element={<EditInventaris />} />
-            <Route path="/inventaris/detail/:id" element={<DetailInventaris />} />
+          <Route
+            path="/inventaris/fasilitas/:id"
+            element={<ListInventaris />}
+          />
+          <Route path="/inventaris/create/:id" element={<CreateInventaris />} />
+          <Route path="/inventaris/edit/:id" element={<EditInventaris />} />
+          <Route path="/inventaris/detail/:id" element={<DetailInventaris />} />
 
-            <Route path="/sertifikat" element={<Sertifikat />} />
-            <Route path="/sertifikat/edit/:id" element={<EditSertifikat />} />
-            <Route path="/sertifikat/create" element={<CreateSertifikat />} />
-            {/* Route Tanah */}
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/tanah/create" element={<CreateTanah />} />
-            <Route path="/tanah/edit/:id" element={<EditTanah />} />
-            <Route path="/tanah/detail/:idTanah" element={<DetailTanah />} />
+          <Route path="/sertifikat" element={<Sertifikat />} />
+          <Route path="/sertifikat/edit/:id" element={<EditSertifikat />} />
+          <Route path="/sertifikat/create" element={<CreateSertifikat />} />
+          {/* Route Tanah */}
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/tanah/create" element={<CreateTanah />} />
+          <Route path="/tanah/edit/:id" element={<EditTanah />} />
+          <Route path="/tanah/detail/:idTanah" element={<DetailTanah />} />
 
-            {/* <Route path="/tanah/peta/:id" element={<PetaTanah />} />
+          {/* <Route path="/tanah/peta/:id" element={<PetaTanah />} />
             <Route path="/tanah/history/:id" element={<HistoryTanah />} /> */}
 
-            <Route path="/tanah/peta/:id" element={<Pemetaan />} />
+          <Route path="/tanah/peta/:id" element={<Pemetaan />} />
 
-            {/* Log Tanah*/}
-            <Route path="/riwayat/tanah" element={<RiwayatTanah />} />
-            <Route path="/log" element={<Log />} />
-            {/* Pesan Perubahan*/}
-            <Route path="/notifikasi" element={<PesanPerubahan />} />
-          </Route>
-        </Routes>
-      </Router>
-    );
-  }
+          {/* Log Tanah*/}
+          <Route path="/riwayat/tanah" element={<RiwayatTanah />} />
+          <Route path="/log" element={<Log />} />
+          {/* Pesan Perubahan*/}
+          <Route path="/notifikasi" element={<PesanPerubahan />} />
+        </Route>
+      </Routes>
+    </Router>
+  );
+}
 
-  export default App;
+export default App;
