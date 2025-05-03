@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
-import { FaPlus, FaEdit, FaTrash, FaArrowLeft } from "react-icons/fa";
+import { FaPlus, FaEdit, FaTrash, FaArrowLeft, FaEye } from "react-icons/fa";
 import Swal from "sweetalert2";
 
 const ListInventaris = () => {
@@ -18,6 +18,13 @@ const ListInventaris = () => {
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
+
+  // Format tanggal untuk tampilan
+  const formatDate = (dateString) => {
+    if (!dateString) return "-";
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    return new Date(dateString).toLocaleDateString('id-ID', options);
+  };
 
   // Fetch data inventaris dari API
   useEffect(() => {
@@ -97,7 +104,8 @@ const ListInventaris = () => {
   const filteredData = inventarisData.filter(item =>
     item.nama_barang.toLowerCase().includes(search.toLowerCase()) ||
     item.kode_barang?.toLowerCase().includes(search.toLowerCase()) ||
-    item.kondisi.toLowerCase().includes(search.toLowerCase())
+    item.kondisi.toLowerCase().includes(search.toLowerCase()) ||
+    (item.waktu_perolehan && formatDate(item.waktu_perolehan).toLowerCase().includes(search.toLowerCase()))
   );
 
   // Pagination logic
@@ -234,6 +242,9 @@ const ListInventaris = () => {
                           Satuan
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Waktu Perolehan
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Kondisi
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -260,6 +271,9 @@ const ListInventaris = () => {
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                               {item.satuan}
                             </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {formatDate(item.waktu_perolehan)}
+                            </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <span
                                 className={`px-3 py-1 rounded-full text-xs font-semibold ${getKondisiStyle(
@@ -273,16 +287,25 @@ const ListInventaris = () => {
                               <div className="flex space-x-2">
                                 <button
                                   onClick={() =>
+                                    navigate(`/inventaris/detail/${item.id_inventaris}`)
+                                  }
+                                  className="p-1 text-gray-400 hover:text-blue-600"
+                                  title="Detail"
+                                >
+                                  <FaEye />
+                                </button>
+                                <button
+                                  onClick={() =>
                                     navigate(`/inventaris/edit/${item.id_inventaris}`)
                                   }
-                                  className="p-1 text-gray-400 hover:text-gray-600"
+                                  className="p-1 text-gray-400 hover:text-yellow-600"
                                   title="Edit"
                                 >
                                   <FaEdit />
                                 </button>
                                 <button
                                   onClick={() => handleDelete(item.id_inventaris)}
-                                  className="p-1 text-gray-400 hover:text-gray-600"
+                                  className="p-1 text-gray-400 hover:text-red-600"
                                   title="Hapus"
                                 >
                                   <FaTrash />
@@ -294,7 +317,7 @@ const ListInventaris = () => {
                       ) : (
                         <tr>
                           <td
-                            colSpan={7}
+                            colSpan={8}
                             className="px-6 py-4 text-center text-sm text-gray-500"
                           >
                             Data Inventaris Belum Tersedia

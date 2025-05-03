@@ -42,25 +42,25 @@ const Log = () => {
         if (type === "tanah") {
           if (id) {
             endpoint = `/log-tanah/${id}`;
-            pageTitle = `Riwayat Tanah Wakaf`;
+            pageTitle = `Riwayat Pengelolaan Tanah Wakaf`;
             pageSubtitle = "Log perubahan untuk tanah ini";
           } else {
             endpoint = "/log-tanah";
-            pageTitle = "Riwayat Tanah Wakaf";
+            pageTitle = "Riwayat Pengelolaan Tanah Wakaf";
             pageSubtitle = "PC Persis Banjaran";
           }
         } else if (type === "sertifikat") {
           if (id) {
             endpoint = `/log-sertifikat/${id}`;
-            pageTitle = `Riwayat Sertifikat Wakaf`;
-            pageSubtitle = "Log perubahan untuk sertifikat ini";
+            pageTitle = `Riwayat Pengurusan Dokumen`;
+            pageSubtitle = "Log perubahan untuk dokumen ini";
           } else if (idTanah) {
             endpoint = `/log-sertifikat-by-tanah/${idTanah}`;
-            pageTitle = `Riwayat Sertifikat Wakaf`;
-            pageSubtitle = "Log perubahan sertifikat terkait tanah ini";
+            pageTitle = `Riwayat Pengurusan Dokumen`;
+            pageSubtitle = "Log perubahan dokumen terkait tanah ini";
           } else {
             endpoint = "/log-sertifikat";
-            pageTitle = "Riwayat Sertifikat Wakaf";
+            pageTitle = "Riwayat Pengurusan Dokumen";
             pageSubtitle = "PC Persis Banjaran";
           }
         }

@@ -21,6 +21,7 @@ import EditFasilitas from "./form/e_fasilitas.js";
 import ListInventaris from "./pages/inventaris.js";
 import CreateInventaris from "./form/c_inventaris.js";
 import EditInventaris from "./form/e_inventaris.js";
+import DetailInventaris from "./form/d_inventaris.js";
 
   function App() {
     return (
@@ -40,6 +41,7 @@ import EditInventaris from "./form/e_inventaris.js";
             <Route path="/inventaris/fasilitas/:id" element={<ListInventaris />} />
             <Route path="/inventaris/create/:id" element={<CreateInventaris />} />
             <Route path="/inventaris/edit/:id" element={<EditInventaris />} />
+            <Route path="/inventaris/detail/:id" element={<DetailInventaris />} />
 
             <Route path="/sertifikat" element={<Sertifikat />} />
             <Route path="/sertifikat/edit/:id" element={<EditSertifikat />} />

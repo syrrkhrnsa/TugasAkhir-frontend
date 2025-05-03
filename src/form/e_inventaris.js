@@ -16,7 +16,7 @@ const EditInventaris = () => {
     jumlah: 1,
     kondisi: "baik",
     detail: "",
-    deskripsi: "",
+    waktu_perolehan: "",
     catatan: ""
   });
 
@@ -51,7 +51,7 @@ const EditInventaris = () => {
           jumlah: data.jumlah,
           kondisi: data.kondisi,
           detail: data.detail,
-          deskripsi: data.deskripsi,
+          waktu_perolehan: data.waktu_perolehan || "",
           catatan: data.catatan
         });
       } catch (error) {
@@ -262,8 +262,22 @@ const EditInventaris = () => {
                 </select>
               </div>
 
-              {/* Detail */}
+              {/* Waktu Perolehan */}
               <div className="flex flex-col">
+                <label className="text-sm font-medium text-gray-400">
+                  Waktu Perolehan
+                </label>
+                <input
+                  type="date"
+                  name="waktu_perolehan"
+                  value={formData.waktu_perolehan}
+                  onChange={handleChange}
+                  className="w-full border-b-2 p-2 border-gray-300"
+                />
+              </div>
+
+              {/* Detail */}
+              <div className="flex flex-col col-span-3">
                 <label className="text-sm font-medium text-gray-400">
                   Detail
                 </label>
@@ -274,20 +288,6 @@ const EditInventaris = () => {
                   onChange={handleChange}
                   className="w-full border-b-2 p-2 border-gray-300"
                 />
-              </div>
-
-              {/* Deskripsi */}
-              <div className="flex flex-col col-span-3">
-                <label className="text-sm font-medium text-gray-400">
-                  Deskripsi
-                </label>
-                <textarea
-                  name="deskripsi"
-                  value={formData.deskripsi}
-                  onChange={handleChange}
-                  rows="3"
-                  className="w-full border-b-2 border-gray-300 p-2"
-                ></textarea>
               </div>
 
               {/* Catatan */}
