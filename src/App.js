@@ -22,6 +22,8 @@ import ListInventaris from "./pages/inventaris.js";
 import CreateInventaris from "./form/c_inventaris.js";
 import EditInventaris from "./form/e_inventaris.js";
 import DetailInventaris from "./form/d_inventaris.js";
+import DetailTanahPublic from "./public/DetailTanahPublic.js";
+import DetailFasilitasPublic from "./public/DetailFasilitasPublic.js";
 
 function App() {
   return (
@@ -30,6 +32,8 @@ function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/lihat-data-wakaf" element={<Public />} />
+        <Route path="/detail/tanah/public/:id" element={<DetailTanahPublic />} />
+        <Route path="/detail/fasilitas/public/:id" element={<DetailFasilitasPublic />} />
 
         {/* Grouping Protected Routes */}
         <Route element={<ProtectedRoute />}>

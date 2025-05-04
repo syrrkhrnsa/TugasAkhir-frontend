@@ -81,7 +81,7 @@ const Login = () => {
             {/* Teks */}
             <div>
               <div className="flex items-center space-x-2">
-                <h1 className="text-3xl font-bold text-hijau">Waqaf</h1>
+                <h1 className="text-3xl font-bold text-hijau">Waqf</h1>
                 <h1 className="text-3xl font-bold text-kuning">Management</h1>
               </div>
               <h2 className="text-2xl font-bold text-hijau">
