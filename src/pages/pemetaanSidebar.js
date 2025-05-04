@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import Sidebar from "../components/Sidebar.js";
 import FasilitasPopupCard from "../components/PemetaanSidebar/FasilitasPopupCard";
-import { getFasilitasModalHTML } from "../components/PemetaanSidebar/getFasilitasModalHTML.js";
+import { getFasilitasModalHTML } from "../components/PemetaanSidebar/GetDetailFasilitas.js";
 import { getPopupTanahHTML } from "../components/PemetaanSidebar/PopupTanah";
 import { getMarkerPopupHTML } from "../components/PemetaanSidebar/MarkerPopupContent";
 import FasilitasListCard from "../components/PemetaanSidebar/FasilitasListCard";
@@ -275,7 +275,7 @@ const PemetaanSidebar = () => {
         console.log("Detail data:", detailData); // Add this for debugging
         showDetailModal(detailData, item);
       } else {
-        navigate("/fasilitas/create", {
+        navigate(`/fasilitas/create/${item.id_pemetaan_fasilitas}`, {
           state: {
             fasilitas: item,
           },
@@ -327,7 +327,7 @@ const PemetaanSidebar = () => {
     // Handle tombol Lihat Inventaris
     const viewInventarisButton = modal.querySelector(".btn-view-inventaris");
     viewInventarisButton.addEventListener("click", () => {
-      if (!detailData || typeof detailData.id_fasilitas === "undefined") {
+      if (!detailData || typeof detailData[0].id_fasilitas === "undefined") {
         console.error(
           "Cannot view inventory: detailData is missing or invalid",
           detailData
@@ -337,7 +337,7 @@ const PemetaanSidebar = () => {
       }
 
       document.body.removeChild(modal);
-      navigate(`/inventaris/fasilitas/${detailData.id_fasilitas}`, {
+      navigate(`/inventaris/fasilitas/${detailData[0].id_fasilitas}`, {
         state: {
           fasilitasData: fasilitasData || {},
           detailData: detailData || {},
