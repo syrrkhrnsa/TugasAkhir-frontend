@@ -4,6 +4,44 @@ import Sidebar from "../components/Sidebar";
 import axios from "axios";
 import { getRoleId, getUserName } from "../utils/Auth";
 import Swal from "sweetalert2";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  useMapEvents,
+} from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+
+// Fix for default marker icons
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+  iconUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+});
+
+// Komponen untuk memilih lokasi di peta
+const LocationPicker = ({ onLocationSelect, initialPosition }) => {
+  const [position, setPosition] = useState(initialPosition);
+
+  useMapEvents({
+    click(e) {
+      setPosition(e.latlng);
+      onLocationSelect(e.latlng);
+    },
+  });
+
+  return position ? (
+    <Marker position={position}>
+      <Popup>Lokasi yang dipilih</Popup>
+    </Marker>
+  ) : null;
+};
 
 const CreateTanah = () => {
   const [pimpinanJamaah, setPimpinanJamaah] = useState("");
@@ -29,6 +67,12 @@ const CreateTanah = () => {
   const [catatan, setCatatan] = useState("");
   const [alamatWakif, setAlamatWakif] = useState("");
   const [calculateLuas, setCalculateLuas] = useState(false);
+  const [showMap, setShowMap] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState(null);
+
+  const defaultPosition = [-7.0425, 107.5861];
+  const [mapPosition, setMapPosition] = useState(defaultPosition);
+
   const navigate = useNavigate();
   const lokasiLengkap = `${
     provinsiList.find((p) => p.id === provinsi)?.name
@@ -61,12 +105,15 @@ const CreateTanah = () => {
         return;
       }
       try {
-        const response = await axios.get("http://127.0.0.1:8000/api/data/user", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-          },
-        });
+        const response = await axios.get(
+          "http://127.0.0.1:8000/api/data/user",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: "application/json",
+            },
+          }
+        );
         setUsers(response.data.data || []);
       } catch (error) {
         console.error("Error fetching users:", error);
@@ -147,6 +194,34 @@ const CreateTanah = () => {
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   };
 
+  const handleLocationSelect = (latlng) => {
+    setSelectedLocation(latlng);
+  };
+
+  const handleOpenMap = () => {
+    // Jika sudah ada lokasi terpilih, set posisi peta ke lokasi tersebut
+    if (selectedLocation) {
+      setMapPosition([selectedLocation.lat, selectedLocation.lng]);
+    } else {
+      // Jika belum ada lokasi terpilih, coba dapatkan lokasi user
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            setMapPosition([latitude, longitude]);
+          },
+          () => {
+            // Jika gagal dapatkan lokasi, gunakan default
+            setMapPosition(defaultPosition);
+          }
+        );
+      } else {
+        setMapPosition(defaultPosition);
+      }
+    }
+    setShowMap(true);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem("token");
@@ -154,31 +229,36 @@ const CreateTanah = () => {
       alert("Anda harus login untuk menambahkan data.");
       return;
     }
+
+    const data = {
+      NamaPimpinanJamaah: pimpinanJamaah,
+      NamaWakif: namaWakif,
+      lokasi: lokasiLengkap,
+      luasTanah: luasTanah,
+      jenis_tanah: jenisTanah,
+      batas_timur: batasTimur,
+      batas_selatan: batasSelatan,
+      batas_barat: batasBarat,
+      batas_utara: batasUtara,
+      panjang_tanah: panjangTanah,
+      lebar_tanah: lebarTanah,
+      catatan: catatan,
+      alamat_wakif: alamatWakif,
+    };
+
+    // Tambahkan koordinat jika ada
+    if (selectedLocation) {
+      data.latitude = selectedLocation.lat;
+      data.longitude = selectedLocation.lng;
+    }
+
     try {
-      await axios.post(
-        "http://127.0.0.1:8000/api/tanah",
-        {
-          NamaPimpinanJamaah: pimpinanJamaah,
-          NamaWakif: namaWakif,
-          lokasi: lokasiLengkap,
-          luasTanah: luasTanah,
-          jenis_tanah: jenisTanah,
-          batas_timur: batasTimur,
-          batas_selatan: batasSelatan,
-          batas_barat: batasBarat,
-          batas_utara: batasUtara,
-          panjang_tanah: panjangTanah,
-          lebar_tanah: lebarTanah,
-          catatan: catatan,
-          alamat_wakif: alamatWakif,
+      await axios.post("http://127.0.0.1:8000/api/tanah", data, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
         },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-          },
-        }
-      );
+      });
 
       if (isPimpinanJamaah) {
         Swal.fire({
@@ -362,19 +442,72 @@ const CreateTanah = () => {
                     </div>
                   )}
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">
-                    Catatan
-                  </label>
-                  <textarea
-                    className="w-full border-2 border-gray-300 rounded-md p-2 focus:outline-none focus:border-[#187556] text-left"
-                    rows="3"
-                    value={catatan}
-                    onChange={(e) => setCatatan(e.target.value)}
-                    placeholder="Tambahkan catatan jika diperlukan"
-                  />
-                </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-1">
+                      Detail Lokasi
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full border-b-2 border-gray-300 p-2 focus:outline-none focus:border-[#187556] text-left rounded-t"
+                      value={detailLokasi}
+                      onChange={(e) => setDetailLokasi(e.target.value)}
+                      required
+                      placeholder="Detail alamat (nama jalan, nomor, dll)"
+                    />
+                  </div>
 
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-1">
+                      Pilih Lokasi di Peta
+                    </label>
+                    <div className="flex flex-col space-y-2">
+                      <button
+                        type="button"
+                        onClick={handleOpenMap}
+                        className="bg-[#187556] text-white px-4 py-2 rounded-md hover:bg-[#0e5a3f] flex items-center justify-center"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5 mr-2"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        {selectedLocation ? "Ubah Lokasi" : "Pilih Lokasi"}
+                      </button>
+                      {selectedLocation && (
+                        <div className="bg-gray-100 p-3 rounded-md">
+                          <p className="text-sm font-medium text-gray-700">
+                            Koordinat Terpilih:
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            Latitude: {selectedLocation.lat.toFixed(6)}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            Longitude: {selectedLocation.lng.toFixed(6)}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-1">
+                      Catatan
+                    </label>
+                    <textarea
+                      className="w-full border-2 border-gray-300 rounded-md p-2 focus:outline-none focus:border-[#187556] text-left"
+                      rows="3"
+                      value={catatan}
+                      onChange={(e) => setCatatan(e.target.value)}
+                      placeholder="Tambahkan catatan jika diperlukan"
+                    />
+                  </div>
                 </div>
 
                 {/* Kolom kanan */}
@@ -531,20 +664,6 @@ const CreateTanah = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-600 mb-1">
-                      Detail Lokasi
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full border-b-2 border-gray-300 p-2 focus:outline-none focus:border-[#187556] text-left rounded-t"
-                      value={detailLokasi}
-                      onChange={(e) => setDetailLokasi(e.target.value)}
-                      required
-                      placeholder="Detail alamat (nama jalan, nomor, dll)"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">
                       Alamat Wakif
                     </label>
                     <input
@@ -605,6 +724,72 @@ const CreateTanah = () => {
           </div>
         </div>
       </Sidebar>
+
+      {/* Modal Peta */}
+      {showMap && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-[80vh] flex flex-col">
+            <div className="p-4 border-b flex justify-between items-center">
+              <h3 className="text-lg font-semibold">Pilih Lokasi Tanah</h3>
+              <button
+                onClick={() => setShowMap(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div className="flex-1 relative">
+              <MapContainer
+                center={mapPosition}
+                zoom={15}
+                style={{ height: "100%", width: "100%" }}
+                className="z-0"
+              >
+                <TileLayer
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                />
+                <LocationPicker
+                  onLocationSelect={handleLocationSelect}
+                  initialPosition={
+                    selectedLocation
+                      ? [selectedLocation.lat, selectedLocation.lng]
+                      : null
+                  }
+                />
+              </MapContainer>
+            </div>
+            <div className="p-4 border-t flex justify-end space-x-2">
+              <button
+                onClick={() => setShowMap(false)}
+                className="px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400"
+              >
+                Batal
+              </button>
+              <button
+                onClick={() => setShowMap(false)}
+                className="px-4 py-2 bg-[#187556] text-white rounded-md hover:bg-[#0e5a3f]"
+                disabled={!selectedLocation}
+              >
+                Simpan Lokasi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
