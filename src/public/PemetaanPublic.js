@@ -23,6 +23,8 @@ const PublicPetaTanah = () => {
   const fasilitasLayerRef = useRef(null);
   const [tanahData, setTanahData] = useState({});
   const [sertifikatData, setSertifikatData] = useState([]);
+  const [detailFasilitas, setDetailFasilitas] = useState(null);
+  const sidebarRef = useRef(null);
 
   const wkbToGeoJSON = (geometryData) => {
     try {
@@ -61,39 +63,122 @@ const PublicPetaTanah = () => {
     }
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    return new Date(dateString).toLocaleDateString('id-ID', options);
+  };
+  
+  const getConditionBadge = (kondisi) => {
+    switch (kondisi) {
+      case 'baik':
+        return 'bg-green-100 text-green-800';
+      case 'rusak_ringan':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'rusak_berat':
+        return 'bg-orange-100 text-orange-800';
+      case 'hilang':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+  
+  const getConditionLabel = (kondisi) => {
+    switch (kondisi) {
+      case 'baik':
+        return 'Baik';
+      case 'rusak_ringan':
+        return 'Rusak Ringan';
+      case 'rusak_berat':
+        return 'Rusak Berat';
+      case 'hilang':
+        return 'Hilang';
+      default:
+        return kondisi;
+    }
+  };
+  
+  // Update the fetchData function to include inventory data
   const fetchData = async () => {
     try {
       setLoading(true);
       
-      // Fetch public pemetaan data
-      const pemetaanRes = await axios.get("http://127.0.0.1:8000/api/pemetaan/public");
+      // Fetch all data in parallel
+      const [
+        pemetaanRes, 
+        fasilitasRes,
+        tanahRes,
+        sertifikatRes,
+        fasilitasDetailRes
+      ] = await Promise.all([
+        axios.get("http://127.0.0.1:8000/api/pemetaan/public"),
+        axios.get("http://127.0.0.1:8000/api/fasilitas/public"),
+        axios.get("http://127.0.0.1:8000/api/tanah/public"),
+        axios.get("http://127.0.0.1:8000/api/sertifikat/public"),
+        axios.get("http://127.0.0.1:8000/api/fasilitas/detail/public")
+      ]);
+  
+      // Process pemetaan data
       const pemetaan = (pemetaanRes.data.data || []).map((item) => ({
         ...item,
         geojson: item.geometri ? wkbToGeoJSON(item.geometri) : null,
       }));
       setPemetaanData(pemetaan);
-
-      // Fetch public fasilitas data
-      const fasilitasRes = await axios.get("http://127.0.0.1:8000/api/fasilitas/public");
+  
+      // Process tanah data
+      const tanahData = {};
+      (tanahRes.data.data || []).forEach(tanah => {
+        tanahData[tanah.id_tanah] = tanah;
+      });
+      setTanahData(tanahData);
+  
+      // Process sertifikat data
+      const sertifikatData = {};
+      (sertifikatRes.data.data || []).forEach(sertifikat => {
+        if (!sertifikatData[sertifikat.id_tanah]) {
+          sertifikatData[sertifikat.id_tanah] = [];
+        }
+        sertifikatData[sertifikat.id_tanah].push(sertifikat);
+      });
+      setSertifikatData(sertifikatData);
+  
+      // Process fasilitas data
       const fasilitas = (fasilitasRes.data.data || []).map((item) => ({
         ...item,
         geojson: item.geometri ? wkbToGeoJSON(item.geometri) : null,
       }));
-      setFasilitasData(fasilitas);
-
-      // If there's pemetaan data, fetch related tanah and sertifikat data
-      if (pemetaan.length > 0 && pemetaan[0].id_tanah) {
-        try {
-          const tanahRes = await axios.get(`http://127.0.0.1:8000/api/tanah/public/${pemetaan[0].id_tanah}`);
-          setTanahData(tanahRes.data.data || {});
-          
-          const sertifikatRes = await axios.get(`http://127.0.0.1:8000/api/sertifikat/public?id_tanah=${pemetaan[0].id_tanah}`);
-          setSertifikatData(sertifikatRes.data.data || []);
-        } catch (err) {
-          console.error("Error fetching additional data:", err);
-          // Continue even if these requests fail
-        }
-      }
+  
+      // Process fasilitas details and get inventaris data
+      const fasilitasDetails = {};
+      const inventarisData = {};
+      
+      // Group fasilitas details by id_pemetaan_fasilitas
+      (fasilitasDetailRes.data.data || []).forEach(detail => {
+        fasilitasDetails[detail.id_pemetaan_fasilitas] = detail;
+      });
+  
+      // Fetch inventaris for each fasilitas
+      const inventarisPromises = Object.values(fasilitasDetails).map(detail => 
+        axios.get(`http://127.0.0.1:8000/api/inventaris/fasilitas/${detail.id_fasilitas}/public`)
+      );
+  
+      const inventarisResponses = await Promise.all(inventarisPromises);
+      
+      inventarisResponses.forEach((res, index) => {
+        const fasilitasId = Object.values(fasilitasDetails)[index].id_fasilitas;
+        inventarisData[fasilitasId] = res.data.data || [];
+      });
+  
+      // Combine fasilitas with their details and inventaris
+      const combinedFasilitas = fasilitas.map(item => ({
+        ...item,
+        detail: fasilitasDetails[item.id_pemetaan_fasilitas] || null,
+        inventaris: inventarisData[fasilitasDetails[item.id_pemetaan_fasilitas]?.id_fasilitas] || []
+      }));
+  
+      setFasilitasData(combinedFasilitas);
+  
     } catch (err) {
       console.error("Gagal ambil data:", err);
       setError("Gagal memuat data pemetaan. Silakan coba lagi nanti.");
@@ -106,7 +191,7 @@ const PublicPetaTanah = () => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
     const map = L.map(mapRef.current, {
-      zoomControl: true,
+      zoomControl: false,
       maxZoom: 22,
       minZoom: 10,
     }).setView([-7.0456, 107.5886], 16);
@@ -146,6 +231,11 @@ const PublicPetaTanah = () => {
 
     drawnItemsRef.current = new L.FeatureGroup().addTo(map);
     fasilitasLayerRef.current = new L.FeatureGroup().addTo(map);
+
+    const zoomControl = L.control.zoom({
+      position: 'topright'
+    });
+    zoomControl.addTo(map);
   };
 
   const renderMapData = () => {
@@ -157,25 +247,23 @@ const PublicPetaTanah = () => {
 
     const geoJSONGroup = L.featureGroup();
 
-    // Render land mappings with markers and info
+    // Render land mappings
     pemetaanData.forEach((item) => {
       if (item.geojson && item.geojson.geometry) {
         try {
           const geoJSONLayer = L.geoJSON(item.geojson, {
             style: {
-              color: "#ff0000", // Red for land mapping
+              color: "#ff0000",
               weight: 3,
               opacity: 1,
               fillOpacity: 0.3,
             },
             onEachFeature: function (feature, layer) {
-              // Popup for the polygon
               const popupContent = document.createElement("div");
               popupContent.className = "p-4 min-w-[240px] font-sans bg-white rounded-lg shadow-lg";
               
               popupContent.innerHTML = `
                 <div class="space-y-4">
-                  <!-- Header -->
                   <div class="mb-4">
                     <div class="flex items-center gap-3 mb-2">
                       <div class="bg-blue-100 p-2 rounded-full">
@@ -187,9 +275,7 @@ const PublicPetaTanah = () => {
                     </div>
                   </div>
               
-                  <!-- Main Info Section -->
                   <div class="bg-gray-50 p-4 rounded-md space-y-3">
-                    <!-- Location -->
                     <div class="flex items-start text-sm text-gray-600">
                       <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 mr-3 text-gray-500 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M5.05 3.636a7 7 0 119.9 9.9l-4.243 4.243a1 1 0 01-1.414 0l-4.243-4.243a7 7 0 010-9.9zm4.95 3.364a2 2 0 100 4 2 2 0 000-4z" clip-rule="evenodd" />
@@ -200,7 +286,6 @@ const PublicPetaTanah = () => {
                       </div>
                     </div>
               
-                    <!-- Land Area -->
                     <div class="flex items-center text-sm text-gray-600">
                       <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-3 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
@@ -213,7 +298,6 @@ const PublicPetaTanah = () => {
                       </span>
                     </div>
               
-                    <!-- Wakif Name -->
                     <div class="flex items-center text-sm text-gray-600">
                       <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-3 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 15c2.486 0 4.823.657 6.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -224,7 +308,6 @@ const PublicPetaTanah = () => {
                     </div>
                   </div>
               
-                  <!-- Legal Documents Section -->
                   <div class="mb-4">
                     <h4 class="font-medium text-sm text-gray-700 mb-2">Legalitas Tanah:</h4>
                     ${sertifikatData.length > 0 
@@ -258,7 +341,6 @@ const PublicPetaTanah = () => {
                     }
                   </div>
 
-                  <!-- Additional Notes -->
                   <div class="p-3 bg-gray-50 rounded-lg">
                     <p class="text-sm text-gray-700">${item.keterangan || "Tidak ada keterangan tambahan"}</p>
                   </div>
@@ -267,7 +349,6 @@ const PublicPetaTanah = () => {
 
               layer.bindPopup(popupContent);
 
-              // Add marker at center with zoom button
               const bounds = layer.getBounds();
               const center = bounds.getCenter();
 
@@ -279,7 +360,6 @@ const PublicPetaTanah = () => {
               markerPopupContent.className = "p-3 min-w-[220px] max-w-[260px] bg-white rounded-lg shadow-lg border border-gray-200";
               markerPopupContent.innerHTML = `
                 <div class="mb-4">
-                  <!-- Header with map-themed design -->
                   <div class="flex items-center gap-3 pb-2 border-b border-gray-100">
                     <div class="bg-blue-100 p-2 rounded-lg">
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -293,7 +373,6 @@ const PublicPetaTanah = () => {
                   </div>
                 </div>
               
-                <!-- Action buttons with improved styling -->
                 <div class="space-y-2">
                   <button class="zoom-to-location w-full flex items-center justify-between px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-md transition-colors border border-blue-100">
                     <span class="text-sm">Navigasi ke Lokasi</span>
@@ -328,7 +407,7 @@ const PublicPetaTanah = () => {
         try {
           const geoJSONLayer = L.geoJSON(item.geojson, {
             style: {
-              color: "#0066ff", // Blue for facility mapping
+              color: "#0066ff",
               weight: 3,
               opacity: 1,
               fillOpacity: 0.3,
@@ -338,7 +417,6 @@ const PublicPetaTanah = () => {
               popupContent.className = "p-4 min-w-[280px] max-w-[320px] bg-white rounded-lg shadow-md border border-gray-100";
               popupContent.innerHTML = `
                 <div class="mb-4">
-                  <!-- Header with icon and title -->
                   <div class="flex items-start gap-3">
                     <div class="bg-blue-100 p-2.5 rounded-lg flex-shrink-0">
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -352,13 +430,11 @@ const PublicPetaTanah = () => {
                   </div>
                 </div>
                 
-                <!-- Description box -->
                 <div class="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
                   <h4 class="text-xs font-bold text-gray-700 mb-1">KETERANGAN</h4>
                   <p class="text-sm text-gray-700">${item.keterangan || "Tidak ada keterangan tambahan"}</p>
                 </div>
               
-                <!-- Asset type -->
                 <div class="mb-4 flex items-center">
                   <div class="bg-gray-100 rounded-full p-1.5 mr-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -372,7 +448,22 @@ const PublicPetaTanah = () => {
                     </span>
                   </div>
                 </div>
+
+                <button class="lihat-detail-btn w-full mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Lihat Detail Fasilitas
+                </button>
               `;
+
+              const detailBtn = popupContent.querySelector('.lihat-detail-btn');
+              detailBtn.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDetailFasilitas(item);
+                if (layer.closePopup) layer.closePopup();
+              };
 
               layer.bindPopup(popupContent);
             },
@@ -387,19 +478,6 @@ const PublicPetaTanah = () => {
 
     if (geoJSONGroup.getLayers().length > 0) {
       map.fitBounds(geoJSONGroup.getBounds(), { padding: [50, 50] });
-    } else if (!loading) {
-      // Show no data notice if loading is complete and no data
-      const noDataNotice = L.control({ position: "topright" });
-      noDataNotice.onAdd = function () {
-        const div = L.DomUtil.create("div", "no-data-notice");
-        div.innerHTML = `
-          <div class="p-3 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded">
-            <p class="font-bold">Belum ada data pemetaan</p>
-          </div>
-        `;
-        return div;
-      };
-      noDataNotice.addTo(map);
     }
   };
 
@@ -435,6 +513,237 @@ const PublicPetaTanah = () => {
           </div>
         </div>
       )}
+      
+      {/* Floating Sidebar */}
+      <div 
+        ref={sidebarRef}
+        className={`absolute top-4 left-4 z-[1000] w-96 bg-white rounded-lg shadow-xl border border-gray-200 transition-all duration-300 ease-in-out ${
+          detailFasilitas ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-full"
+        }`}
+        style={{
+          height: "calc(100vh - 2rem)", // Fixed height
+          boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+          display: "flex",
+          flexDirection: "column"
+        }}
+      >
+        {detailFasilitas && (
+          <div className="flex flex-col h-full">
+            {/* Header - Fixed */}
+            <div className="sticky top-0 z-10 bg-white p-4 border-b border-gray-200 rounded-t-lg flex justify-between items-center">
+              <h2 className="text-lg font-bold text-gray-800">Detail Fasilitas</h2>
+              <button 
+                onClick={() => setDetailFasilitas(null)}
+                className="p-1 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            {/* Scrollable Content - This is the main scrollable area */}
+            <div className="flex-1 overflow-y-auto">
+              <div className="p-4 space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="bg-blue-100 p-2 rounded-lg flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h1 className="text-xl font-bold text-gray-800">{detailFasilitas.nama_fasilitas}</h1>
+                    <p className="text-blue-600 text-sm font-medium">{detailFasilitas.kategori_fasilitas}</p>
+                  </div>
+                </div>
+  
+                {/* Information Card */}
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                  <h3 className="font-semibold text-gray-700 mb-3 text-sm uppercase tracking-wider">Informasi Fasilitas</h3>
+                  
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Jenis Fasilitas</p>
+                      <p className="text-sm font-medium text-gray-800">
+                        {detailFasilitas.jenis_fasilitas || "-"}
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Tanggal Dibuat</p>
+                      <p className="text-sm text-gray-700">
+                        {formatDate(detailFasilitas.created_at) || "-"}
+                      </p>
+                    </div>
+  
+                    {detailFasilitas.detail && (
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Catatan</p>
+                        <p className="text-sm text-gray-700">
+                          {detailFasilitas.detail.catatan || "Tidak ada catatan tambahan"}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+  
+                {/* Gallery Section */}
+                <div>
+                  <h3 className="font-semibold text-gray-700 mb-2 text-sm uppercase tracking-wider">Gambar Fasilitas</h3>
+                  <div className="grid grid-cols-3 gap-2">
+                    {detailFasilitas.detail?.file_gambar ? (
+                      <a 
+                        href={`http://127.0.0.1:8000/storage/${detailFasilitas.detail.file_gambar}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="bg-gray-200 rounded-md aspect-square flex items-center justify-center overflow-hidden"
+                      >
+                        <img 
+                          src={`http://127.0.0.1:8000/storage/${detailFasilitas.detail.file_gambar}`} 
+                          alt="Fasilitas" 
+                          className="object-cover w-full h-full"
+                        />
+                      </a>
+                    ) : (
+                      <div className="bg-gray-200 rounded-md aspect-square flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                    )}
+                    {[1, 2].map((i) => (
+                      <div key={i} className="bg-gray-200 rounded-md aspect-square flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                      </div>
+                    ))}
+                  </div>
+                  {!detailFasilitas.detail?.file_gambar && (
+                    <p className="text-xs text-gray-500 mt-2">Belum ada gambar fasilitas</p>
+                  )}
+                </div>
+  
+                {/* Documents Section */}
+                <div>
+                  <h3 className="font-semibold text-gray-700 mb-2 text-sm uppercase tracking-wider">Dokumen</h3>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-200">
+                      <div className="flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                        <span className="text-sm">Dokumen PDF</span>
+                      </div>
+                      {detailFasilitas.detail?.file_pdf ? (
+                        <a 
+                          href={`http://127.0.0.1:8000/storage/${detailFasilitas.detail.file_pdf}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-600 text-sm hover:underline"
+                        >
+                          Lihat
+                        </a>
+                      ) : (
+                        <span className="text-xs text-gray-500">Tidak tersedia</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+  
+                {/* Inventory Section */}
+                <div>
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="font-semibold text-gray-700 text-sm uppercase tracking-wider">Daftar Inventaris</h3>
+                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                      {detailFasilitas.inventaris?.length || 0} Item
+                    </span>
+                  </div>
+                  
+                  {detailFasilitas.inventaris?.length > 0 ? (
+                    <div className="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-100">
+                            <tr>
+                              <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Barang</th>
+                              <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jumlah</th>
+                              <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kondisi</th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {detailFasilitas.inventaris.map((item, index) => (
+                              <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                                <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
+                                  {item.nama_barang}
+                                </td>
+                                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                                  <div className="flex items-center">
+                                    <span>{item.jumlah}</span>
+                                    <span className="ml-1 text-xs text-gray-400">{item.satuan}</span>
+                                  </div>
+                                </td>
+                                <td className="px-3 py-2 whitespace-nowrap">
+                                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${getConditionBadge(item.kondisi)}`}>
+                                    {getConditionLabel(item.kondisi)}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-gray-50 rounded-lg p-4 text-center border border-gray-200">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                      </svg>
+                      <p className="mt-2 text-sm text-gray-500">Tidak ada data inventaris untuk fasilitas ini</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+  
+            {/* Action Buttons - Sticky Bottom */}
+            <div className="sticky bottom-0 bg-white pt-4 pb-2 border-t border-gray-200">
+              <div className="grid grid-cols-2 gap-2 px-4">
+                <button 
+                  onClick={() => {
+                    if (detailFasilitas.detail?.file_360) {
+                      window.open(`http://127.0.0.1:8000/storage/${detailFasilitas.detail.file_360}`, '_blank');
+                    } else {
+                      alert('Tidak ada tampilan 360° yang tersedia untuk fasilitas ini');
+                    }
+                  }}
+                  className="flex items-center justify-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                  </svg>
+                  View 360°
+                </button>
+                <button 
+                  onClick={() => {
+                    if (mapInstanceRef.current && detailFasilitas.geojson) {
+                      const layer = L.geoJSON(detailFasilitas.geojson);
+                      mapInstanceRef.current.fitBounds(layer.getBounds(), { padding: [50, 50] });
+                    }
+                  }}
+                  className="flex items-center justify-center px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md text-sm font-medium transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Navigasi ke Lokasi
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+      
       <div
         ref={mapRef}
         className="w-full h-full"

@@ -1,9 +1,10 @@
 import React, { useState } from "react";
+import { NavLink } from "react-router-dom";
 import PublicPetaTanah from "../public/PemetaanPublic";
 import PublicTanah from "../public/TanahPublic";
-import NavbarLanding from "../components/NavbarLanding";
-import landingphoto from "../assets/landing.png";
-import { TbMap, TbLayoutGrid, TbBuildingWarehouse } from "react-icons/tb";
+import PublicFasilitas from "../public/FasilitasPublic";
+import { TbMap, TbLayoutGrid, TbBuildingWarehouse, TbHome } from "react-icons/tb";
+import logo from "../assets/logo.png";
 
 const PetaTanahPage = () => {
   const [activeTab, setActiveTab] = useState("pemetaan");
@@ -11,82 +12,73 @@ const PetaTanahPage = () => {
   return (
     <div className="p-4">
       <div className="bg-white rounded-lg shadow-md p-4">
-        <div className="flex justify-center items-center mb-8">
-          <h1 className="text-4xl md:text-5xl font-bold text-center">
-            <span className="text-kuning">PC</span>{" "}
-            <span className="text-hijau">Persis Banjaran</span>
-          </h1>
-        </div>
+        {/* Combined Header with Logo and Tabs in one line */}
+        <div className="flex items-center justify-between mb-6">
+          {/* Logo and Title */}
+          <div className="flex items-center">
+            <img src={logo} alt="Logo" className="w-10 h-12" />
+            <div className="text-left ml-4">
+              <h1 className="text-[14px] font-bold">
+                <span className="text-hijau">Waqf</span>{" "}
+                <span className="text-kuning">Management</span>
+              </h1>
+              <p className="text-[12px] font-bold text-hijau">PC Persis Banjaran</p>
+            </div>
+          </div>
 
-        {/* Tab Navigation */}
-        <div className="flex border-b border-gray-200 mb-6">
-          <button
-            className={`flex items-center py-3 px-6 font-medium text-sm rounded-t-lg mr-2 ${
-              activeTab === "pemetaan"
-                ? "bg-blue-50 text-blue-600 border-b-2 border-blue-600"
-                : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-            }`}
-            onClick={() => setActiveTab("pemetaan")}
-          >
-            <TbMap className="mr-2" size={18} />
-            Pemetaan
-          </button>
+          {/* Tabs aligned with logo */}
+          <div className="flex items-center space-x-1">
+            <NavLink
+              to="/"
+              className="flex items-center py-2 px-4 text-sm rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
+            >
+              <TbHome className="mr-1" size={16} />
+              Beranda
+            </NavLink>
 
-          <button
-            className={`flex items-center py-3 px-6 font-medium text-sm rounded-t-lg mr-2 ${
-              activeTab === "tanah"
-                ? "bg-blue-50 text-blue-600 border-b-2 border-blue-600"
-                : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-            }`}
-            onClick={() => setActiveTab("tanah")}
-          >
-            <TbLayoutGrid className="mr-2" size={18} />
-            Data Tanah
-          </button>
+            <button
+              onClick={() => setActiveTab("pemetaan")}
+              className={`flex items-center py-2 px-4 text-sm rounded-lg transition-colors ${
+                activeTab === "pemetaan"
+                  ? "bg-blue-100 text-blue-600"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              <TbMap className="mr-1" size={16} />
+              Pemetaan
+            </button>
 
-          <button
-            className={`flex items-center py-3 px-6 font-medium text-sm rounded-t-lg ${
-              activeTab === "fasilitas"
-                ? "bg-blue-50 text-blue-600 border-b-2 border-blue-600"
-                : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-            }`}
-            onClick={() => setActiveTab("fasilitas")}
-          >
-            <TbBuildingWarehouse className="mr-2" size={18} />
-            Data Fasilitas
-          </button>
+            <button
+              onClick={() => setActiveTab("tanah")}
+              className={`flex items-center py-2 px-4 text-sm rounded-lg transition-colors ${
+                activeTab === "tanah"
+                  ? "bg-blue-100 text-blue-600"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              <TbLayoutGrid className="mr-1" size={16} />
+              Tanah
+            </button>
+
+            <button
+              onClick={() => setActiveTab("fasilitas")}
+              className={`flex items-center py-2 px-4 text-sm rounded-lg transition-colors ${
+                activeTab === "fasilitas"
+                  ? "bg-blue-100 text-blue-600"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              <TbBuildingWarehouse className="mr-1" size={16} />
+              Fasilitas
+            </button>
+          </div>
         </div>
 
         {/* Tab Content */}
         <div className="tab-content">
-          {activeTab === "pemetaan" && (
-            <div className="animate-fadeIn">
-              <PublicPetaTanah />
-            </div>
-          )}
-
-          {activeTab === "tanah" && (
-            <div className="animate-fadeIn p-4">
-              <div className="bg-gray-50 p-4 rounded-lg">
-                {/* Placeholder for tanah data table */}
-                <p className="text-gray-500">
-                  <PublicTanah />
-                </p>
-              </div>
-            </div>
-          )}
-
-          {activeTab === "fasilitas" && (
-            <div className="animate-fadeIn p-4">
-              <h2 className="text-xl font-bold mb-4">Data Fasilitas</h2>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                {/* Placeholder for fasilitas data table */}
-                <p className="text-gray-500">
-                  Data fasilitas akan ditampilkan di sini
-                </p>
-              </div>
-            </div>
-          )}
+          {activeTab === "pemetaan" && <PublicPetaTanah />}
+          {activeTab === "tanah" && <PublicTanah />}
+          {activeTab === "fasilitas" && <PublicFasilitas />}
         </div>
       </div>
     </div>

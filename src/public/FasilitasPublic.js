@@ -1,11 +1,10 @@
 import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { FaEye, FaMap } from "react-icons/fa";
+import { FaEye } from "react-icons/fa";
 
-const PublicDataTanah = () => {
-  // State management
-  const [tanahData, setTanahData] = useState([]);
+const PublicFasilitasTanah = () => {
+  const [fasilitasData, setFasilitasData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
@@ -13,16 +12,15 @@ const PublicDataTanah = () => {
   const [itemsPerPage] = useState(5);
   const navigate = useNavigate();
 
-  // Fetch data
   const fetchData = async () => {
     try {
       const response = await axios.get(
-        "http://127.0.0.1:8000/api/tanah/public"
+        "http://127.0.0.1:8000/api/fasilitas/public"
       );
-      setTanahData(response.data.data || []);
+      setFasilitasData(response.data.data || []);
     } catch (error) {
       console.error("Gagal mengambil data:", error);
-      setError("Gagal memuat data tanah");
+      setError("Gagal memuat data fasilitas");
     } finally {
       setLoading(false);
     }
@@ -32,33 +30,26 @@ const PublicDataTanah = () => {
     fetchData();
   }, []);
 
-  // Search and pagination
   const filteredData = useMemo(() => {
-    return tanahData.filter(
+    return fasilitasData.filter(
       (item) =>
-        (item.NamaPimpinanJamaah?.toLowerCase() || "").includes(
+        (item.jenis_fasilitas?.toLowerCase() || "").includes(
           search.toLowerCase()
         ) ||
-        (item.NamaWakif?.toLowerCase() || "").includes(search.toLowerCase()) ||
-        (item.lokasi?.toLowerCase() || "").includes(search.toLowerCase())
+        (item.nama_fasilitas?.toLowerCase() || "").includes(
+          search.toLowerCase()
+        ) ||
+        (item.kategori_fasilitas?.toLowerCase() || "").includes(
+          search.toLowerCase()
+        )
     );
-  }, [tanahData, search]);
+  }, [fasilitasData, search]);
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const paginatedData = filteredData.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
-
-  // UI helpers
-  const getStatusStyle = (status) => {
-    switch (status) {
-      case "disetujui":
-        return "bg-[#AFFEB5] text-[#187556]";
-      default:
-        return "bg-[#FFEFBA] text-[#FECC23]";
-    }
-  };
 
   const handlePageChange = (page) => {
     if (page >= 1 && page <= totalPages) {
@@ -91,11 +82,10 @@ const PublicDataTanah = () => {
 
   return (
     <div className="p-4">
-      {/* Header Section */}
       <div className="relative mb-4 flex justify-between items-center p-4 bg-white shadow-sm rounded-lg">
         <div>
           <h2 className="text-xl font-semibold text-gray-800">
-            Data Tanah Wakaf
+            Data Fasilitas Wakaf
           </h2>
           <p className="text-sm text-gray-500">PC Persis Banjaran</p>
         </div>
@@ -103,7 +93,7 @@ const PublicDataTanah = () => {
         <div className="flex items-center space-x-3">
           <input
             type="text"
-            placeholder="Cari data tanah..."
+            placeholder="Cari data fasilitas..."
             className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#187556] focus:border-transparent"
             value={search}
             onChange={(e) => {
@@ -114,12 +104,11 @@ const PublicDataTanah = () => {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         {loading ? (
           <div className="p-8 text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#187556]"></div>
-            <p className="mt-2 text-gray-600">Memuat data tanah...</p>
+            <p className="mt-2 text-gray-600">Memuat data fasilitas...</p>
           </div>
         ) : error ? (
           <div className="p-8 text-center">
@@ -133,7 +122,6 @@ const PublicDataTanah = () => {
           </div>
         ) : (
           <>
-            {/* Data Table */}
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-white">
@@ -142,19 +130,13 @@ const PublicDataTanah = () => {
                       No
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Pimpinan Jamaah
+                      Jenis Fasilitas
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Nama Wakif
+                      Nama Fasilitas
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Lokasi
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Luas Tanah
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Legalitas
+                      Kategori
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Aksi
@@ -164,61 +146,36 @@ const PublicDataTanah = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {paginatedData.length > 0 ? (
                     paginatedData.map((item, index) => (
-                      <tr key={item.id_tanah} className="hover:bg-gray-50">
+                      <tr key={item.id_pemetaan_fasilitas} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {(currentPage - 1) * itemsPerPage + index + 1}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {item.NamaPimpinanJamaah || "-"}
+                          {item.jenis_fasilitas || "-"}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {item.NamaWakif || "-"}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate hover:max-w-none hover:whitespace-normal">
-                          {item.lokasi || "-"}
+                          {item.nama_fasilitas || "-"}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {item.luasTanah
-                            ? `${item.luasTanah.replace(
-                                /\B(?=(\d{3})+(?!\d))/g,
-                                "."
-                              )} m²`
-                            : "-"}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div
-                              className={`inline-block px-4 py-2 rounded-[30px] ${
-                                item.legalitas === "SW"
-                                  ? "bg-[#AFFEB5] text-[#187556]"
-                                  : item.legalitas === "AIW"
-                                  ? "bg-[#acdfff] text-[#3175f3]"
-                                  : "bg-[#FFEFBA] text-[#ffc400]"
-                              }`}
-                            >
-                              {item.legalitas || "-"}
-                            </div>
-                          </div>
+                          {item.kategori_fasilitas || "-"}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex space-x-2">
                           <button
                             onClick={() =>
-                              navigate(`/detail/tanah/public/${item.id_tanah}`)
+                              navigate(`/detail/fasilitas/public/${item.id_pemetaan_fasilitas}`)
                             }
                             className="p-1 text-gray-400 hover:text-gray-600"
                             title="Detail"
                           >
                             <FaEye />
                           </button>
-                          </div>
                         </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
                       <td
-                        colSpan={8}
+                        colSpan={5}
                         className="px-6 py-4 text-center text-sm text-gray-500"
                       >
                         Tidak ada data yang ditemukan
@@ -229,7 +186,6 @@ const PublicDataTanah = () => {
               </table>
             </div>
 
-            {/* Pagination */}
             {totalPages > 1 && (
               <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
                 <div className="flex items-center justify-between">
@@ -302,4 +258,4 @@ const PublicDataTanah = () => {
   );
 };
 
-export default PublicDataTanah;
+export default PublicFasilitasTanah;
