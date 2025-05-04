@@ -36,37 +36,125 @@ const PemetaanSidebar = () => {
   const [sertifikatData, setSertifikatData] = useState([]);
   const [fasilitasDetailData, setFasilitasDetailData] = useState({});
   const [showFacilityList, setShowFacilityList] = useState(true);
+  const [users, setUsers] = useState([]);
+  const [selectedUserId, setSelectedUserId] = useState(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const fetchFasilitasDetailData = async (id_pemetaan_fasilitas) => {
-    if (!id_pemetaan_fasilitas) {
-      console.error("ID Pemetaan Fasilitas tidak valid");
-      return null;
-    }
-
+  // Fetch data user untuk dropdown filter
+  const fetchUsers = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get(
-        `http://127.0.0.1:8000/api/fasilitas/pemetaan/${id_pemetaan_fasilitas}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      console.log("API response:", response.data);
-      console.log("ID Pemetaan Fasilitas:", id_pemetaan_fasilitas);
-
-      if (response.data && response.data.data) {
-        return response.data.data;
-      } else {
-        console.warn("No detail data found in response", response);
-        return null;
-      }
+      const response = await axios.get(`http://127.0.0.1:8000/api/data/user`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setUsers(response.data.data || []);
     } catch (err) {
-      console.error("Error fetching fasilitas detail data:", err);
-      return null;
+      console.error("Error fetching users:", err);
+      setError("Gagal memuat daftar user");
     }
   };
 
+  // Modifikasi fetchPemetaanData untuk menerima parameter userId
+  const fetchPemetaanData = async (userId = null) => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      let url = `http://127.0.0.1:8000/api/pemetaan/tanah`;
+
+      if (userId) {
+        url = `http://127.0.0.1:8000/api/pemetaan/user/pemetaan-tanah/${userId}`;
+      }
+
+      const response = await axios.get(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.data.data && response.data.data.length > 0) {
+        const enrichedData = await Promise.all(
+          response.data.data.map(async (item) => {
+            const tanah = await fetchTanahData(item.id_tanah);
+            const sertifikat = await fetchSertifikatData(item.id_tanah);
+            const geojson = item.geometri ? wkbToGeoJSON(item.geometri) : null;
+
+            return {
+              ...item,
+              geojson,
+              tanahData: tanah,
+              sertifikatData: sertifikat,
+            };
+          })
+        );
+
+        setPemetaanData(enrichedData);
+      } else {
+        setPemetaanData([]);
+      }
+    } catch (err) {
+      console.error("Error fetching data:", err);
+      setError(err.message || "Gagal memuat data pemetaan");
+      setPemetaanData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Modifikasi fetchFasilitasData untuk menerima parameter userId
+  const fetchFasilitasData = async (userId = null) => {
+    try {
+      const token = localStorage.getItem("token");
+      let url = `http://127.0.0.1:8000/api/pemetaan/fasilitas`;
+
+      if (userId) {
+        url = `http://127.0.0.1:8000/api/pemetaan/user/pemetaan-fasilitas/${userId}`;
+      }
+
+      const response = await axios.get(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.data.data && response.data.data.length > 0) {
+        const dataWithGeoJSON = response.data.data.map((item) => {
+          if (item.geometri) {
+            const geojson = wkbToGeoJSON(item.geometri);
+            return { ...item, geojson };
+          }
+          return item;
+        });
+        setFasilitasData(dataWithGeoJSON);
+      } else {
+        setFasilitasData([]);
+      }
+    } catch (err) {
+      console.error("Error fetching fasilitas data:", err);
+      setFasilitasData([]);
+    }
+  };
+
+  // Handler untuk filter berdasarkan user
+  const handleFilterByUser = (userId) => {
+    setSelectedUserId(userId);
+    setIsDropdownOpen(false);
+    setSearchTerm("");
+    fetchPemetaanData(userId);
+    fetchFasilitasData(userId);
+  };
+
+  // Handler untuk reset filter
+  const handleResetFilter = () => {
+    setSelectedUserId(null);
+    setIsDropdownOpen(false);
+    setSearchTerm("");
+    fetchPemetaanData();
+    fetchFasilitasData();
+  };
+
+  // Filter users berdasarkan search term
+  const filteredUsers = users.filter((user) =>
+    user.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Fungsi untuk konversi WKB ke GeoJSON
   const wkbToGeoJSON = (geometryData) => {
     try {
       if (typeof geometryData === "object" && geometryData.type) {
@@ -104,6 +192,7 @@ const PemetaanSidebar = () => {
     }
   };
 
+  // Fungsi untuk fetch detail tanah
   const fetchTanahData = async (tanahId) => {
     try {
       const token = localStorage.getItem("token");
@@ -120,6 +209,7 @@ const PemetaanSidebar = () => {
     }
   };
 
+  // Fungsi untuk fetch sertifikat
   const fetchSertifikatData = async (tanahId) => {
     try {
       const token = localStorage.getItem("token");
@@ -136,261 +226,39 @@ const PemetaanSidebar = () => {
     }
   };
 
-  const deletePemetaan = async (id) => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.delete(
-        `http://127.0.0.1:8000/api/pemetaan/tanah/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      await fetchPemetaanData();
-    } catch (err) {
-      console.error("Gagal menghapus data pemetaan:", err);
-      alert(
-        `Gagal menghapus data pemetaan: ${
-          err.response?.data?.message || err.message
-        }`
-      );
+  // Fungsi untuk fetch detail fasilitas
+  const fetchFasilitasDetailData = async (id_pemetaan_fasilitas) => {
+    if (!id_pemetaan_fasilitas) {
+      console.error("ID Pemetaan Fasilitas tidak valid");
+      return null;
     }
-  };
 
-  const deleteFasilitas = async (id) => {
     try {
-      const token = localStorage.getItem("token");
-      const response = await axios.delete(
-        `http://127.0.0.1:8000/api/pemetaan/fasilitas/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      await fetchFasilitasData();
-    } catch (err) {
-      console.error("Gagal menghapus data fasilitas:", err);
-      alert(
-        `Gagal menghapus data fasilitas: ${
-          err.response?.data?.message || err.message
-        }`
-      );
-    }
-  };
-
-  const fetchPemetaanData = async () => {
-    try {
-      setLoading(true);
       const token = localStorage.getItem("token");
       const response = await axios.get(
-        `http://127.0.0.1:8000/api/pemetaan/tanah`,
+        `http://127.0.0.1:8000/api/fasilitas/pemetaan/${id_pemetaan_fasilitas}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
 
-      if (response.data.data && response.data.data.length > 0) {
-        // Fetch tanah data for each pemetaan
-        const enrichedData = await Promise.all(
-          response.data.data.map(async (item) => {
-            const tanah = await fetchTanahData(item.id_tanah);
-            const sertifikat = await fetchSertifikatData(item.id_tanah);
-            const geojson = item.geometri ? wkbToGeoJSON(item.geometri) : null;
-
-            return {
-              ...item,
-              geojson,
-              tanahData: tanah,
-              sertifikatData: sertifikat,
-            };
-          })
-        );
-
-        setPemetaanData(enrichedData);
+      if (response.data && response.data.data) {
+        return response.data.data;
       } else {
-        setPemetaanData([]);
+        console.warn("No detail data found in response", response);
+        return null;
       }
     } catch (err) {
-      console.error("Error fetching data:", err);
-      setError(err.message || "Gagal memuat data pemetaan");
-      setPemetaanData([]);
-    } finally {
-      setLoading(false);
+      console.error("Error fetching fasilitas detail data:", err);
+      return null;
     }
   };
 
-  const fetchFasilitasData = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(
-        `http://127.0.0.1:8000/api/pemetaan/fasilitas`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      if (response.data.data && response.data.data.length > 0) {
-        const dataWithGeoJSON = response.data.data.map((item) => {
-          if (item.geometri) {
-            const geojson = wkbToGeoJSON(item.geometri);
-            return { ...item, geojson };
-          }
-          return item;
-        });
-        setFasilitasData(dataWithGeoJSON);
-      } else {
-        setFasilitasData([]);
-      }
-    } catch (err) {
-      console.error("Error fetching fasilitas data:", err);
-      setFasilitasData([]);
-    }
-  };
-
-  const PopupContent = ({ item, onDelete, navigate }) => {
-    const [detailData, setDetailData] = useState(null);
-    const popupRef = useRef(null);
-
-    useEffect(() => {
-      console.log(
-        "ID Fasilitas yang diproses (PopupContent):",
-        item.id_pemetaan_fasilitas
-      );
-      if (item.id_pemetaan_fasilitas) {
-        const checkDetail = async () => {
-          const data = await fetchFasilitasDetailData(
-            item.id_pemetaan_fasilitas
-          );
-          setDetailData(data);
-        };
-        checkDetail();
-      }
-    }, [item.id_pemetaan_fasilitas]);
-
-    const handleDetailAction = () => {
-      if (detailData) {
-        // Make sure detailData is fully loaded before showing the modal
-        console.log("Detail data:", detailData); // Add this for debugging
-        showDetailModal(detailData, item);
-      } else {
-        navigate(`/fasilitas/create/${item.id_pemetaan_fasilitas}`, {
-          state: {
-            fasilitas: item,
-          },
-        });
-      }
-    };
-
-    const handleAddInventaris = () => {
-      navigate("/inventaris/create", {
-        state: {
-          fasilitas: item,
-        },
-      });
-    };
-
-    return (
-      <FasilitasPopupCard
-        item={item}
-        popupRef={popupRef}
-        detailData={detailData}
-        handleDetailAction={handleDetailAction}
-        onDelete={onDelete}
-      />
-    );
-  };
-
-  const showDetailModal = (detailData, fasilitasData) => {
-    console.log("=== DETAIL DATA ===", detailData);
-    console.log("=== FASILITAS DATA ===", fasilitasData);
-
-    // Cek spesifik nilai file_gambar
-    console.log("Nilai detailData.file_gambar:", detailData[0]?.file_gambar);
-
-    // Ensure we have valid data objects to work with
-    if (!detailData) {
-      console.error("Detail data is missing or invalid");
-      alert("Error: Data detail fasilitas tidak ditemukan.");
-      return;
-    }
-
-    const modal = document.createElement("div");
-    modal.className =
-      "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4";
-
-    modal.innerHTML = getFasilitasModalHTML(fasilitasData, detailData);
-
-    document.body.appendChild(modal);
-
-    // Handle tombol Lihat Inventaris
-    const viewInventarisButton = modal.querySelector(".btn-view-inventaris");
-    viewInventarisButton.addEventListener("click", () => {
-      if (!detailData || typeof detailData[0].id_fasilitas === "undefined") {
-        console.error(
-          "Cannot view inventory: detailData is missing or invalid",
-          detailData
-        );
-        alert("Data fasilitas tidak valid. Tidak dapat melihat inventaris.");
-        return;
-      }
-
-      document.body.removeChild(modal);
-      navigate(`/inventaris/fasilitas/${detailData[0].id_fasilitas}`, {
-        state: {
-          fasilitasData: fasilitasData || {},
-          detailData: detailData || {},
-        },
-      });
-    });
-
-    // Handle edit button
-    const editButton = modal.querySelector(".btn-edit-detail");
-    editButton.addEventListener("click", () => {
-      if (!detailData || typeof detailData[0].id_fasilitas === "undefined") {
-        console.error(
-          "Cannot edit: detailData is missing or invalid",
-          detailData
-        );
-        alert("Data fasilitas tidak valid. Tidak dapat melanjutkan edit.");
-        return;
-      }
-
-      document.body.removeChild(modal);
-      navigate(`/fasilitas/edit/${detailData[0].id_fasilitas}`, {
-        state: {
-          pemetaanFasilitasData: fasilitasData || [],
-          detailData: detailData || {},
-        },
-      });
-    });
-
-    // Handle 360° view button if exists
-    if (detailData.file_360) {
-      const view360Button = modal.querySelector(".btn-view-360");
-      if (view360Button) {
-        view360Button.addEventListener("click", () => {
-          window.open(
-            `http://127.0.0.1:8000/storage/${detailData.file_360}`,
-            "_blank"
-          );
-        });
-      }
-    }
-
-    // Handle close buttons
-    const closeButtons = modal.querySelectorAll(".btn-close-modal");
-    closeButtons.forEach((btn) => {
-      btn.addEventListener("click", () => {
-        document.body.removeChild(modal);
-      });
-    });
-  };
-
+  // Fungsi untuk inisialisasi peta
   const initializeMap = () => {
     if (!mapRef.current || mapInstanceRef.current) return;
-    // Clear any existing map content
+
+    // Clear existing map
     while (mapRef.current.firstChild) {
       mapRef.current.removeChild(mapRef.current.firstChild);
     }
@@ -404,7 +272,7 @@ const PemetaanSidebar = () => {
 
     mapInstanceRef.current = mapInstance;
 
-    // Sumber peta satelit dengan zoom tinggi
+    // Base layers
     const baseLayers = {
       "MapTiler Satellite": L.tileLayer(
         "https://api.maptiler.com/maps/hybrid/{z}/{x}/{y}.jpg?key=insgtVNzCo53KJvnDTe0",
@@ -432,15 +300,15 @@ const PemetaanSidebar = () => {
       ),
     };
 
-    // Tambahkan layer default (MapTiler)
+    // Add default layer
     baseLayers["MapTiler Satellite"].addTo(mapInstance);
 
-    // Tambahkan kontrol layer
+    // Add layer control
     L.control
       .layers(baseLayers, null, { position: "topright" })
       .addTo(mapInstance);
 
-    // Layer untuk label (opsional)
+    // Add labels layer
     L.tileLayer(
       "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
       {
@@ -463,8 +331,10 @@ const PemetaanSidebar = () => {
     return mapInstance;
   };
 
+  // Fungsi untuk render data ke peta
   const renderMapData = (mapInstance) => {
     if (!mapInstance) return;
+
     // Clear existing layers except base tile layer
     if (drawnItemsRef.current) {
       mapInstance.removeLayer(drawnItemsRef.current);
@@ -487,7 +357,7 @@ const PemetaanSidebar = () => {
           try {
             const geoJSONLayer = L.geoJSON(item.geojson, {
               style: {
-                color: "#ffff", // Red for land mapping
+                color: "#ffff",
                 weight: 3,
                 opacity: 1,
                 fillOpacity: 0.3,
@@ -572,9 +442,8 @@ const PemetaanSidebar = () => {
       noDataNotice.addTo(mapInstance);
     }
 
-    // Render fasilitas mappings with different color
+    // Render fasilitas mappings
     if (fasilitasData.length > 0) {
-      // Pertama, fetch semua detail fasilitas sekaligus
       const fetchAllFacilityDetails = async () => {
         const token = localStorage.getItem("token");
         const detailsPromises = fasilitasData.map(async (item) => {
@@ -584,10 +453,6 @@ const PemetaanSidebar = () => {
               {
                 headers: { Authorization: `Bearer ${token}` },
               }
-            );
-            console.log(
-              "id pemetaan fasilitas lain : ",
-              item.id_pemetaan_fasilitas
             );
             return {
               ...item,
@@ -607,7 +472,6 @@ const PemetaanSidebar = () => {
         return Promise.all(detailsPromises);
       };
 
-      // Kemudian render semua fasilitas setelah data lengkap
       fetchAllFacilityDetails().then((enrichedFacilities) => {
         enrichedFacilities.forEach((item) => {
           if (item.geojson && item.geojson.geometry) {
@@ -645,7 +509,176 @@ const PemetaanSidebar = () => {
     }
   };
 
+  // Komponen PopupContent untuk fasilitas
+  const PopupContent = ({ item, onDelete, navigate }) => {
+    const [detailData, setDetailData] = useState(null);
+    const popupRef = useRef(null);
+
+    useEffect(() => {
+      if (item.id_pemetaan_fasilitas) {
+        const checkDetail = async () => {
+          const data = await fetchFasilitasDetailData(
+            item.id_pemetaan_fasilitas
+          );
+          setDetailData(data);
+        };
+        checkDetail();
+      }
+    }, [item.id_pemetaan_fasilitas]);
+
+    const handleDetailAction = () => {
+      if (detailData) {
+        showDetailModal(detailData, item);
+      } else {
+        navigate(`/fasilitas/create/${item.id_pemetaan_fasilitas}`, {
+          state: {
+            fasilitas: item,
+          },
+        });
+      }
+    };
+
+    const handleAddInventaris = () => {
+      navigate("/inventaris/create", {
+        state: {
+          fasilitas: item,
+        },
+      });
+    };
+
+    return (
+      <FasilitasPopupCard
+        item={item}
+        popupRef={popupRef}
+        detailData={detailData}
+        handleDetailAction={handleDetailAction}
+        onDelete={onDelete}
+      />
+    );
+  };
+
+  // Fungsi untuk menampilkan modal detail
+  const showDetailModal = (detailData, fasilitasData) => {
+    if (!detailData) {
+      console.error("Detail data is missing or invalid");
+      alert("Error: Data detail fasilitas tidak ditemukan.");
+      return;
+    }
+
+    const modal = document.createElement("div");
+    modal.className =
+      "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4";
+
+    modal.innerHTML = getFasilitasModalHTML(fasilitasData, detailData);
+
+    document.body.appendChild(modal);
+
+    // Handle tombol Lihat Inventaris
+    const viewInventarisButton = modal.querySelector(".btn-view-inventaris");
+    viewInventarisButton.addEventListener("click", () => {
+      if (!detailData || typeof detailData[0].id_fasilitas === "undefined") {
+        console.error(
+          "Cannot view inventory: detailData is missing or invalid",
+          detailData
+        );
+        alert("Data fasilitas tidak valid. Tidak dapat melihat inventaris.");
+        return;
+      }
+
+      document.body.removeChild(modal);
+      navigate(`/inventaris/fasilitas/${detailData[0].id_fasilitas}`, {
+        state: {
+          fasilitasData: fasilitasData || {},
+          detailData: detailData || {},
+        },
+      });
+    });
+
+    // Handle edit button
+    const editButton = modal.querySelector(".btn-edit-detail");
+    editButton.addEventListener("click", () => {
+      if (!detailData || typeof detailData[0].id_fasilitas === "undefined") {
+        console.error(
+          "Cannot edit: detailData is missing or invalid",
+          detailData
+        );
+        alert("Data fasilitas tidak valid. Tidak dapat melanjutkan edit.");
+        return;
+      }
+
+      document.body.removeChild(modal);
+      navigate(`/fasilitas/edit/${detailData[0].id_fasilitas}`, {
+        state: {
+          pemetaanFasilitasData: fasilitasData || [],
+          detailData: detailData || {},
+        },
+      });
+    });
+
+    // Handle 360° view button if exists
+    if (detailData.file_360) {
+      const view360Button = modal.querySelector(".btn-view-360");
+      if (view360Button) {
+        view360Button.addEventListener("click", () => {
+          window.open(
+            `http://127.0.0.1:8000/storage/${detailData.file_360}`,
+            "_blank"
+          );
+        });
+      }
+    }
+
+    // Handle close buttons
+    const closeButtons = modal.querySelectorAll(".btn-close-modal");
+    closeButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.body.removeChild(modal);
+      });
+    });
+  };
+
+  // Fungsi untuk menghapus pemetaan
+  const deletePemetaan = async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(`http://127.0.0.1:8000/api/pemetaan/tanah/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      await fetchPemetaanData(selectedUserId);
+    } catch (err) {
+      console.error("Gagal menghapus data pemetaan:", err);
+      alert(
+        `Gagal menghapus data pemetaan: ${
+          err.response?.data?.message || err.message
+        }`
+      );
+    }
+  };
+
+  // Fungsi untuk menghapus fasilitas
+  const deleteFasilitas = async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(`http://127.0.0.1:8000/api/pemetaan/fasilitas/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      await fetchFasilitasData(selectedUserId);
+    } catch (err) {
+      console.error("Gagal menghapus data fasilitas:", err);
+      alert(
+        `Gagal menghapus data fasilitas: ${
+          err.response?.data?.message || err.message
+        }`
+      );
+    }
+  };
+
   useEffect(() => {
+    fetchUsers();
     fetchPemetaanData();
     fetchFasilitasData();
   }, []);
@@ -667,8 +700,124 @@ const PemetaanSidebar = () => {
   return (
     <Sidebar>
       <div className="p-4 bg-white rounded-lg shadow-md mb-4">
-        <h2 className="text-xl font-medium">Pemetaan Tanah</h2>
-        <p className="text-gray-500">PC Persis Banjaran</p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-xl font-medium">Pemetaan Tanah</h2>
+            <p className="text-gray-500">PC Persis Banjaran</p>
+          </div>
+
+          {/* Filter Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors duration-200"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              {selectedUserId
+                ? `Filter: ${
+                    users.find((u) => u.id === selectedUserId)?.name || "User"
+                  }`
+                : "Filter by Pimpinan Jamaah"}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className={`h-4 w-4 transition-transform duration-200 ${
+                  isDropdownOpen ? "transform rotate-180" : ""
+                }`}
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+
+            {isDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg z-50 border border-gray-200 overflow-hidden">
+                <div className="p-2 border-b border-gray-200">
+                  <input
+                    type="text"
+                    placeholder="Cari user..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                <div className="max-h-60 overflow-y-auto">
+                  <button
+                    onClick={handleResetFilter}
+                    className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${
+                      !selectedUserId
+                        ? "bg-blue-50 text-blue-600"
+                        : "hover:bg-gray-50"
+                    }`}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+                      />
+                    </svg>
+                    Semua Data
+                  </button>
+                  {filteredUsers.map((user) => (
+                    <button
+                      key={user.id}
+                      onClick={() => handleFilterByUser(user.id)}
+                      className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${
+                        selectedUserId === user.id
+                          ? "bg-blue-50 text-blue-600"
+                          : "hover:bg-gray-50"
+                      }`}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                        />
+                      </svg>
+                      {user.name}
+                    </button>
+                  ))}
+                  {filteredUsers.length === 0 && (
+                    <div className="px-4 py-2 text-sm text-gray-500 text-center">
+                      Tidak ditemukan user
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="flex h-[calc(100vh-180px)]">
@@ -744,7 +893,7 @@ const PemetaanSidebar = () => {
                 ))
               ) : (
                 <div className="p-4 text-center text-gray-500">
-                  Tidak ada data fasilitas
+                  {loading ? "Memuat data..." : "Tidak ada data fasilitas"}
                 </div>
               )}
             </div>
@@ -776,8 +925,17 @@ const PemetaanSidebar = () => {
           )}
 
           {error && (
-            <div className="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg">
+            <div className="absolute top-4 left-4 right-4 z-10 p-4 text-sm text-red-700 bg-red-100 rounded-lg">
               {error}
+            </div>
+          )}
+
+          {loading && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white bg-opacity-70">
+              <div className="flex flex-col items-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-2"></div>
+                <p className="text-gray-600">Memuat peta...</p>
+              </div>
             </div>
           )}
 
