@@ -182,23 +182,25 @@ export function getFasilitasModalHTML(fasilitasData, detailData) {
                   ${
                     detailData[0].file_360
                       ? `
-                    <div class="mt-2">
-                      <button class="btn-view-360 w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <div class="mt-2">
+                        <a href="http://127.0.0.1:8000/storage/${detailData[0].file_360}" target="_blank" rel="noopener noreferrer">
+                          <button class="btn-view-360 w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+                            </svg>
+                            Buka View 360°
+                          </button>
+                        </a>
+                      </div>
+                    `
+                      : `
+                      <div class="mt-2 p-4 bg-gray-100 rounded-lg border border-dashed border-gray-300 text-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
                         </svg>
-                        Buka View 360°
-                      </button>
-                    </div>
-                  `
-                      : `
-                    <div class="mt-2 p-4 bg-gray-100 rounded-lg border border-dashed border-gray-300 text-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
-                      </svg>
-                      <p class="mt-2 text-sm text-gray-500">View 360° tidak tersedia</p>
-                    </div>
-                  `
+                        <p class="mt-2 text-sm text-gray-500">View 360° tidak tersedia</p>
+                      </div>
+                    `
                   }
                 </div>
                 
