@@ -11,6 +11,8 @@ import { getMarkerPopupHTML } from "../components/PemetaanTanah/MarkerPopupConte
 import { getDetailFasilitasHTML } from "../components/PemetaanTanah/GetDetailFasilitas";
 import { getFasilitasPopupHTML } from "../components/PemetaanTanah/FasilitasPopupCard";
 import FasilitasModal from "../components/PemetaanTanah/c_pemetaan_fasilitas";
+import * as turf from "@turf/turf";
+import Swal from "sweetalert2";
 
 // Fix for Leaflet marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -232,14 +234,22 @@ const PetaTanah = ({ tanahId }) => {
   const savePemetaanData = async (geometry) => {
     try {
       const token = localStorage.getItem("token");
+
+      // Calculate area using turf.js
+      const area =
+        geometry.type === "Polygon"
+          ? turf.area(turf.polygon(geometry.coordinates))
+          : 0;
+
       const formData = {
         nama_pemetaan: `Pemetaan ${new Date().toLocaleDateString()}`,
         keterangan: `Dibuat pada ${new Date().toLocaleString()}`,
         jenis_geometri: "POLYGON",
         geometri: JSON.stringify(geometry),
+        luas_tanah: area,
       };
 
-      await axios.post(
+      const response = await axios.post(
         `http://127.0.0.1:8000/api/pemetaan/tanah/${tanahId}`,
         formData,
         {
@@ -251,6 +261,27 @@ const PetaTanah = ({ tanahId }) => {
       );
 
       await fetchPemetaanData();
+
+      // Show comparison with original area
+      if (response.data.calculated_area && tanahData.luasTanah) {
+        const diff = Math.abs(
+          tanahData.luasTanah - response.data.calculated_area
+        );
+        const percentage = (diff / tanahData.luasTanah) * 100;
+
+        Swal.fire({
+          icon: "info",
+          title: "Hasil Pemetaan Disimpan",
+          html: `
+            <b>Luas tanah hasil pemetaan:</b> ${response.data.calculated_area.toFixed(
+              2
+            )} m²<br>
+            <b>Luas tanah asli:</b> ${tanahData.luasTanah} m²<br>
+            <b>Selisih:</b> ${diff.toFixed(2)} m² (${percentage.toFixed(2)}%)
+          `,
+          confirmButtonText: "OK",
+        });
+      }
     } catch (err) {
       console.error("Gagal menyimpan data pemetaan:", err);
       alert(
