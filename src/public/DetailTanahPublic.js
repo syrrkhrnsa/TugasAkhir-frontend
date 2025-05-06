@@ -1,7 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import axios from "axios";
-import { FaEye, FaArrowLeft, FaMapMarkerAlt, FaRulerCombined, FaFileAlt, FaUser } from "react-icons/fa";
+import {
+  FaEye,
+  FaArrowLeft,
+  FaMapMarkerAlt,
+  FaRulerCombined,
+  FaFileAlt,
+  FaUser,
+} from "react-icons/fa";
 
 const DetailTanahPublic = () => {
   const { id } = useParams();
@@ -10,6 +18,11 @@ const DetailTanahPublic = () => {
   const [sertifikatList, setSertifikatList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showMap, setShowMap] = useState(false);
+
+  const toggleMap = () => {
+    setShowMap(!showMap);
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -106,6 +119,11 @@ const DetailTanahPublic = () => {
     );
   }
 
+  const hasCoordinates = tanah.latitude && tanah.longitude;
+  const position = hasCoordinates
+    ? [parseFloat(tanah.latitude), parseFloat(tanah.longitude)]
+    : [-7.0425, 107.5861]; // Default ke Banjaran jika tidak ada koordinat
+
   return (
     <div className="p-4 max-w-6xl mx-auto">
       {/* Header */}
@@ -131,13 +149,15 @@ const DetailTanahPublic = () => {
         <div className="bg-gray-50 px-6 py-4 border-b flex justify-between items-center">
           <div>
             <span className="text-sm font-medium text-gray-500">Status:</span>
-            <span className={`ml-2 px-3 py-1 rounded-full text-sm font-medium ${
-              tanah.legalitas === "SW" 
-                ? "bg-[#AFFEB5] text-[#187556]" 
-                : tanah.legalitas === "AIW" 
-                ? "bg-[#acdfff] text-[#3175f3]" 
-                : "bg-[#FFEFBA] text-[#ffc400]"
-            }`}>
+            <span
+              className={`ml-2 px-3 py-1 rounded-full text-sm font-medium ${
+                tanah.legalitas === "SW"
+                  ? "bg-[#AFFEB5] text-[#187556]"
+                  : tanah.legalitas === "AIW"
+                  ? "bg-[#acdfff] text-[#3175f3]"
+                  : "bg-[#FFEFBA] text-[#ffc400]"
+              }`}
+            >
               {tanah.legalitas || "-"}
             </span>
           </div>
@@ -169,6 +189,55 @@ const DetailTanahPublic = () => {
               <div className="text-sm font-medium text-gray-700">
                 {tanah.lokasi || "-"}
               </div>
+            </div>
+
+            {/* Koordinat */}
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+              <div className="flex justify-between items-center mb-2">
+                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Koordinat
+                </div>
+                {hasCoordinates && (
+                  <button
+                    onClick={toggleMap}
+                    className="text-xs text-blue-500 hover:text-blue-700 flex items-center"
+                  >
+                    <FaMapMarkerAlt className="mr-1" />
+                    {showMap ? "Sembunyikan Peta" : "Tampilkan Peta"}
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-sm text-gray-700">
+                <div>
+                  <span className="font-medium">Latitude:</span>{" "}
+                  {tanah.latitude ? parseFloat(tanah.latitude).toFixed(6) : "-"}
+                </div>
+                <div>
+                  <span className="font-medium">Longitude:</span>{" "}
+                  {tanah.longitude
+                    ? parseFloat(tanah.longitude).toFixed(6)
+                    : "-"}
+                </div>
+              </div>
+
+              {showMap && hasCoordinates && (
+                <div className="mt-3 h-48 rounded-md overflow-hidden">
+                  <MapContainer
+                    center={position}
+                    zoom={15}
+                    style={{ height: "100%", width: "100%" }}
+                  >
+                    <TileLayer
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    />
+                    <Marker position={position}>
+                      <Popup>Lokasi Tanah</Popup>
+                    </Marker>
+                  </MapContainer>
+                </div>
+              )}
             </div>
 
             <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
