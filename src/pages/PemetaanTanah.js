@@ -59,13 +59,13 @@ const PetaTanah = ({ tanahId }) => {
       url: "https://api.maptiler.com/maps/hybrid/{z}/{x}/{y}.jpg?key=insgtVNzCo53KJvnDTe0",
       attribution: "© MapTiler",
     },
-    "USGS Satellite": {
-      url: "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}",
-      attribution: "USGS",
+    "Google Satelit": {
+      url: "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
+      attribution: "Google Satelit",
     },
-    OpenAerialMap: {
-      url: "https://tiles.openaerialmap.org/5a9f90c42553e6000ce5ad6c/{z}/{x}/{y}.png",
-      attribution: "© OpenAerialMap",
+    "Open Street Maps": {
+      url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      attribution: "Open Street Maps",
     },
   };
 
@@ -445,7 +445,7 @@ const PetaTanah = ({ tanahId }) => {
       });
     });
 
-    baseLayers["MapTiler Satellite"].addTo(mapInstance);
+    baseLayers["Google Satelit"].addTo(mapInstance);
     L.control
       .layers(baseLayers, null, { position: "topright" })
       .addTo(mapInstance);
