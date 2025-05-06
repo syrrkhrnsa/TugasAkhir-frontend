@@ -13,6 +13,44 @@ import {
 import { getUserId, getRoleId } from "../utils/Auth";
 import Swal from "sweetalert2";
 import config from "../config";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  useMapEvents,
+} from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+
+// Fix for default marker icons
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+  iconUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+});
+
+// Komponen untuk memilih lokasi di peta
+const LocationPicker = ({ onLocationSelect, initialPosition }) => {
+  const [position, setPosition] = useState(initialPosition);
+
+  useMapEvents({
+    click(e) {
+      setPosition(e.latlng);
+      onLocationSelect(e.latlng);
+    },
+  });
+
+  return position ? (
+    <Marker position={position}>
+      <Popup>Lokasi yang dipilih</Popup>
+    </Marker>
+  ) : null;
+};
 
 const EditTanah = () => {
   const { id } = useParams();
@@ -31,6 +69,12 @@ const EditTanah = () => {
   const [selectedStatusPengajuan, setSelectedStatusPengajuan] = useState("");
   const [selectedItem, setSelectedItem] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const [calculateLuas, setCalculateLuas] = useState(false);
+
+  const [showMap, setShowMap] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [mapPosition, setMapPosition] = useState([-7.0425, 107.5861]);
 
   const roleId = getRoleId();
   const isPimpinanJamaah = roleId === "326f0dde-2851-4e47-ac5a-de6923447317";
@@ -74,6 +118,10 @@ const EditTanah = () => {
 
   const API_KEY =
     "231b062a5d2c75a9f68a41107079fb6bba17c1251089b912ad92d9f572dd974d";
+
+  const handleLocationSelect = (latlng) => {
+    setSelectedLocation(latlng);
+  };
 
   useEffect(() => {
     fetchTanah();
@@ -286,6 +334,14 @@ const EditTanah = () => {
         setCatatan(tanah.catatan || "");
         setAlamatWakif(tanah.alamat_wakif || "");
 
+        // Set koordinat jika ada
+        if (tanah.latitude && tanah.longitude) {
+          setSelectedLocation({
+            lat: parseFloat(tanah.latitude),
+            lng: parseFloat(tanah.longitude),
+          });
+        }
+
         if (tanah.lokasi) {
           const [provName, kabName, kecName, kelName, detail] =
             tanah.lokasi.split(", ");
@@ -335,6 +391,36 @@ const EditTanah = () => {
     setRoleUser(role);
   };
 
+  const handleOpenMap = () => {
+    // Jika sudah ada lokasi terpilih, set posisi peta ke lokasi tersebut
+    if (selectedLocation) {
+      setMapPosition([selectedLocation.lat, selectedLocation.lng]);
+    } else if (tanahData?.latitude && tanahData?.longitude) {
+      // Jika ada data koordinat di database, gunakan itu
+      setMapPosition([
+        parseFloat(tanahData.latitude),
+        parseFloat(tanahData.longitude),
+      ]);
+    } else {
+      // Jika belum ada lokasi terpilih, coba dapatkan lokasi user
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            setMapPosition([latitude, longitude]);
+          },
+          () => {
+            // Jika gagal dapatkan lokasi, gunakan default
+            setMapPosition([-7.0425, 107.5861]);
+          }
+        );
+      } else {
+        setMapPosition([-7.0425, 107.5861]);
+      }
+    }
+    setShowMap(true);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem("token");
@@ -362,57 +448,40 @@ const EditTanah = () => {
       detailLokasi || ""
     }`;
 
+    const data = {
+      NamaPimpinanJamaah,
+      NamaWakif,
+      lokasi: lokasiLengkap,
+      luasTanah,
+      detailLokasi,
+      jenis_tanah: jenisTanah,
+      batas_timur: batasTimur,
+      batas_selatan: batasSelatan,
+      batas_barat: batasBarat,
+      batas_utara: batasUtara,
+      panjang_tanah: panjangTanah,
+      lebar_tanah: lebarTanah,
+      catatan: catatan,
+      alamat_wakif: alamatWakif,
+    };
+
+    // Tambahkan koordinat jika ada
+    if (selectedLocation) {
+      data.latitude = selectedLocation.lat;
+      data.longitude = selectedLocation.lng;
+    } else if (tanahData?.latitude && tanahData?.longitude) {
+      // Jika tidak ada perubahan, gunakan data yang sudah ada
+      data.latitude = tanahData.latitude;
+      data.longitude = tanahData.longitude;
+    }
+
     try {
-      await axios.put(
-        `http://127.0.0.1:8000/api/tanah/${id}`,
-        {
-          NamaPimpinanJamaah,
-          NamaWakif,
-          lokasi: lokasiLengkap,
-          luasTanah,
-          detailLokasi,
-          jenis_tanah: jenisTanah,
-          batas_timur: batasTimur,
-          batas_selatan: batasSelatan,
-          batas_barat: batasBarat,
-          batas_utara: batasUtara,
-          panjang_tanah: panjangTanah,
-          lebar_tanah: lebarTanah,
-          catatan: catatan,
-          alamat_wakif: alamatWakif,
+      await axios.put(`http://127.0.0.1:8000/api/tanah/${id}`, data, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
         },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-          },
-        }
-      );
-
-      const storedTanahList =
-        JSON.parse(localStorage.getItem("tanahList")) || [];
-      const updatedTanahList = storedTanahList.map((tanah) =>
-        tanah.id_tanah === id
-          ? {
-              ...tanah,
-              NamaPimpinanJamaah,
-              NamaWakif,
-              lokasi: lokasiLengkap,
-              luasTanah,
-              jenis_tanah: jenisTanah,
-              batas_timur: batasTimur,
-              batas_selatan: batasSelatan,
-              batas_barat: batasBarat,
-              batas_utara: batasUtara,
-              panjang_tanah: panjangTanah,
-              lebar_tanah: lebarTanah,
-              catatan: catatan,
-              alamat_wakif: alamatWakif,
-            }
-          : tanah
-      );
-
-      localStorage.setItem("tanahList", JSON.stringify(updatedTanahList));
+      });
 
       Swal.fire({
         icon: "success",
@@ -438,6 +507,10 @@ const EditTanah = () => {
     const timeDifference = today - targetDate;
     const dayDifference = Math.floor(timeDifference / (1000 * 60 * 60 * 24));
     return `${dayDifference} hari`;
+  };
+
+  const formatNumber = (num) => {
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   };
 
   const handlePreviewDokumen = async (dokumen) => {
@@ -577,6 +650,13 @@ const EditTanah = () => {
     }
   };
 
+  useEffect(() => {
+    if (calculateLuas && panjangTanah && lebarTanah) {
+      const luas = parseFloat(panjangTanah) * parseFloat(lebarTanah);
+      setLuasTanah(luas.toString());
+    }
+  }, [panjangTanah, lebarTanah, calculateLuas]);
+
   const handleDeleteSertifikat = async (sertifikatId) => {
     const result = await Swal.fire({
       title: "Apakah Anda yakin?",
@@ -651,54 +731,113 @@ const EditTanah = () => {
             ) : (
               <>
                 <form onSubmit={handleSubmit} className="mt-6">
-                  <div className="grid grid-cols-2 gap-8 justify-center">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {/* Kolom kiri */}
-                    <div className="flex flex-col items-left">
-                      <label className="block text-sm font-medium text-gray-400">
-                        Pimpinan Jamaah
-                      </label>
-                      <select
-                        className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                        value={NamaPimpinanJamaah}
-                        onChange={(e) => setNamaPimpinanJamaah(e.target.value)}
-                        required
-                      >
-                        <option value="" disabled>
-                          Pilih Pimpinan Jamaah
-                        </option>
-                        {users.map((user) => (
-                          <option key={user.id} value={user.name}>
-                            {user.name}
+                    <div className="space-y-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">
+                          Pimpinan Jamaah
+                        </label>
+                        <select
+                          className="w-full border-b-2 border-gray-300 p-2 focus:outline-none focus:border-[#187556] text-left rounded-t"
+                          value={NamaPimpinanJamaah}
+                          onChange={(e) =>
+                            setNamaPimpinanJamaah(e.target.value)
+                          }
+                          required
+                        >
+                          <option value="" disabled>
+                            Pilih Pimpinan Jamaah
                           </option>
-                        ))}
-                      </select>
+                          {users.map((user) => (
+                            <option key={user.id} value={user.name}>
+                              {user.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
 
-                      <label className="block text-sm font-medium text-gray-400 mt-6">
-                        Provinsi
-                      </label>
-                      <select
-                        className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                        value={provinsi}
-                        onChange={(e) => setProvinsi(e.target.value)}
-                        required
-                      >
-                        <option value="" disabled>
-                          Pilih Provinsi
-                        </option>
-                        {provinsiList.map((prov) => (
-                          <option key={prov.id} value={prov.id}>
-                            {prov.name}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">
+                          Nama Wakif
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full border-b-2 border-gray-300 p-2 focus:outline-none focus:border-[#187556] text-left rounded-t"
+                          value={NamaWakif}
+                          onChange={(e) => setNamaWakif(e.target.value)}
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">
+                          Pilih Lokasi di Peta
+                        </label>
+                        <div className="flex flex-col space-y-2">
+                          <button
+                            type="button"
+                            onClick={handleOpenMap}
+                            className="bg-[#187556] text-white px-4 py-2 rounded-md hover:bg-[#0e5a3f] flex items-center justify-center"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-5 w-5 mr-2"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                            {selectedLocation ? "Ubah Lokasi" : "Pilih Lokasi"}
+                          </button>
+                          {selectedLocation && (
+                            <div className="bg-gray-100 p-3 rounded-md">
+                              <p className="text-sm font-medium text-gray-700">
+                                Koordinat Terpilih:
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                Latitude: {selectedLocation.lat.toFixed(6)}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                Longitude: {selectedLocation.lng.toFixed(6)}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">
+                          Provinsi
+                        </label>
+                        <select
+                          className="w-full border-b-2 border-gray-300 p-2 focus:outline-none focus:border-[#187556] text-left rounded-t"
+                          value={provinsi}
+                          onChange={(e) => setProvinsi(e.target.value)}
+                          required
+                        >
+                          <option value="" disabled>
+                            Pilih Provinsi
                           </option>
-                        ))}
-                      </select>
+                          {provinsiList.map((prov) => (
+                            <option key={prov.id} value={prov.id}>
+                              {prov.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
 
                       {provinsi && (
-                        <>
-                          <label className="block text-sm font-medium text-gray-400 mt-6">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-1">
                             Kabupaten/Kota
                           </label>
                           <select
-                            className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
+                            className="w-full border-b-2 border-gray-300 p-2 focus:outline-none focus:border-[#187556] text-left rounded-t"
                             value={kota}
                             onChange={(e) => setKota(e.target.value)}
                             required
@@ -712,16 +851,16 @@ const EditTanah = () => {
                               </option>
                             ))}
                           </select>
-                        </>
+                        </div>
                       )}
 
                       {kota && (
-                        <>
-                          <label className="block text-sm font-medium text-gray-400 mt-6">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-1">
                             Kecamatan
                           </label>
                           <select
-                            className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
+                            className="w-full border-b-2 border-gray-300 p-2 focus:outline-none focus:border-[#187556] text-left rounded-t"
                             value={kecamatan}
                             onChange={(e) => setKecamatan(e.target.value)}
                             required
@@ -735,16 +874,16 @@ const EditTanah = () => {
                               </option>
                             ))}
                           </select>
-                        </>
+                        </div>
                       )}
 
                       {kecamatan && (
-                        <>
-                          <label className="block text-sm font-medium text-gray-400 mt-6">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-1">
                             Kelurahan/Desa
                           </label>
                           <select
-                            className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
+                            className="w-full border-b-2 border-gray-300 p-2 focus:outline-none focus:border-[#187556] text-left rounded-t"
                             value={kelurahan}
                             onChange={(e) => setKelurahan(e.target.value)}
                             required
@@ -758,228 +897,334 @@ const EditTanah = () => {
                               </option>
                             ))}
                           </select>
-                        </>
+                        </div>
                       )}
 
-                      {/* New fields - Column 1 */}
-                      <label className="block text-sm font-medium text-gray-400 mt-6">
-                        Jenis Tanah
-                      </label>
-                      <select
-                        className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                        value={jenisTanah}
-                        onChange={(e) => setJenisTanah(e.target.value)}
-                      >
-                        {jenisTanahOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-
-                      <label className="block text-sm font-medium text-gray-400 mt-6">
-                        Batas Timur
-                      </label>
-                      <input
-                        type="text"
-                        className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                        value={batasTimur}
-                        onChange={(e) => setBatasTimur(e.target.value)}
-                        placeholder="Batas sebelah timur"
-                      />
-
-                      <label className="block text-sm font-medium text-gray-400 mt-6">
-                        Batas Selatan
-                      </label>
-                      <input
-                        type="text"
-                        className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                        value={batasSelatan}
-                        onChange={(e) => setBatasSelatan(e.target.value)}
-                        placeholder="Batas sebelah selatan"
-                      />
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">
+                          Catatan
+                        </label>
+                        <textarea
+                          className="w-full border-2 border-gray-300 rounded-md p-2 focus:outline-none focus:border-[#187556] text-left"
+                          rows="3"
+                          value={catatan}
+                          onChange={(e) => setCatatan(e.target.value)}
+                          placeholder="Tambahkan catatan jika diperlukan"
+                        />
+                      </div>
                     </div>
 
                     {/* Kolom kanan */}
-                    <div className="flex flex-col items-left">
-                      <label className="block text-sm font-medium text-gray-400">
-                        Nama Wakif
-                      </label>
-                      <input
-                        type="text"
-                        className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                        value={NamaWakif}
-                        onChange={(e) => setNamaWakif(e.target.value)}
-                        required
-                      />
-
-                      <label className="block text-sm font-medium text-gray-400 mt-6">
-                        Luas Tanah m²
-                      </label>
-                      <div className="relative w-60">
-                        <input
-                          type="text"
-                          className="w-full border-b-2 border-gray-300 p-2 focus:outline-none text-left pr-10"
-                          value={luasTanah
-                            .replace(/\D/g, "")
-                            .replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
-                          onChange={(e) => {
-                            const numericValue = e.target.value.replace(
-                              /\D/g,
-                              ""
-                            );
-                            setLuasTanah(numericValue);
-                          }}
-                          required
-                        />
-                        <span className="absolute right-2 top-2 text-gray-500">
-                          m²
-                        </span>
+                    <div className="space-y-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">
+                          Jenis Tanah
+                        </label>
+                        <select
+                          className="w-full border-b-2 border-gray-300 p-2 focus:outline-none focus:border-[#187556] text-left rounded-t"
+                          value={jenisTanah}
+                          onChange={(e) => setJenisTanah(e.target.value)}
+                        >
+                          {jenisTanahOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
                       </div>
 
-                      {/* New fields - Column 2 */}
-                      <label className="block text-sm font-medium text-gray-400 mt-6">
-                        Batas Barat
-                      </label>
-                      <input
-                        type="text"
-                        className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                        value={batasBarat}
-                        onChange={(e) => setBatasBarat(e.target.value)}
-                        placeholder="Batas sebelah barat"
-                      />
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-1">
+                            Panjang Tanah (m)
+                          </label>
+                          <input
+                            type="number"
+                            className="w-full border-b-2 border-gray-300 p-2 focus:outline-none focus:border-[#187556] text-left rounded-t"
+                            value={panjangTanah}
+                            onChange={(e) => {
+                              setPanjangTanah(e.target.value);
+                              setCalculateLuas(true);
+                            }}
+                            placeholder="0"
+                            step="0.01"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-1">
+                            Lebar Tanah (m)
+                          </label>
+                          <input
+                            type="number"
+                            className="w-full border-b-2 border-gray-300 p-2 focus:outline-none focus:border-[#187556] text-left rounded-t"
+                            value={lebarTanah}
+                            onChange={(e) => {
+                              setLebarTanah(e.target.value);
+                              setCalculateLuas(true);
+                            }}
+                            placeholder="0"
+                            step="0.01"
+                          />
+                        </div>
+                      </div>
 
-                      <label className="block text-sm font-medium text-gray-400 mt-6">
-                        Batas Utara
-                      </label>
-                      <input
-                        type="text"
-                        className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                        value={batasUtara}
-                        onChange={(e) => setBatasUtara(e.target.value)}
-                        placeholder="Batas sebelah utara"
-                      />
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">
+                          Luas Tanah (m²)
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            className="w-full border-b-2 border-gray-300 p-2 focus:outline-none focus:border-[#187556] text-left rounded-t pr-10"
+                            value={
+                              luasTanah
+                                ? formatNumber(
+                                    parseFloat(luasTanah).toLocaleString(
+                                      "id-ID"
+                                    )
+                                  )
+                                : ""
+                            }
+                            onChange={(e) => {
+                              const numericValue = e.target.value.replace(
+                                /\D/g,
+                                ""
+                              );
+                              setLuasTanah(numericValue);
+                              setCalculateLuas(false);
+                            }}
+                            required
+                          />
+                          <span className="absolute right-2 top-2 text-gray-500">
+                            m²
+                          </span>
+                        </div>
+                        {calculateLuas && panjangTanah && lebarTanah && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Dihitung otomatis: {panjangTanah}m × {lebarTanah}m ={" "}
+                            {formatNumber(
+                              (
+                                parseFloat(panjangTanah) *
+                                parseFloat(lebarTanah)
+                              ).toLocaleString("id-ID")
+                            )}
+                            m²
+                          </p>
+                        )}
+                      </div>
 
-                      <label className="block text-sm font-medium text-gray-400 mt-6">
-                        Panjang Tanah
-                      </label>
-                      <input
-                        type="text"
-                        className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                        value={panjangTanah}
-                        onChange={(e) => setPanjangTanah(e.target.value)}
-                        placeholder="Dalam meter"
-                      />
+                      {/* Batas Timur dan Selatan */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-1">
+                            Batas Timur
+                          </label>
+                          <input
+                            type="text"
+                            className="w-full border-b-2 border-gray-300 p-2 focus:outline-none focus:border-[#187556] text-left"
+                            value={batasTimur}
+                            onChange={(e) => setBatasTimur(e.target.value)}
+                            placeholder="Batas timur"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-1">
+                            Batas Selatan
+                          </label>
+                          <input
+                            type="text"
+                            className="w-full border-b-2 border-gray-300 p-2 focus:outline-none focus:border-[#187556] text-left"
+                            value={batasSelatan}
+                            onChange={(e) => setBatasSelatan(e.target.value)}
+                            placeholder="Batas selatan"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Batas Barat dan Utara */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-1">
+                            Batas Barat
+                          </label>
+                          <input
+                            type="text"
+                            className="w-full border-b-2 border-gray-300 p-2 focus:outline-none focus:border-[#187556] text-left"
+                            value={batasBarat}
+                            onChange={(e) => setBatasBarat(e.target.value)}
+                            placeholder="Batas barat"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-600 mb-1">
+                            Batas Utara
+                          </label>
+                          <input
+                            type="text"
+                            className="w-full border-b-2 border-gray-300 p-2 focus:outline-none focus:border-[#187556] text-left"
+                            value={batasUtara}
+                            onChange={(e) => setBatasUtara(e.target.value)}
+                            placeholder="Batas utara"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">
+                          Detail Lokasi
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full border-b-2 border-gray-300 p-2 focus:outline-none focus:border-[#187556] text-left rounded-t"
+                          value={detailLokasi}
+                          onChange={(e) => setDetailLokasi(e.target.value)}
+                          required
+                          placeholder="Detail alamat (nama jalan, nomor, dll)"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1">
+                          Alamat Wakif
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full border-b-2 border-gray-300 p-2 focus:outline-none focus:border-[#187556] text-left rounded-t"
+                          value={alamatWakif}
+                          onChange={(e) => setAlamatWakif(e.target.value)}
+                          placeholder="Alamat lengkap wakif"
+                        />
+                      </div>
                     </div>
                   </div>
 
-                  {/* Additional fields in full width */}
-                  <div className="mt-6 grid grid-cols-2 gap-8">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-400">
-                        Lebar Tanah
-                      </label>
-                      <input
-                        type="text"
-                        className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                        value={lebarTanah}
-                        onChange={(e) => setLebarTanah(e.target.value)}
-                        placeholder="Dalam meter"
-                      />
+                  {/* Bagian bawah form (full width) */}
+                  <div className="mt-6 space-y-6">
+                    {/* Preview Lokasi */}
+                    <div className="bg-gray-100 p-4 rounded-md shadow-inner">
+                      <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                        Lokasi Tanah Wakaf:
+                      </h3>
+                      <p className="text-gray-600">
+                        {detailLokasi || "-"}
+                        {kelurahan
+                          ? `, ${
+                              kelurahanList.find((k) => k.id === kelurahan)
+                                ?.name || "Belum dipilih"
+                            }`
+                          : ""}
+                        {kecamatan
+                          ? `, ${
+                              kecamatanList.find((k) => k.id === kecamatan)
+                                ?.name || "Belum dipilih"
+                            }`
+                          : ""}
+                        {kota
+                          ? `, ${
+                              kotaList.find((k) => k.id === kota)?.name ||
+                              "Belum dipilih"
+                            }`
+                          : ""}
+                        {provinsi
+                          ? `, ${
+                              provinsiList.find((p) => p.id === provinsi)
+                                ?.name || "Belum dipilih"
+                            }`
+                          : ""}
+                      </p>
                     </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-400">
-                        Alamat Wakif
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                        value={alamatWakif}
-                        onChange={(e) => setAlamatWakif(e.target.value)}
-                        placeholder="Alamat lengkap wakif"
-                      />
-                    </div>
                   </div>
 
-                  <div className="mt-6">
-                    <label className="block text-sm font-medium text-gray-400">
-                      Catatan
-                    </label>
-                    <textarea
-                      className="w-full border-2 border-gray-300 rounded-md p-2 focus:outline-none text-left"
-                      rows="3"
-                      value={catatan}
-                      onChange={(e) => setCatatan(e.target.value)}
-                      placeholder="Tambahkan catatan jika diperlukan"
-                    />
-                  </div>
-
-                  <label className="block text-sm font-medium text-gray-400 mt-6">
-                    Detail Lokasi
-                  </label>
-                  <input
-                    type="text"
-                    className="w-60 border-b-2 border-gray-300 p-2 focus:outline-none text-left"
-                    value={detailLokasi}
-                    onChange={(e) => setDetailLokasi(e.target.value)}
-                    required
-                    placeholder="Detail alamat (nama jalan, nomor, dll)"
-                  />
-
-                  <div className="bg-gray-100 p-4 rounded-md mt-8 shadow-md">
-                    <h3 className="text-lg font-semibold text-gray-700">
-                      Preview Lokasi:
-                    </h3>
-                    <p className="text-gray-600 mt-2">
-                      {detailLokasi || "Detail lokasi belum diisi"}
-                      {kelurahan
-                        ? `, ${
-                            kelurahanList.find((k) => k.id === kelurahan)
-                              ?.name || "Belum dipilih"
-                          }`
-                        : ""}
-                      {kecamatan
-                        ? `, ${
-                            kecamatanList.find((k) => k.id === kecamatan)
-                              ?.name || "Belum dipilih"
-                          }`
-                        : ""}
-                      {kota
-                        ? `, ${
-                            kotaList.find((k) => k.id === kota)?.name ||
-                            "Belum dipilih"
-                          }`
-                        : ""}
-                      {provinsi
-                        ? `, ${
-                            provinsiList.find((p) => p.id === provinsi)?.name ||
-                            "Belum dipilih"
-                          }`
-                        : ""}
-                    </p>
-                  </div>
-
+                  {/* Tombol Simpan */}
                   <div className="flex justify-center mt-8">
                     <button
                       type="submit"
                       className="bg-[#3B82F6] text-white px-6 py-2 rounded-md hover:bg-[#2563EB]"
                     >
-                      Simpan
+                      Simpan Perubahan
                     </button>
                   </div>
                 </form>
+
+                {showMap && (
+                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-[80vh] flex flex-col">
+                      <div className="p-4 border-b flex justify-between items-center">
+                        <h3 className="text-lg font-semibold">
+                          Pilih Lokasi Tanah
+                        </h3>
+                        <button
+                          onClick={() => setShowMap(false)}
+                          className="text-gray-500 hover:text-gray-700"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-6 w-6"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                      <div className="flex-1 relative">
+                        <MapContainer
+                          center={mapPosition}
+                          zoom={15}
+                          style={{ height: "100%", width: "100%" }}
+                          className="z-0"
+                        >
+                          <TileLayer
+                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                          />
+                          <LocationPicker
+                            onLocationSelect={handleLocationSelect}
+                            initialPosition={
+                              selectedLocation
+                                ? [selectedLocation.lat, selectedLocation.lng]
+                                : null
+                            }
+                          />
+                        </MapContainer>
+                      </div>
+                      <div className="p-4 border-t flex justify-end space-x-2">
+                        <button
+                          onClick={() => setShowMap(false)}
+                          className="px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400"
+                        >
+                          Batal
+                        </button>
+                        <button
+                          onClick={() => setShowMap(false)}
+                          className="px-4 py-2 bg-[#187556] text-white rounded-md hover:bg-[#0e5a3f]"
+                          disabled={!selectedLocation}
+                        >
+                          Simpan Lokasi
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="mt-10">
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-bold">Legalitas</h3>
                     <div className="flex gap-2">
                       <button
-                        onClick={() => navigate("/log?type=sertifikat")}
+                        onClick={() =>
+                          navigate(`/log?type=sertifikat&id_tanah=${id}`)
+                        }
                         className="bg-[#10B981] text-white px-2 py-2 text-xs rounded-md hover:bg-[#059669] flex items-center"
                       >
                         <FaHistory className="mr-2 text-xs" />
-                        Riwayat Sertifikat
+                        Riwayat Perubahan Dokumen
                       </button>
                       <button
                         onClick={() =>
@@ -993,7 +1238,7 @@ const EditTanah = () => {
                         className="bg-[#3B82F6] text-white px-2 py-2 text-xs rounded-md hover:bg-[#2563EB] flex items-center"
                       >
                         <FaPlus className="mr-2 text-xs" />
-                        Create Sertifikat
+                        Tambah Dokumen
                       </button>
                     </div>
                   </div>
@@ -1016,7 +1261,7 @@ const EditTanah = () => {
                         </th>
                         {isPimpinanJamaah && (
                           <th className="px-4 py-2 text-center font-medium border-b-2">
-                            Status Approval
+                            Status Pengajuan
                           </th>
                         )}
                         <th className="py-2 px-4 font-medium border-b-2">
@@ -1110,6 +1355,11 @@ const EditTanah = () => {
                                 </div>
                               </td>
                             )}
+                            <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                              {calculateDayDifference(
+                                sertifikat.tanggal_pengajuan
+                              )}
+                            </td>
                             <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
                               {calculateDayDifference(
                                 sertifikat.tanggal_pengajuan

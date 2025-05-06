@@ -10,7 +10,7 @@ const NavbarLanding = () => {
         <img src={logo} alt="Logo" className="w-10 h-12 mt-5" /> {/* Ukuran logo diperbesar */}
         <div className="text-left ml-4">
           <h1 className="text-[14px] font-bold mt-4">
-            <span className="text-hijau">Waqaf</span>{" "}
+            <span className="text-hijau">Waqf</span>{" "}
             <span className="text-kuning">Management</span>
           </h1>
           <p className="text-[12px] font-bold text-hijau">PC Persis Banjaran</p>

@@ -1,10 +1,18 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import axios from "axios";
 import * as wellknown from "wellknown";
 import "leaflet-draw/dist/leaflet.draw.css";
 import "leaflet-draw";
+import { Link, useNavigate } from "react-router-dom";
+import { getTanahPopupHTML } from "../components/PemetaanTanah/PopupTanah";
+import { getMarkerPopupHTML } from "../components/PemetaanTanah/MarkerPopupContent";
+import { getDetailFasilitasHTML } from "../components/PemetaanTanah/GetDetailFasilitas";
+import { getFasilitasPopupHTML } from "../components/PemetaanTanah/FasilitasPopupCard";
+import FasilitasModal from "../components/PemetaanTanah/c_pemetaan_fasilitas";
+import * as turf from "@turf/turf";
+import Swal from "sweetalert2";
 
 // Fix for Leaflet marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -15,19 +23,27 @@ L.Icon.Default.mergeOptions({
 });
 
 const PetaTanah = ({ tanahId }) => {
+  // Refs
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
-  const [pemetaanData, setPemetaanData] = useState([]);
-  const [fasilitasData, setFasilitasData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const drawControlRef = useRef(null);
   const drawnItemsRef = useRef(null);
   const fasilitasLayerRef = useRef(null);
+
+  // State
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [sertifikatData, setSertifikatData] = useState([]);
+  const [pemetaanData, setPemetaanData] = useState([]);
+  const [fasilitasData, setFasilitasData] = useState([]);
   const [dataExists, setDataExists] = useState(false);
   const [isAddingFasilitas, setIsAddingFasilitas] = useState(false);
+  const [mode, setMode] = useState(null);
+  const [selectedPemetaanId, setSelectedPemetaanId] = useState(null);
   const [showFasilitasModal, setShowFasilitasModal] = useState(false);
   const [fasilitasFormData, setFasilitasFormData] = useState({
-    jenis_fasilitas: "",
+    jenis_fasilitas: "Tidak Bergerak",
+    kategori_fasilitas: "",
     nama_fasilitas: "",
     keterangan: "",
     geometri: null,
@@ -35,8 +51,147 @@ const PetaTanah = ({ tanahId }) => {
     pemetaanTanahId: null,
   });
 
+  const navigate = useNavigate();
+
+  // Konfigurasi Map Tiles
+  const MAP_TILES = {
+    "MapTiler Satellite": {
+      url: "https://api.maptiler.com/maps/hybrid/{z}/{x}/{y}.jpg?key=insgtVNzCo53KJvnDTe0",
+      attribution: "© MapTiler",
+    },
+    "Google Satelit": {
+      url: "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
+      attribution: "Google Satelit",
+    },
+    "Open Street Maps": {
+      url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      attribution: "Open Street Maps",
+    },
+  };
+
+  // Fungsi utama untuk mengambil semua data
+  const fetchAllData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const token = localStorage.getItem("token");
+
+      // Pastikan tanahId valid
+      if (!tanahId) {
+        throw new Error("ID Tanah tidak valid");
+      }
+
+      // Fetch data secara paralel
+      const [tanahRes, pemetaanRes, sertifikatRes] = await Promise.all([
+        axios.get(`http://127.0.0.1:8000/api/tanah/${tanahId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`http://127.0.0.1:8000/api/pemetaan-tanah/${tanahId}`, {
+          // Perhatikan perubahan endpoint
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`http://127.0.0.1:8000/api/sertifikat/tanah/${tanahId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
+
+      // Set data tanah dan sertifikat
+      setTanahData(tanahRes.data.data || {});
+      setSertifikatData(sertifikatRes.data.data || []);
+
+      // Proses data pemetaan
+      if (pemetaanRes.data.data && pemetaanRes.data.data.length > 0) {
+        setDataExists(true);
+        const processedData = pemetaanRes.data.data.map((item) => ({
+          ...item,
+          geojson: wkbToGeoJSON(item.geometri),
+        }));
+        setPemetaanData(processedData);
+
+        // Fetch data fasilitas setelah pemetaan selesai
+        await fetchFasilitasData(processedData);
+      } else {
+        setDataExists(false);
+        setPemetaanData([]);
+        setFasilitasData([]);
+      }
+    } catch (err) {
+      console.error("Error fetching data:", err);
+      setError(
+        err.response?.data?.message || err.message || "Gagal memuat data"
+      );
+      setPemetaanData([]);
+      setFasilitasData([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [tanahId]);
+
+  const fetchFasilitasData = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      // First, we need to make separate API calls for each pemetaan tanah
+      if (pemetaanData && pemetaanData.length > 0) {
+        let allFasilitasData = [];
+
+        // Create an array of promises for each pemetaan tanah
+        const fetchPromises = pemetaanData.map((pemetaanItem) => {
+          return axios
+            .get(
+              `http://127.0.0.1:8000/api/pemetaan/fasilitas/${pemetaanItem.id_pemetaan_tanah}`,
+              {
+                headers: { Authorization: `Bearer ${token}` },
+              }
+            )
+            .then((response) => {
+              if (response.data.data && response.data.data.length > 0) {
+                return response.data.data;
+              }
+              return [];
+            })
+            .catch((err) => {
+              console.error(
+                `Error fetching fasilitas for pemetaan ${pemetaanItem.id_pemetaan_tanah}:`,
+                err
+              );
+              return [];
+            });
+        });
+
+        // Wait for all API calls to complete
+        const results = await Promise.all(fetchPromises);
+
+        // Flatten the array of arrays into a single array
+        allFasilitasData = results.flat();
+
+        if (allFasilitasData.length > 0) {
+          const dataWithGeoJSON = allFasilitasData.map((item) => {
+            if (item.geometri) {
+              const geojson = wkbToGeoJSON(item.geometri);
+              return { ...item, geojson };
+            }
+            return item;
+          });
+          setFasilitasData(dataWithGeoJSON);
+        } else {
+          setFasilitasData([]);
+        }
+      } else {
+        setFasilitasData([]);
+      }
+    } catch (err) {
+      console.error("Error fetching fasilitas data:", err);
+      setFasilitasData([]);
+    }
+  };
+
+  // Fungsi konversi WKB/WKT ke GeoJSON
   const wkbToGeoJSON = (geometryData) => {
     try {
+      if (!geometryData) return null;
+
+      // Jika sudah berupa object GeoJSON
       if (typeof geometryData === "object" && geometryData.type) {
         return {
           type: "Feature",
@@ -45,6 +200,7 @@ const PetaTanah = ({ tanahId }) => {
         };
       }
 
+      // Jika berupa string JSON
       if (typeof geometryData === "string") {
         try {
           const parsed = JSON.parse(geometryData);
@@ -56,32 +212,41 @@ const PetaTanah = ({ tanahId }) => {
             };
           }
         } catch (e) {
+          // Jika bukan JSON, coba parse sebagai WKT
           const wkt = wellknown.parse(geometryData);
-          return {
-            type: "Feature",
-            geometry: wkt,
-            properties: {},
-          };
+          if (wkt) {
+            return {
+              type: "Feature",
+              geometry: wkt,
+              properties: {},
+            };
+          }
         }
       }
 
       return null;
     } catch (err) {
-      console.error("Gagal mengkonversi data geometri ke GeoJSON:", err);
+      console.error("Gagal mengkonversi data geometri:", err);
       return null;
     }
   };
 
-  const savePemetaanData = async (geometry, type) => {
+  const savePemetaanData = async (geometry) => {
     try {
       const token = localStorage.getItem("token");
-      let finalType = type === "LINESTRING" ? "POLYGON" : type;
-      const geometriJSON = JSON.stringify(geometry);
+
+      // Calculate area using turf.js
+      const area =
+        geometry.type === "Polygon"
+          ? turf.area(turf.polygon(geometry.coordinates))
+          : 0;
+
       const formData = {
         nama_pemetaan: `Pemetaan ${new Date().toLocaleDateString()}`,
         keterangan: `Dibuat pada ${new Date().toLocaleString()}`,
-        jenis_geometri: finalType,
-        geometri: geometriJSON,
+        jenis_geometri: "POLYGON",
+        geometri: JSON.stringify(geometry),
+        luas_tanah: area,
       };
 
       const response = await axios.post(
@@ -96,6 +261,27 @@ const PetaTanah = ({ tanahId }) => {
       );
 
       await fetchPemetaanData();
+
+      // Show comparison with original area
+      if (response.data.calculated_area && tanahData.luasTanah) {
+        const diff = Math.abs(
+          tanahData.luasTanah - response.data.calculated_area
+        );
+        const percentage = (diff / tanahData.luasTanah) * 100;
+
+        Swal.fire({
+          icon: "info",
+          title: "Hasil Pemetaan Disimpan",
+          html: `
+            <b>Luas tanah hasil pemetaan:</b> ${response.data.calculated_area.toFixed(
+              2
+            )} m²<br>
+            <b>Luas tanah asli:</b> ${tanahData.luasTanah} m²<br>
+            <b>Selisih:</b> ${diff.toFixed(2)} m² (${percentage.toFixed(2)}%)
+          `,
+          confirmButtonText: "OK",
+        });
+      }
     } catch (err) {
       console.error("Gagal menyimpan data pemetaan:", err);
       alert(
@@ -121,6 +307,7 @@ const PetaTanah = ({ tanahId }) => {
       const token = localStorage.getItem("token");
       const formData = {
         jenis_fasilitas: fasilitasFormData.jenis_fasilitas,
+        kategori_fasilitas: fasilitasFormData.kategori_fasilitas,
         nama_fasilitas: fasilitasFormData.nama_fasilitas,
         keterangan: fasilitasFormData.keterangan,
         jenis_geometri: fasilitasFormData.jenis_geometri,
@@ -231,74 +418,15 @@ const PetaTanah = ({ tanahId }) => {
     }
   };
 
-  const fetchFasilitasData = async () => {
-    try {
-      const token = localStorage.getItem("token");
-
-      // First, we need to make separate API calls for each pemetaan tanah
-      if (pemetaanData && pemetaanData.length > 0) {
-        let allFasilitasData = [];
-
-        // Create an array of promises for each pemetaan tanah
-        const fetchPromises = pemetaanData.map((pemetaanItem) => {
-          return axios
-            .get(
-              `http://127.0.0.1:8000/api/pemetaan/fasilitas/${pemetaanItem.id_pemetaan_tanah}`,
-              {
-                headers: { Authorization: `Bearer ${token}` },
-              }
-            )
-            .then((response) => {
-              if (response.data.data && response.data.data.length > 0) {
-                return response.data.data;
-              }
-              return [];
-            })
-            .catch((err) => {
-              console.error(
-                `Error fetching fasilitas for pemetaan ${pemetaanItem.id_pemetaan_tanah}:`,
-                err
-              );
-              return [];
-            });
-        });
-
-        // Wait for all API calls to complete
-        const results = await Promise.all(fetchPromises);
-
-        // Flatten the array of arrays into a single array
-        allFasilitasData = results.flat();
-
-        if (allFasilitasData.length > 0) {
-          const dataWithGeoJSON = allFasilitasData.map((item) => {
-            if (item.geometri) {
-              const geojson = wkbToGeoJSON(item.geometri);
-              return { ...item, geojson };
-            }
-            return item;
-          });
-          setFasilitasData(dataWithGeoJSON);
-        } else {
-          setFasilitasData([]);
-        }
-      } else {
-        setFasilitasData([]);
-      }
-    } catch (err) {
-      console.error("Error fetching fasilitas data:", err);
-      setFasilitasData([]);
-    }
-  };
-
+  // Inisialisasi peta
   const initializeMap = () => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
-    // Clear any existing map content
+    // Clear existing map
     while (mapRef.current.firstChild) {
       mapRef.current.removeChild(mapRef.current.firstChild);
     }
 
-    // Initialize map with higher zoom level
     const mapInstance = L.map(mapRef.current, {
       zoomControl: true,
       maxZoom: 22,
@@ -307,43 +435,22 @@ const PetaTanah = ({ tanahId }) => {
 
     mapInstanceRef.current = mapInstance;
 
-    // Sumber peta satelit dengan zoom tinggi
-    const baseLayers = {
-      "MapTiler Satellite": L.tileLayer(
-        "https://api.maptiler.com/maps/hybrid/{z}/{x}/{y}.jpg?key=insgtVNzCo53KJvnDTe0",
-        {
-          attribution: "© MapTiler",
-          maxZoom: 22,
-          noWrap: true,
-        }
-      ),
-      "USGS Satellite": L.tileLayer(
-        "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}",
-        {
-          attribution: "USGS",
-          maxZoom: 22,
-          noWrap: true,
-        }
-      ),
-      OpenAerialMap: L.tileLayer(
-        "https://tiles.openaerialmap.org/5a9f90c42553e6000ce5ad6c/{z}/{x}/{y}.png",
-        {
-          attribution: "© OpenAerialMap",
-          maxZoom: 22,
-          noWrap: true,
-        }
-      ),
-    };
+    // Add base layers
+    const baseLayers = {};
+    Object.entries(MAP_TILES).forEach(([name, config]) => {
+      baseLayers[name] = L.tileLayer(config.url, {
+        attribution: config.attribution,
+        maxZoom: 22,
+        noWrap: true,
+      });
+    });
 
-    // Tambahkan layer default (MapTiler)
-    baseLayers["MapTiler Satellite"].addTo(mapInstance);
-
-    // Tambahkan kontrol layer
+    baseLayers["Google Satelit"].addTo(mapInstance);
     L.control
       .layers(baseLayers, null, { position: "topright" })
       .addTo(mapInstance);
 
-    // Layer untuk label (opsional)
+    // Add labels layer
     L.tileLayer(
       "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
       {
@@ -353,153 +460,119 @@ const PetaTanah = ({ tanahId }) => {
       }
     ).addTo(mapInstance);
 
-    // Layer untuk pemetaan tanah
-    const drawnItemsLayer = new L.FeatureGroup();
-    mapInstance.addLayer(drawnItemsLayer);
-    drawnItemsRef.current = drawnItemsLayer;
+    // Initialize feature groups
+    drawnItemsRef.current = new L.FeatureGroup();
+    mapInstance.addLayer(drawnItemsRef.current);
 
-    // Layer untuk fasilitas
-    const fasilitasLayer = new L.FeatureGroup();
-    mapInstance.addLayer(fasilitasLayer);
-    fasilitasLayerRef.current = fasilitasLayer;
+    fasilitasLayerRef.current = new L.FeatureGroup();
+    mapInstance.addLayer(fasilitasLayerRef.current);
 
-    // Add custom control button for Facility Mapping
-    const facilityControlButton = L.Control.extend({
-      options: {
-        position: "topleft",
-      },
+    // Setup draw control
+    setupDrawControl(mapInstance);
 
-      onAdd: function (map) {
-        const container = L.DomUtil.create(
-          "div",
-          "leaflet-bar leaflet-control"
-        );
-        const button = L.DomUtil.create(
-          "a",
-          "facility-control-button",
-          container
-        );
-        button.href = "#";
-        button.title = "Add Pemetaan Fasilitas/Aset";
-        button.innerHTML = '<span style="font-size:18px">🏢</span>';
-        button.style.display = "flex";
-        button.style.alignItems = "center";
-        button.style.justifyContent = "center";
-        button.style.backgroundColor = "#fff";
-        button.style.width = "30px";
-        button.style.height = "30px";
+    return mapInstance;
+  };
 
-        L.DomEvent.on(button, "click", function (e) {
-          L.DomEvent.stopPropagation(e);
-          L.DomEvent.preventDefault(e);
+  // Setup draw control
+  const setupDrawControl = (mapInstance) => {
+    if (drawControlRef.current) {
+      mapInstance.removeControl(drawControlRef.current);
+    }
 
-          // Toggle facility mapping mode
-          if (isAddingFasilitas) {
-            setIsAddingFasilitas(false);
-            button.style.backgroundColor = "#fff";
-            // Remove any temporary draw controls
-            if (mapInstance._toolbars && mapInstance._toolbars.draw) {
-              mapInstance.removeControl(mapInstance._toolbars.draw);
-            }
-          } else {
-            setIsAddingFasilitas(true);
-            button.style.backgroundColor = "#4CAF50";
-
-            // Add draw control specifically for facilities
-            const facilityDrawControl = new L.Control.Draw({
-              edit: {
-                featureGroup: fasilitasLayer,
-                poly: {
-                  allowIntersection: false,
-                },
-              },
-              draw: {
-                marker: false,
-                circlemarker: false,
-                circle: false,
-                rectangle: true,
-                polygon: {
-                  allowIntersection: false,
-                  showArea: true,
-                },
-                polyline: false,
-              },
-            });
-
-            mapInstance.addControl(facilityDrawControl);
-          }
-        });
-
-        return container;
-      },
-    });
-
-    mapInstance.addControl(new facilityControlButton());
-
-    // Regular draw control for land mapping
-    const drawControl = new L.Control.Draw({
+    const drawOptions = {
       edit: {
-        featureGroup: drawnItemsLayer,
-        poly: {
-          allowIntersection: false,
-        },
+        featureGroup:
+          mode === "facility"
+            ? fasilitasLayerRef.current
+            : drawnItemsRef.current,
+        poly: { allowIntersection: false },
       },
       draw: {
         marker: false,
         circlemarker: false,
         circle: false,
-        rectangle: true,
+        polyline: false,
+        rectangle: mode !== "facility",
         polygon: {
           allowIntersection: false,
           showArea: true,
         },
-        polyline: false,
       },
-    });
+    };
 
-    mapInstance.addControl(drawControl);
+    drawControlRef.current = new L.Control.Draw(drawOptions);
+    mapInstance.addControl(drawControlRef.current);
 
     // Handle draw events
-    mapInstance.on(L.Draw.Event.CREATED, function (event) {
-      const layer = event.layer;
+    mapInstance.off(L.Draw.Event.CREATED);
+    mapInstance.on(L.Draw.Event.CREATED, (e) => {
+      const layer = e.layer;
       const geoJSON = layer.toGeoJSON().geometry;
 
-      if (isAddingFasilitas) {
-        // Add to temporary fasilitas layer
+      if (mode === "facility") {
         fasilitasLayerRef.current.addLayer(layer);
-
-        // If pemetaanTanahId is not set yet (when using the global button instead of the marker button)
-        // and there is at least one land mapping, use the first one's ID
-        if (!fasilitasFormData.pemetaanTanahId && pemetaanData.length > 0) {
-          setFasilitasFormData((prev) => ({
-            ...prev,
-            geometri: geoJSON,
-            jenis_geometri: "POLYGON",
-            pemetaanTanahId: pemetaanData[0].id_pemetaan_tanah,
-          }));
-        } else {
-          // Just update the geometry
-          setFasilitasFormData((prev) => ({
-            ...prev,
-            geometri: geoJSON,
-            jenis_geometri: "POLYGON",
-          }));
-        }
-
-        // Open form modal for facility details
+        setFasilitasFormData((prev) => ({
+          ...prev,
+          geometri: geoJSON,
+          pemetaanTanahId: selectedPemetaanId,
+        }));
         setShowFasilitasModal(true);
       } else {
-        // Regular land mapping
-        drawnItemsLayer.addLayer(layer);
-        savePemetaanData(geoJSON, "POLYGON");
+        drawnItemsRef.current.addLayer(layer);
+        savePemetaanData(geoJSON);
       }
     });
-
-    // Enable double click zoom
-    mapInstance.doubleClickZoom.enable();
-
-    return mapInstance;
   };
+
+  const fetchSertifikatData = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `http://127.0.0.1:8000/api/sertifikat/tanah/${tanahId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setSertifikatData(response.data.data || []);
+    } catch (err) {
+      console.error("Error fetching sertifikat data:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (tanahId) {
+      fetchPemetaanData();
+      fetchSertifikatData(); // Tambahkan ini
+    }
+  }, [tanahId]);
+
+  const [tanahData, setTanahData] = useState({});
+
+  const fetchTanahData = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `http://127.0.0.1:8000/api/tanah/${tanahId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setTanahData(response.data.data || {});
+    } catch (err) {
+      console.error("Error fetching tanah data:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (tanahId) {
+      const fetchData = async () => {
+        await fetchTanahData();
+        await fetchSertifikatData();
+        await fetchPemetaanData();
+      };
+      fetchData();
+    }
+  }, [tanahId]);
 
   const renderMapData = (mapInstance) => {
     if (!mapInstance) return;
@@ -533,14 +606,14 @@ const PetaTanah = ({ tanahId }) => {
               },
               onEachFeature: function (feature, layer) {
                 const popupContent = document.createElement("div");
-                popupContent.innerHTML = `
-                  <b>${item.nama_pemetaan}</b><br>
-                  ${item.keterangan || "Tidak ada keterangan"}<br>
-                  Jenis: ${item.jenis_geometri}<br><br>
-                  <button class="btn-delete bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded text-sm">
-                    Hapus Pemetaan
-                  </button>
-                `;
+                popupContent.className =
+                  "p-4 min-w-[240px] font-sans bg-white rounded-lg shadow-lg";
+
+                popupContent.innerHTML = getTanahPopupHTML(
+                  item,
+                  tanahData,
+                  sertifikatData
+                );
 
                 const deleteButton = popupContent.querySelector(".btn-delete");
                 deleteButton.onclick = () => {
@@ -563,18 +636,9 @@ const PetaTanah = ({ tanahId }) => {
                 }).addTo(mapInstance);
 
                 const markerPopupContent = document.createElement("div");
-                markerPopupContent.innerHTML = `
-                  <b>${item.nama_pemetaan}</b><br>
-                  <button class="zoom-to-location bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-sm">
-                    📍 Lihat Lokasi
-                  </button>
-                  <button class="btn-delete-marker bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded text-sm mt-2">
-                    Hapus Pemetaan
-                  </button>
-                  <button class="add-fasilitas bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-2 rounded text-sm mt-2">
-                    ➕ Add Pemetaan Fasilitas
-                  </button>
-                `;
+                markerPopupContent.className =
+                  "p-3 min-w-[220px] max-w-[260px] bg-white rounded-lg shadow-lg border border-gray-200";
+                markerPopupContent.innerHTML = getMarkerPopupHTML(item);
 
                 const zoomButton =
                   markerPopupContent.querySelector(".zoom-to-location");
@@ -598,45 +662,11 @@ const PetaTanah = ({ tanahId }) => {
                 const addFasilitasButton =
                   markerPopupContent.querySelector(".add-fasilitas");
                 addFasilitasButton.onclick = () => {
-                  setIsAddingFasilitas(true);
-
-                  // Store the pemetaan tanah ID in the form data
-                  setFasilitasFormData((prev) => ({
-                    ...prev,
-                    pemetaanTanahId: item.id_pemetaan_tanah,
-                  }));
-
+                  setMode("facility");
+                  setSelectedPemetaanId(item.id_pemetaan_tanah);
+                  setupDrawControl(mapInstance);
                   marker.closePopup();
-
-                  // Add draw control specifically for facilities
-                  const facilityDrawControl = new L.Control.Draw({
-                    edit: {
-                      featureGroup: fasilitasLayerRef.current,
-                      poly: {
-                        allowIntersection: false,
-                      },
-                    },
-                    draw: {
-                      marker: false,
-                      circlemarker: false,
-                      circle: false,
-                      rectangle: true,
-                      polygon: {
-                        allowIntersection: false,
-                        showArea: true,
-                      },
-                      polyline: false,
-                    },
-                  });
-
-                  // Remove existing controls if any
-                  if (mapInstance._toolbars && mapInstance._toolbars.draw) {
-                    mapInstance.removeControl(mapInstance._toolbars.draw);
-                  }
-
-                  mapInstance.addControl(facilityDrawControl);
                 };
-
                 marker.bindPopup(markerPopupContent);
               },
             }).addTo(mapInstance);
@@ -667,58 +697,168 @@ const PetaTanah = ({ tanahId }) => {
       noDataNotice.addTo(mapInstance);
     }
 
+    const showDetailModal = (detailData, fasilitasData) => {
+      const modal = document.createElement("div");
+      modal.className =
+        "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4";
+
+      modal.innerHTML = getDetailFasilitasHTML(detailData, fasilitasData);
+
+      document.body.appendChild(modal);
+
+      // Handle tombol Lihat Inventaris
+      const viewInventarisButton = modal.querySelector(".btn-view-inventaris");
+      viewInventarisButton.addEventListener("click", () => {
+        // Pastikan detailData memiliki id_fasilitas
+        if (!detailData || typeof detailData.id_fasilitas === "undefined") {
+          console.error(
+            "Cannot view inventory: detailData is missing or invalid"
+          );
+          alert("Data fasilitas tidak valid. Tidak dapat melihat inventaris.");
+          return;
+        }
+
+        document.body.removeChild(modal);
+        navigate(`/inventaris/fasilitas/${detailData.id_fasilitas}`, {
+          state: {
+            fasilitasData: fasilitasData || {},
+            detailData: detailData || {},
+          },
+        });
+      });
+
+      // Handle edit button
+      const editButton = modal.querySelector(".btn-edit-detail");
+      editButton.addEventListener("click", () => {
+        // Check if detailData exists and has id_fasilitas
+        if (!detailData || typeof detailData.id_fasilitas === "undefined") {
+          console.error("Cannot edit: detailData is missing or invalid");
+          // Optionally show an error message to the user
+          alert("Data fasilitas tidak valid. Tidak dapat melanjutkan edit.");
+          return;
+        }
+
+        document.body.removeChild(modal);
+        navigate(`/fasilitas/edit/${detailData.id_fasilitas}`, {
+          state: {
+            pemetaanFasilitasData: fasilitasData || [],
+            tanahData: tanahData || [],
+            detailData: detailData || {},
+          },
+        });
+      });
+
+      // Handle 360° view button if exists
+      if (detailData.file_360) {
+        const view360Button = modal.querySelector(".btn-view-360");
+        view360Button.addEventListener("click", () => {
+          window.open(
+            `http://127.0.0.1:8000/storage/${detailData.file_360}`,
+            "_blank"
+          );
+        });
+      }
+
+      // Handle close buttons
+      const closeButtons = modal.querySelectorAll(".btn-close-modal");
+      closeButtons.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document.body.removeChild(modal);
+        });
+      });
+    };
+
     // Render fasilitas mappings with different color
     if (fasilitasData.length > 0) {
-      fasilitasData.forEach((item) => {
-        if (item.geojson && item.geojson.geometry) {
+      // Pertama, fetch semua detail fasilitas sekaligus
+      const fetchAllFacilityDetails = async () => {
+        const token = localStorage.getItem("token");
+        const detailsPromises = fasilitasData.map(async (item) => {
           try {
-            const geoJSONLayer = L.geoJSON(item.geojson, {
-              style: {
-                color: "#0066ff", // Blue for facility mapping
-                weight: 3,
-                opacity: 1,
-                fillOpacity: 0.3,
-              },
-              onEachFeature: function (feature, layer) {
-                const popupContent = document.createElement("div");
-                popupContent.innerHTML = `
-                  <b>${item.nama_fasilitas}</b><br>
-                  Jenis: ${item.jenis_fasilitas}<br>
-                  ${item.keterangan || "Tidak ada keterangan"}<br><br>
-                  <button class="btn-delete-fasilitas bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded text-sm">
-                    Hapus Fasilitas
-                  </button>
-                `;
-
-                const deleteButton = popupContent.querySelector(
-                  ".btn-delete-fasilitas"
-                );
-                deleteButton.onclick = () => {
-                  if (
-                    window.confirm(
-                      "Apakah Anda yakin ingin menghapus fasilitas ini?"
-                    )
-                  ) {
-                    deleteFasilitas(item.id_pemetaan_fasilitas);
-                  }
-                };
-
-                layer.bindPopup(popupContent);
-              },
-            }).addTo(mapInstance);
-
-            fasilitasLayerRef.current.addLayer(geoJSONLayer);
+            const response = await axios.get(
+              `http://127.0.0.1:8000/api/fasilitas/pemetaan/${item.id_pemetaan_fasilitas}`,
+              {
+                headers: { Authorization: `Bearer ${token}` },
+              }
+            );
+            return {
+              ...item,
+              hasDetail: response.data.data && response.data.data.length > 0,
+              detailData: response.data.data?.[0] || null,
+            };
           } catch (err) {
-            console.error("Error displaying facility geometry:", err, item);
+            console.error("Error fetching facility details:", err);
+            return {
+              ...item,
+              hasDetail: false,
+              detailData: null,
+            };
           }
-        }
+        });
+
+        return Promise.all(detailsPromises);
+      };
+
+      // Kemudian render semua fasilitas setelah data lengkap
+      fetchAllFacilityDetails().then((enrichedFacilities) => {
+        enrichedFacilities.forEach((item) => {
+          if (item.geojson && item.geojson.geometry) {
+            try {
+              const geoJSONLayer = L.geoJSON(item.geojson, {
+                style: {
+                  color: "#0066ff",
+                  weight: 3,
+                  opacity: 1,
+                  fillOpacity: 0.3,
+                },
+                onEachFeature: function (feature, layer) {
+                  const popupContent = document.createElement("div");
+                  popupContent.className =
+                    "p-4 min-w-[280px] max-w-[320px] bg-white rounded-lg shadow-md border border-gray-100";
+
+                  popupContent.innerHTML = getFasilitasPopupHTML(item);
+
+                  const deleteButton = popupContent.querySelector(
+                    ".btn-delete-fasilitas"
+                  );
+                  deleteButton.onclick = () => {
+                    if (
+                      window.confirm(
+                        "Apakah Anda yakin ingin menghapus fasilitas ini?"
+                      )
+                    ) {
+                      deleteFasilitas(item.id_pemetaan_fasilitas);
+                    }
+                  };
+
+                  if (item.hasDetail) {
+                    const viewDetailButton =
+                      popupContent.querySelector(".btn-view-detail");
+                    viewDetailButton.onclick = () => {
+                      // Tampilkan modal dengan detail fasilitas
+                      showDetailModal(item.detailData, item);
+                    };
+                  }
+
+                  layer.bindPopup(popupContent);
+                },
+              });
+
+              fasilitasLayerRef.current.addLayer(geoJSONLayer);
+              mapInstance.addLayer(geoJSONLayer);
+            } catch (err) {
+              console.error("Error displaying facility geometry:", err, item);
+            }
+          }
+        });
       });
     }
   };
 
   const resetFasilitasForm = () => {
     setFasilitasFormData({
-      jenis_fasilitas: "",
+      jenis_fasilitas: "Tidak Bergerak",
+      kategori_fasilitas: "",
       nama_fasilitas: "",
       keterangan: "",
       geometri: null,
@@ -736,10 +876,10 @@ const PetaTanah = ({ tanahId }) => {
   };
 
   useEffect(() => {
-    if (tanahId) {
-      fetchPemetaanData();
+    if (mapInstanceRef.current && mode) {
+      setupDrawControl(mapInstanceRef.current);
     }
-  }, [tanahId]);
+  }, [mode, selectedPemetaanId]);
 
   // Fetch facilities data after land mapping data is loaded
   useEffect(() => {
@@ -749,7 +889,7 @@ const PetaTanah = ({ tanahId }) => {
   }, [pemetaanData]);
 
   useEffect(() => {
-    if (loading || !mapRef.current) return;
+    if (loading || !mapRef.current || mapInstanceRef.current) return;
 
     const mapInstance = initializeMap();
     renderMapData(mapInstance);
@@ -760,7 +900,7 @@ const PetaTanah = ({ tanahId }) => {
         mapInstanceRef.current = null;
       }
     };
-  }, [loading, pemetaanData, fasilitasData, dataExists]);
+  }, [loading]); // Hanya tergantung pada loading
 
   return (
     <div className="relative">
@@ -775,84 +915,15 @@ const PetaTanah = ({ tanahId }) => {
         className="z-0 border border-gray-300 rounded-lg"
       />
 
-      {/* Modal for facility data input */}
-      {showFasilitasModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Data Fasilitas/Aset</h2>
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Jenis Fasilitas:
-              </label>
-              <select
-                name="jenis_fasilitas"
-                value={fasilitasFormData.jenis_fasilitas}
-                onChange={handleFasilitasInputChange}
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                required
-              >
-                <option value="">Pilih Jenis Fasilitas</option>
-                <option value="MASJID">Masjid</option>
-                <option value="SEKOLAH">Sekolah</option>
-                <option value="PEMAKAMAN">Pemakaman</option>
-                <option value="RUMAH">Rumah</option>
-                <option value="KANTOR">Kantor</option>
-                <option value="GEDUNG">Gedung</option>
-                <option value="LAINNYA">Lainnya</option>
-              </select>
-            </div>
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Nama Fasilitas:
-              </label>
-              <input
-                type="text"
-                name="nama_fasilitas"
-                value={fasilitasFormData.nama_fasilitas}
-                onChange={handleFasilitasInputChange}
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                placeholder="Nama fasilitas"
-                required
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Keterangan:
-              </label>
-              <textarea
-                name="keterangan"
-                value={fasilitasFormData.keterangan}
-                onChange={handleFasilitasInputChange}
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                placeholder="Keterangan (opsional)"
-                rows="3"
-              />
-            </div>
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => {
-                  setShowFasilitasModal(false);
-                  resetFasilitasForm();
-
-                  // Clear drawn shapes
-                  if (fasilitasLayerRef.current) {
-                    fasilitasLayerRef.current.clearLayers();
-                  }
-                }}
-                className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-              >
-                Batal
-              </button>
-              <button
-                onClick={saveFasilitasData}
-                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-              >
-                Simpan
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <FasilitasModal
+        showFasilitasModal={showFasilitasModal}
+        fasilitasFormData={fasilitasFormData}
+        handleFasilitasInputChange={handleFasilitasInputChange}
+        setShowFasilitasModal={setShowFasilitasModal}
+        resetFasilitasForm={resetFasilitasForm}
+        fasilitasLayerRef={fasilitasLayerRef}
+        saveFasilitasData={saveFasilitasData}
+      />
 
       {/* Status indicator when adding fasilitas */}
       {isAddingFasilitas && (

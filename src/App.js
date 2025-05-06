@@ -14,6 +14,16 @@ import CreateSertifikat from "./form/c_sertifikat.js";
 import DetailTanah from "./form/d_tanah.js";
 import Log from "./log/log.js";
 import Pemetaan from "./pages/pemetaan.js";
+import PemetaanSidebar from "./pages/pemetaanSidebar.js";
+import Public from "./pages/Public.js";
+import CreateFasilitas from "./form/c_fasilitas.js";
+import EditFasilitas from "./form/e_fasilitas.js";
+import ListInventaris from "./pages/inventaris.js";
+import CreateInventaris from "./form/c_inventaris.js";
+import EditInventaris from "./form/e_inventaris.js";
+import DetailInventaris from "./form/d_inventaris.js";
+import DetailTanahPublic from "./public/DetailTanahPublic.js";
+import DetailFasilitasPublic from "./public/DetailFasilitasPublic.js";
 
 function App() {
   return (
@@ -21,10 +31,25 @@ function App() {
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/lihat-data-wakaf" element={<Public />} />
+        <Route path="/detail/tanah/public/:id" element={<DetailTanahPublic />} />
+        <Route path="/detail/fasilitas/public/:id" element={<DetailFasilitasPublic />} />
 
         {/* Grouping Protected Routes */}
         <Route element={<ProtectedRoute />}>
-          {/* <Route path="/pemetaan" element={<Pemetaan />} /> */}
+          <Route path="/pemetaan" element={<PemetaanSidebar />} />
+
+          <Route path="/fasilitas/create/:id" element={<CreateFasilitas />} />
+          <Route path="/fasilitas/edit/:id" element={<EditFasilitas />} />
+
+          <Route
+            path="/inventaris/fasilitas/:id"
+            element={<ListInventaris />}
+          />
+          <Route path="/inventaris/create/:id" element={<CreateInventaris />} />
+          <Route path="/inventaris/edit/:id" element={<EditInventaris />} />
+          <Route path="/inventaris/detail/:id" element={<DetailInventaris />} />
+
           <Route path="/sertifikat" element={<Sertifikat />} />
           <Route path="/sertifikat/edit/:id" element={<EditSertifikat />} />
           <Route path="/sertifikat/create" element={<CreateSertifikat />} />
@@ -35,7 +60,7 @@ function App() {
           <Route path="/tanah/detail/:idTanah" element={<DetailTanah />} />
 
           {/* <Route path="/tanah/peta/:id" element={<PetaTanah />} />
-          <Route path="/tanah/history/:id" element={<HistoryTanah />} /> */}
+            <Route path="/tanah/history/:id" element={<HistoryTanah />} /> */}
 
           <Route path="/tanah/peta/:id" element={<Pemetaan />} />
 

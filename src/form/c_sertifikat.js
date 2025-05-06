@@ -266,12 +266,12 @@ const CreateSertifikat = () => {
   return (
     <div className="relative min-h-screen bg-gray-50">
       <Sidebar>
-        <div className="p-4 md:p-8">
-          <div className="bg-white rounded-lg shadow-md p-6 max-w-4xl mx-auto">
-            <h1 className="text-2xl font-bold text-center mb-8">
-              <span className="text-yellow-500">Buat</span>{" "}
-              <span className="text-green-700">Sertifikat Baru</span>
-            </h1>
+        <div className="flex-1 p-4">
+          <div className="bg-white shadow-lg rounded-lg p-10 mx-auto w-[90%] max-w-3xl">
+            <h2 className="text-center text-3xl font-bold">
+              <span className="text-[#FECC23]">Dokumen</span>{" "}
+              <span className="text-[#187556]">Baru</span>
+            </h2>
 
             {!formData.id_tanah && !isLoadingTanah && (
               <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6">

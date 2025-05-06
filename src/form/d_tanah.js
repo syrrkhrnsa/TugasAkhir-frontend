@@ -2,7 +2,21 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
-import { FaEye } from "react-icons/fa";
+import { FaEye, FaMapMarkerAlt } from "react-icons/fa";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+
+// Fix for default marker icons
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+  iconUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+});
 import config from "../config";
 
 const DetailTanah = () => {
@@ -11,6 +25,7 @@ const DetailTanah = () => {
   const [sertifikatList, setSertifikatList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showMap, setShowMap] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -88,6 +103,10 @@ const DetailTanah = () => {
     return `${dayDifference} hari`;
   };
 
+  const toggleMap = () => {
+    setShowMap(!showMap);
+  };
+
   if (loading) {
     return (
       <Sidebar>
@@ -118,6 +137,11 @@ const DetailTanah = () => {
     );
   }
 
+  const hasCoordinates = tanah.latitude && tanah.longitude;
+  const position = hasCoordinates
+    ? [parseFloat(tanah.latitude), parseFloat(tanah.longitude)]
+    : [-7.0425, 107.5861]; // Default ke Banjaran jika tidak ada koordinat
+
   return (
     <div className="relative">
       <Sidebar>
@@ -140,48 +164,98 @@ const DetailTanah = () => {
             {/* Main Content */}
             <div className="flex flex-col lg:flex-row gap-6">
               {/* Left Column - Property Details */}
-              <div className="w-full lg:w-2/5">
-                <div className="space-y-4">
-                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                    <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                      Pimpinan Jamaah
+              <div className="w-full lg:w-2/5 space-y-4">
+                {/* Informasi Utama */}
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                  <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                    Pimpinan Jamaah
+                  </div>
+                  <div className="text-sm font-medium text-gray-700">
+                    {tanah.NamaPimpinanJamaah || "-"}
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                  <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                    Nama Wakif
+                  </div>
+                  <div className="text-sm font-medium text-gray-700">
+                    {tanah.NamaWakif || "-"}
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                  <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                    Lokasi
+                  </div>
+                  <div className="text-sm font-medium text-gray-700">
+                    {tanah.lokasi || "-"}
+                  </div>
+                </div>
+
+                {/* Koordinat */}
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                  <div className="flex justify-between items-center mb-2">
+                    <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Koordinat
                     </div>
-                    <div className="text-sm font-medium text-gray-700">
-                      {tanah.NamaPimpinanJamaah || "-"}
-                    </div>
+                    {hasCoordinates && (
+                      <button
+                        onClick={toggleMap}
+                        className="text-xs text-blue-500 hover:text-blue-700 flex items-center"
+                      >
+                        <FaMapMarkerAlt className="mr-1" />
+                        {showMap ? "Sembunyikan Peta" : "Tampilkan Peta"}
+                      </button>
+                    )}
                   </div>
 
-                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                    <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                      Lokasi
+                  <div className="grid grid-cols-2 gap-2 text-sm text-gray-700">
+                    <div>
+                      <span className="font-medium">Latitude:</span>{" "}
+                      {tanah.latitude
+                        ? parseFloat(tanah.latitude).toFixed(6)
+                        : "-"}
                     </div>
-                    <div className="text-sm font-medium text-gray-700">
-                      {tanah.lokasi || "-"}
-                    </div>
-                  </div>
-
-                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                    <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                      Nama Wakif
-                    </div>
-                    <div className="text-sm font-medium text-gray-700">
-                      {tanah.NamaWakif || "-"}
-                    </div>
-                  </div>
-
-                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                    <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                      Luas Tanah
-                    </div>
-                    <div className="text-sm font-medium text-gray-700">
-                      {tanah.luasTanah
-                        ? `${Number(tanah.luasTanah).toLocaleString(
-                            "id-ID"
-                          )} m²`
+                    <div>
+                      <span className="font-medium">Longitude:</span>{" "}
+                      {tanah.longitude
+                        ? parseFloat(tanah.longitude).toFixed(6)
                         : "-"}
                     </div>
                   </div>
+
+                  {showMap && hasCoordinates && (
+                    <div className="mt-3 h-48 rounded-md overflow-hidden">
+                      <MapContainer
+                        center={position}
+                        zoom={15}
+                        style={{ height: "100%", width: "100%" }}
+                      >
+                        <TileLayer
+                          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                        />
+                        <Marker position={position}>
+                          <Popup>Lokasi Tanah</Popup>
+                        </Marker>
+                      </MapContainer>
+                    </div>
+                  )}
                 </div>
+
+                {/* Detail Tanah */}
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                  <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                    Luas Tanah
+                  </div>
+                  <div className="text-sm font-medium text-gray-700">
+                    {tanah.luasTanah
+                      ? `${Number(tanah.luasTanah).toLocaleString("id-ID")} m²`
+                      : "-"}
+                  </div>
+                </div>
+
                 <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
                   <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
                     Jenis Tanah
@@ -191,6 +265,7 @@ const DetailTanah = () => {
                   </div>
                 </div>
 
+                {/* Batas Tanah */}
                 <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
                   <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
                     Batas-Batas Tanah
@@ -215,6 +290,7 @@ const DetailTanah = () => {
                   </div>
                 </div>
 
+                {/* Ukuran Tanah */}
                 <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
                   <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
                     Ukuran Tanah
@@ -231,6 +307,7 @@ const DetailTanah = () => {
                   </div>
                 </div>
 
+                {/* Informasi Tambahan */}
                 <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
                   <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
                     Alamat Wakif
@@ -253,27 +330,32 @@ const DetailTanah = () => {
               {/* Right Column - Legalitas Table */}
               <div className="w-full lg:w-3/5">
                 <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  <div className="p-4 bg-gray-50 border-b">
+                    <h3 className="text-lg font-semibold text-gray-800">
+                      Dokumen Legalitas
+                    </h3>
+                  </div>
                   <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200 text-sm">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             No
                           </th>
-                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             No Dokumen
                           </th>
-                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Legalitas
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Jenis Dokumen
                           </th>
-                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Status
                           </th>
-                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Dokumen
                           </th>
-                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Keterangan
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Lama Proses
                           </th>
                         </tr>
                       </thead>
@@ -281,18 +363,18 @@ const DetailTanah = () => {
                         {sertifikatList.length > 0 ? (
                           sertifikatList.map((sertifikat, index) => (
                             <tr key={sertifikat.id_sertifikat}>
-                              <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                                 {index + 1}
                               </td>
-                              <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 font-medium">
                                 {sertifikat.no_dokumen || "-"}
                               </td>
-                              <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-700">
-                                {sertifikat.jenis_sertifikat}
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                                {sertifikat.jenis_sertifikat || "-"}
                               </td>
-                              <td className="px-3 py-2 whitespace-nowrap">
+                              <td className="px-4 py-3 whitespace-nowrap">
                                 <span
-                                  className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                  className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
                                     sertifikat.status === "disetujui"
                                       ? "bg-green-100 text-green-800"
                                       : sertifikat.status === "ditolak"
@@ -300,7 +382,7 @@ const DetailTanah = () => {
                                       : "bg-yellow-100 text-yellow-800"
                                   }`}
                                 >
-                                  {sertifikat.status}
+                                  {sertifikat.status || "-"}
                                 </span>
                               </td>
                               <td className="py-2 px-4 border-b text-center">
@@ -331,7 +413,7 @@ const DetailTanah = () => {
                                   )}
                                 </div>
                               </td>
-                              <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                                 {calculateDayDifference(
                                   sertifikat.tanggal_pengajuan
                                 )}
@@ -342,9 +424,9 @@ const DetailTanah = () => {
                           <tr>
                             <td
                               colSpan="6"
-                              className="px-3 py-4 text-center text-sm text-gray-500"
+                              className="px-4 py-4 text-center text-sm text-gray-500"
                             >
-                              Belum ada data sertifikat untuk tanah ini
+                              Belum ada data dokumen untuk tanah ini
                             </td>
                           </tr>
                         )}

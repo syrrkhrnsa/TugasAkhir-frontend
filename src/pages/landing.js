@@ -1,9 +1,15 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import NavbarLanding from "../components/NavbarLanding";
 import landingphoto from "../assets/landing.png";
 
 const Landing = () => {
+  const navigate = useNavigate();
+
+  const handleNavigate = () => {
+    navigate("/lihat-data-wakaf");
+  };
+
   return (
     <div className="flex flex-col h-screen bg-white">
       {/* Navbar dengan Logo */}
@@ -12,9 +18,9 @@ const Landing = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex flex-grow ml-40"> {/* Menambahkan margin kiri lebih besar */}
+      <div className="flex flex-grow ml-40">
         {/* Left Section */}
-        <div className="flex flex-col justify-center items-start pl-20 w-1/2"> {/* Menambahkan padding kiri lebih besar */}
+        <div className="flex flex-col justify-center items-start pl-20 w-1/2">
           <h1 className="text-4xl font-bold">
             <span className="text-hijau">Pemetaan </span>
             <span className="text-kuning">Tanah </span>
@@ -27,8 +33,8 @@ const Landing = () => {
             Dari pemetaan hingga pengelolaan, kami hadir untuk memastikan setiap
             jengkal tanah wakaf menjadi sumber keberkahan yang berkelanjutan.
           </p>
-          <Link
-            to="/lihat-data-wakaf"
+          <button
+            onClick={handleNavigate}
             className="bg-[#96B9C7] hover:bg-gray-500 text-white font-bold py-3 px-8 rounded-lg shadow-md mt-6 flex items-center justify-center"
           >
             Lihat Data Wakaf
@@ -46,7 +52,7 @@ const Landing = () => {
                 d="M9 5l7 7-7 7"
               />
             </svg>
-          </Link>
+          </button>
         </div>
 
         {/* Right Section */}

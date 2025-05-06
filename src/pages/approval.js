@@ -155,10 +155,10 @@ const Approval = () => {
 
   const handleReject = async () => {
     if (!selectedMessage) return;
-  
+
     const token = localStorage.getItem("token");
     const approvalId = selectedMessage.data.id_approval;
-  
+
     try {
       await axios.post(
         `http://127.0.0.1:8000/api/approvals/${approvalId}/reject`,
@@ -170,22 +170,22 @@ const Approval = () => {
           },
         }
       );
-  
+
       Swal.fire({
         icon: "success",
         title: "Berhasil!",
         text: "Data telah ditolak dan notifikasi telah dikirim ke Pimpinan Jamaah.",
       });
-  
+
       const newApprovalStatus = {
         ...approvalStatus,
         [selectedMessage.id]: "rejected",
       };
       setApprovalStatus(newApprovalStatus);
       localStorage.setItem("approvalStatus", JSON.stringify(newApprovalStatus));
-  
+
       await fetchNotifications();
-  
+
       if (!isPimpinanJamaah) {
         setTimeout(fetchNotifications, 1000);
       }
@@ -206,7 +206,6 @@ const Approval = () => {
       });
     }
   };
-  
 
   const handleUpdateApprove = async () => {
     if (!selectedMessage) return;
@@ -316,14 +315,13 @@ const Approval = () => {
       });
       return;
     }
-  
+
     try {
       const fileUrl = `http://127.0.0.1:8000/storage/${dokumen}`;
-      
+
       // Coba akses file langsung tanpa pengecekan HEAD terlebih dahulu
       // Karena masalah CORS mungkin menghalangi pengecekan HEAD
       window.open(fileUrl, "_blank");
-      
     } catch (error) {
       console.error("Error accessing document:", error);
       Swal.fire({
@@ -346,6 +344,45 @@ const Approval = () => {
       "message",
       "approval_status",
     ];
+
+    // Field name mappings
+    const fieldNameMappings = {
+      NamaPimpinanJamaah: "Nama Pimpinan Jamaah",
+      NamaWakif: "Nama Wakif",
+      lokasi: "Lokasi",
+      luasTanah: "Luas Tanah",
+      koordinat: "Koordinat",
+      latitude: "Latitude",
+      longitude: "Longitude",
+      // Add other field mappings as needed
+    };
+
+    const formatValue = (key, value) => {
+      if (value === null || value === undefined || value === "") {
+        return <span className="text-gray-400 italic">Belum diisi</span>;
+      }
+
+      // Handle coordinate object
+      if (key === "koordinat" && typeof value === "object") {
+        return (
+          <div className="space-y-1">
+            <div className="text-sm">
+              Lat: {value.coordinates[1]?.toFixed(6) || "-"}
+            </div>
+            <div className="text-sm">
+              Lng: {value.coordinates[0]?.toFixed(6) || "-"}
+            </div>
+          </div>
+        );
+      }
+
+      // Handle numeric values
+      if (key === "latitude" || key === "longitude") {
+        return Number(value).toFixed(6);
+      }
+
+      return value.toString();
+    };
 
     if (!data)
       return (
@@ -416,16 +453,12 @@ const Approval = () => {
                   <tr key={key} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900 capitalize">
-                        {key.replace(/_/g, " ")}
+                        {fieldNameMappings[key] || key.replace(/_/g, " ")}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-500">
-                        {value || (
-                          <span className="text-gray-400 italic">
-                            Belum diisi
-                          </span>
-                        )}
+                        {formatValue(key, value)}
                       </div>
                     </td>
                   </tr>
@@ -451,7 +484,7 @@ const Approval = () => {
       "jenis_sertifikat",
       "status_pengajuan",
     ];
-  
+
     if (!data)
       return (
         <div className="bg-red-50 border-l-4 border-red-400 p-4">
@@ -476,13 +509,13 @@ const Approval = () => {
           </div>
         </div>
       );
-  
+
     const displayFields = [
       { key: "no_dokumen", label: "No Dokumen" },
       { key: "dokumen", label: "Dokumen" },
       { key: "tanggal_pengajuan", label: "Tanggal Pengajuan" },
     ];
-  
+
     return (
       <div className="mb-8">
         <h3 className="text-lg font-semibold mb-4 text-gray-800 border-b pb-2 flex items-center">
