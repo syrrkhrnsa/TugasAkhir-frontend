@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import { FaEye } from "react-icons/fa";
+import config from "../config";
 
 const DetailTanah = () => {
   const { idTanah } = useParams();
@@ -302,16 +303,33 @@ const DetailTanah = () => {
                                   {sertifikat.status}
                                 </span>
                               </td>
-                              <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
-                                <button
-                                  onClick={() =>
-                                    handlePreviewDokumen(sertifikat.dokumen)
-                                  }
-                                  className="text-blue-500 hover:text-blue-700"
-                                  disabled={!sertifikat.dokumen}
-                                >
-                                  <FaEye className="inline" />
-                                </button>
+                              <td className="py-2 px-4 border-b text-center">
+                                <div className="flex justify-center">
+                                  {sertifikat.dokumen ? (
+                                    <a
+                                      href={`${config.API_URL}/sertifikat/${sertifikat.id_sertifikat}/view`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="group relative p-1 text-blue-500 hover:text-blue-600 transition-colors"
+                                      title="Lihat Dokumen"
+                                      aria-label={`Preview dokumen ${
+                                        sertifikat.jenis_sertifikat || ""
+                                      }`}
+                                    >
+                                      <FaEye className="text-lg" />
+                                      <span className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                                        Lihat Dokumen
+                                      </span>
+                                    </a>
+                                  ) : (
+                                    <span
+                                      className="text-gray-400 text-xs italic"
+                                      title="Dokumen belum diupload"
+                                    >
+                                      Tidak tersedia
+                                    </span>
+                                  )}
+                                </div>
                               </td>
                               <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
                                 {calculateDayDifference(
