@@ -282,26 +282,25 @@ const PemetaanSidebar = () => {
           noWrap: true,
         }
       ),
-      "USGS Satellite": L.tileLayer(
-        "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}",
+      "Google Satelit": L.tileLayer(
+        "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
         {
-          attribution: "USGS",
+          attribution: "Google Satelit",
           maxZoom: 22,
           noWrap: true,
         }
       ),
-      OpenAerialMap: L.tileLayer(
-        "https://tiles.openaerialmap.org/5a9f90c42553e6000ce5ad6c/{z}/{x}/{y}.png",
+      OpenStreetMap: L.tileLayer(
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
         {
-          attribution: "© OpenAerialMap",
-          maxZoom: 22,
-          noWrap: true,
+          attribution: "© OpenStreetMap contributors",
+          maxZoom: 19,
         }
       ),
     };
 
     // Add default layer
-    baseLayers["MapTiler Satellite"].addTo(mapInstance);
+    baseLayers["Google Satelit"].addTo(mapInstance);
 
     // Add layer control
     L.control
