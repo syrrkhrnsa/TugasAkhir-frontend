@@ -4,11 +4,11 @@ import { NavLink } from "react-router-dom";
 const Navbar = () => {
   return (
     <nav className="w-full bg-white fixed top-5 right-0 flex justify-end pr-20">
-      <div className="max-w-7xl px-6 lg:px-8 flex justify-end items-center h-16 space-x-8">
+      <div className="max-w-7xl px-6 lg:px-8 flex justify-end items-center h-20 space-x-10">
         <NavLink
           to="/"
           className={({ isActive }) =>
-            `text-xs font-medium ${
+            `text-lg font-medium ${
               isActive ? "text-hijau border-b-2 border-kuning" : "text-hijau"
             } hover:text-green-600`
           }
@@ -16,19 +16,9 @@ const Navbar = () => {
           Beranda
         </NavLink>
         <NavLink
-          to="/tentang-kami"
-          className={({ isActive }) =>
-            `text-xs font-medium ${
-              isActive ? "text-hijau border-b-2 border-kuning" : "text-hijau"
-            } hover:text-green-600`
-          }
-        >
-          Tentang Kami
-        </NavLink>
-        <NavLink
           to="/lihat-data-wakaf"
           className={({ isActive }) =>
-            `text-xs font-medium ${
+            `text-lg font-medium ${
               isActive ? "text-hijau border-b-2 border-kuning" : "text-hijau"
             } hover:text-green-600`
           }
@@ -38,12 +28,12 @@ const Navbar = () => {
         <NavLink
           to="/login"
           className={({ isActive }) =>
-            `text-xs font-medium ${
+            `text-lg font-medium ${
               isActive ? "text-hijau border-b-2 border-kuning" : "text-hijau"
             } hover:text-green-600`
           }
         >
-          Login
+          Masuk
         </NavLink>
       </div>
     </nav>

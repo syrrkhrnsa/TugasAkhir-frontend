@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
 import Sidebar from "../components/Sidebar.js";
 import FasilitasPopupCard from "../components/PemetaanSidebar/FasilitasPopupCard";
 import { getFasilitasModalHTML } from "../components/PemetaanSidebar/GetDetailFasilitas.js";
@@ -7,11 +6,14 @@ import { getPopupTanahHTML } from "../components/PemetaanSidebar/PopupTanah";
 import { getMarkerPopupHTML } from "../components/PemetaanSidebar/MarkerPopupContent";
 import FasilitasListCard from "../components/PemetaanSidebar/FasilitasListCard";
 import L from "leaflet";
+import { useNavigate, useLocation } from "react-router-dom";
 import "leaflet/dist/leaflet.css";
 import axios from "axios";
 import * as wellknown from "wellknown";
 import { createRoot } from "react-dom/client";
-import { useNavigate } from "react-router-dom";
+
+import 'leaflet-control-geocoder/dist/Control.Geocoder.css';
+import 'leaflet-control-geocoder';
 
 // Fix for Leaflet marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -22,7 +24,6 @@ L.Icon.Default.mergeOptions({
 });
 
 const PemetaanSidebar = () => {
-  const { id } = useParams();
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const [pemetaanData, setPemetaanData] = useState([]);
@@ -32,14 +33,18 @@ const PemetaanSidebar = () => {
   const drawnItemsRef = useRef(null);
   const fasilitasLayerRef = useRef(null);
   const navigate = useNavigate();
-  const [tanahData, setTanahData] = useState({});
-  const [sertifikatData, setSertifikatData] = useState([]);
-  const [fasilitasDetailData, setFasilitasDetailData] = useState({});
   const [showFacilityList, setShowFacilityList] = useState(true);
   const [users, setUsers] = useState([]);
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [facilitySearchTerm, setFacilitySearchTerm] = useState("");
+  const location = useLocation();
+
+  // Filter facilities based on search term
+  const filteredFacilities = fasilitasData.filter((facility) =>
+    facility.nama_fasilitas.toLowerCase().includes(facilitySearchTerm.toLowerCase())
+  );
 
   // Fetch data user untuk dropdown filter
   const fetchUsers = async () => {
@@ -136,6 +141,7 @@ const PemetaanSidebar = () => {
     setSelectedUserId(userId);
     setIsDropdownOpen(false);
     setSearchTerm("");
+    setFacilitySearchTerm(""); // Reset facility search when changing user filter
     fetchPemetaanData(userId);
     fetchFasilitasData(userId);
   };
@@ -145,6 +151,7 @@ const PemetaanSidebar = () => {
     setSelectedUserId(null);
     setIsDropdownOpen(false);
     setSearchTerm("");
+    setFacilitySearchTerm(""); // Reset facility search when resetting all filters
     fetchPemetaanData();
     fetchFasilitasData();
   };
@@ -265,7 +272,7 @@ const PemetaanSidebar = () => {
 
     // Initialize map with higher zoom level
     const mapInstance = L.map(mapRef.current, {
-      zoomControl: true,
+      zoomControl: false,
       maxZoom: 22,
       minZoom: 10,
     }).setView([-7.0456, 107.5886], 13);
@@ -279,7 +286,7 @@ const PemetaanSidebar = () => {
         {
           attribution: "© MapTiler",
           maxZoom: 22,
-          noWrap: true,
+          noWrap: false,
         }
       ),
       "Google Satelit": L.tileLayer(
@@ -287,7 +294,7 @@ const PemetaanSidebar = () => {
         {
           attribution: "Google Satelit",
           maxZoom: 22,
-          noWrap: true,
+          noWrap: false,
         }
       ),
       OpenStreetMap: L.tileLayer(
@@ -313,9 +320,42 @@ const PemetaanSidebar = () => {
       {
         attribution: "Labels © Esri",
         maxZoom: 22,
-        noWrap: true,
+        noWrap: false,
       }
     ).addTo(mapInstance);
+
+    const geocoder = L.Control.Geocoder.nominatim();
+    
+    if (URLSearchParams && location.search) {
+      const params = new URLSearchParams(location.search);
+      const query = params.get('q');
+      if (query) {
+        geocoder.geocode(query, function(results) {
+          if (results.length > 0) {
+            mapInstance.fitBounds(results[0].bbox);
+          }
+        });
+      }
+    }
+
+    // Tambahkan kontrol zoom custom di atas kanan
+    L.control.zoom({
+      position: 'topright'
+    }).addTo(mapInstance);
+
+    // Tambahkan geocoder di bawah kontrol zoom
+    L.Control.geocoder({
+      defaultMarkGeocode: false,
+      position: 'topright',
+      placeholder: 'Cari lokasi...',
+      errorMessage: 'Lokasi tidak ditemukan',
+      geocoder: geocoder
+    })
+    .on('markgeocode', function(e) {
+      const bbox = e.geocode.bbox;
+      mapInstance.fitBounds(bbox, { padding: [50, 50] });
+    })
+    .addTo(mapInstance);
 
     // Layer untuk pemetaan tanah
     const drawnItemsLayer = new L.FeatureGroup();
@@ -535,14 +575,6 @@ const PemetaanSidebar = () => {
           },
         });
       }
-    };
-
-    const handleAddInventaris = () => {
-      navigate("/inventaris/create", {
-        state: {
-          fasilitas: item,
-        },
-      });
     };
 
     return (
@@ -851,6 +883,8 @@ const PemetaanSidebar = () => {
                   type="text"
                   placeholder="Cari fasilitas..."
                   className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  value={facilitySearchTerm}
+                  onChange={(e) => setFacilitySearchTerm(e.target.value)}
                 />
                 <div className="absolute left-3 top-2.5 text-gray-400">
                   <svg
@@ -872,8 +906,8 @@ const PemetaanSidebar = () => {
             </div>
 
             <div className="divide-y divide-gray-100">
-              {fasilitasData.length > 0 ? (
-                fasilitasData.map((item) => (
+              {filteredFacilities.length > 0 ? (
+                filteredFacilities.map((item) => (
                   <FasilitasListCard
                     key={item.id_pemetaan_fasilitas}
                     item={item}
@@ -892,7 +926,7 @@ const PemetaanSidebar = () => {
                 ))
               ) : (
                 <div className="p-4 text-center text-gray-500">
-                  {loading ? "Memuat data..." : "Tidak ada data fasilitas"}
+                  {loading ? "Memuat data..." : "Tidak ada data fasilitas yang cocok"}
                 </div>
               )}
             </div>

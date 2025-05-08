@@ -118,10 +118,10 @@ const EditFasilitas = () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const maxFileSize = 5 * 1024 * 1024; // 5MB
+    const maxFileSize = 15 * 1024 * 1024; // 5MB
 
     if (file.size > maxFileSize) {
-      Swal.fire("Error", "Ukuran file maksimal 5MB", "error");
+      Swal.fire("Error", "Ukuran file maksimal 15MB", "error");
       return;
     }
 
@@ -489,7 +489,7 @@ const UploadFile = ({
         )}
       </div>
     ) : (
-      <p className="text-gray-400 text-sm italic mt-1">Maksimal ukuran 5MB</p>
+      <p className="text-gray-400 text-sm italic mt-1">Maksimal ukuran 15MB</p>
     )}
 
     <input

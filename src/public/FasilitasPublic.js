@@ -17,6 +17,7 @@ const PublicFasilitasTanah = () => {
       const response = await axios.get(
         "http://127.0.0.1:8000/api/fasilitas/public"
       );
+      // Make sure we're getting the pemetaan_fasilitas data with the correct structure
       setFasilitasData(response.data.data || []);
     } catch (error) {
       console.error("Gagal mengambil data:", error);
