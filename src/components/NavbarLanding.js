@@ -30,16 +30,6 @@ const NavbarLanding = () => {
           Beranda
         </NavLink>
         <NavLink
-          to="/tentang-kami"
-          className={({ isActive }) =>
-            `text-xl font-medium ${
-              isActive ? "text-hijau border-b-2 border-kuning" : "text-hijau"
-            } hover:text-green-600`
-          }
-        >
-          Tentang Kami
-        </NavLink>
-        <NavLink
           to="/login"
           className={({ isActive }) =>
             `text-xl font-medium ${
@@ -47,7 +37,7 @@ const NavbarLanding = () => {
             } hover:text-green-600`
           }
         >
-          Login
+          Masuk
         </NavLink>
       </div>
     </nav>

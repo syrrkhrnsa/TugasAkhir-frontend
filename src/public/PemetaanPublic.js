@@ -4,6 +4,10 @@ import "leaflet/dist/leaflet.css";
 import axios from "axios";
 import * as wellknown from "wellknown";
 
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import 'leaflet-control-geocoder/dist/Control.Geocoder.css';
+import 'leaflet-control-geocoder';
+
 // Fix leaflet marker icon path
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -25,6 +29,8 @@ const PublicPetaTanah = () => {
   const [sertifikatData, setSertifikatData] = useState([]);
   const [detailFasilitas, setDetailFasilitas] = useState(null);
   const sidebarRef = useRef(null);
+
+  const location = useLocation();
 
   const wkbToGeoJSON = (geometryData) => {
     try {
@@ -240,6 +246,34 @@ const PublicPetaTanah = () => {
       position: "topright",
     });
     zoomControl.addTo(map);
+
+    const geocoder = L.Control.Geocoder.nominatim();
+    
+    if (URLSearchParams && location.search) {
+      // parse the query parameters
+      const params = new URLSearchParams(location.search);
+      const query = params.get('q');
+      if (query) {
+        geocoder.geocode(query, function(results) {
+          if (results.length > 0) {
+            map.fitBounds(results[0].bbox);
+          }
+        });
+      }
+    }
+
+    L.Control.geocoder({
+      defaultMarkGeocode: false,
+      position: 'topright',
+      placeholder: 'Cari lokasi...',
+      errorMessage: 'Lokasi tidak ditemukan',
+      geocoder: geocoder
+    })
+    .on('markgeocode', function(e) {
+      const bbox = e.geocode.bbox;
+      map.fitBounds(bbox, { padding: [50, 50] });
+    })
+    .addTo(map);
   };
 
   const renderMapData = () => {
