@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
+import "leaflet/dist/leaflet.css";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import { FaEye, FaMapMarkerAlt } from "react-icons/fa";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import config from "../config";
+import PopupListDokumen from "../components/popup_listdokumen";
 
 // Fix for default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -19,6 +21,9 @@ L.Icon.Default.mergeOptions({
 });
 
 const DetailTanah = () => {
+  const [showDokumenPopup, setShowDokumenPopup] = useState(false);
+  const [selectedSertifikatId, setSelectedSertifikatId] = useState(null);
+
   const { idTanah } = useParams();
   const [tanah, setTanah] = useState(null);
   const [sertifikatList, setSertifikatList] = useState([]);
@@ -140,6 +145,11 @@ const DetailTanah = () => {
   const position = hasCoordinates
     ? [parseFloat(tanah.latitude), parseFloat(tanah.longitude)]
     : [-7.0425, 107.5861]; // Default ke Banjaran jika tidak ada koordinat
+
+  const handleShowDokumenList = (sertifikatId) => {
+    setSelectedSertifikatId(sertifikatId);
+    setShowDokumenPopup(true);
+  };
 
   return (
     <div className="relative">
@@ -384,25 +394,16 @@ const DetailTanah = () => {
                                   {sertifikat.status || "-"}
                                 </span>
                               </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                              <td className="py-2 px-4 border-b text-center">
                                 <button
                                   onClick={() =>
-                                    handlePreviewDokumen(sertifikat.dokumen)
+                                    handleShowDokumenList(
+                                      sertifikat.id_sertifikat
+                                    )
                                   }
-                                  className={`flex items-center ${
-                                    sertifikat.dokumen
-                                      ? "text-blue-500 hover:text-blue-700"
-                                      : "text-gray-400 cursor-not-allowed"
-                                  }`}
-                                  disabled={!sertifikat.dokumen}
-                                  title={
-                                    sertifikat.dokumen
-                                      ? "Lihat dokumen"
-                                      : "Dokumen tidak tersedia"
-                                  }
+                                  className="bg-blue-500 text-white px-3 py-1 rounded-md hover:bg-blue-600 text-sm"
                                 >
-                                  <FaEye className="mr-1" />
-                                  {sertifikat.dokumen ? "Lihat" : "Tidak ada"}
+                                  Lihat Dokumen
                                 </button>
                               </td>
                               <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
@@ -430,6 +431,12 @@ const DetailTanah = () => {
             </div>
           </div>
         </div>
+        {showDokumenPopup && (
+          <PopupListDokumen
+            idSertifikat={selectedSertifikatId}
+            onClose={() => setShowDokumenPopup(false)}
+          />
+        )}
       </Sidebar>
     </div>
   );

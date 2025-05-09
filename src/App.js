@@ -1,4 +1,5 @@
 import React from "react";
+import "leaflet/dist/leaflet.css";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Login from "./pages/auth.js";
 import Landing from "./pages/landing.js";
@@ -32,8 +33,14 @@ function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/lihat-data-wakaf" element={<Public />} />
-        <Route path="/detail/tanah/public/:id" element={<DetailTanahPublic />} />
-        <Route path="/detail/fasilitas/public/:id" element={<DetailFasilitasPublic />} />
+        <Route
+          path="/detail/tanah/public/:id"
+          element={<DetailTanahPublic />}
+        />
+        <Route
+          path="/detail/fasilitas/public/:id"
+          element={<DetailFasilitasPublic />}
+        />
 
         {/* Grouping Protected Routes */}
         <Route element={<ProtectedRoute />}>
