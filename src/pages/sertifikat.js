@@ -370,7 +370,7 @@ const Legalitas = () => {
         <div className="relative mb-4 flex justify-between items-center p-4 bg-white shadow-sm rounded-lg">
           <div>
             <h2 className="text-xl font-semibold text-gray-800">
-              Legalitas Tanah Wakaf
+              Tanah Wakaf
             </h2>
             <p className="text-sm text-gray-500">PC Persis Banjaran</p>
           </div>
