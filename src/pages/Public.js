@@ -15,16 +15,16 @@ const PetaTanahPage = () => {
         {/* Combined Header with Logo and Tabs in one line */}
         <div className="flex items-center justify-between mb-6">
           {/* Logo and Title */}
-          <div className="flex items-center">
-            <img src={logo} alt="Logo" className="w-10 h-12" />
-            <div className="text-left ml-4">
-              <h1 className="text-[14px] font-bold">
-                <span className="text-hijau">Waqf</span>{" "}
-                <span className="text-kuning">Management</span>
-              </h1>
-              <p className="text-[12px] font-bold text-hijau">PC Persis Banjaran</p>
-            </div>
+        <div className="flex items-center">
+          <img src={logo} alt="Logo" className="h-10 mt-5" />
+          <div className="text-left ml-2">
+            <h1 className="text-[14px] font-bold mt-4">
+              <span className="text-hijau">Waqf</span>{" "}
+              <span className="text-kuning">Management</span>
+            </h1>
+            <p className="text-[12px] font-bold text-hijau">PC Persis Banjaran</p>
           </div>
+        </div>
 
           {/* Tabs aligned with logo */}
           <div className="flex items-center space-x-1">

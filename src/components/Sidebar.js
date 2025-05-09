@@ -20,8 +20,8 @@ const DashboardLayout = ({ children }) => {
 
   const menuItems = [
     { name: "Dashboard", path: "/dashboard", icon: <FaTh /> },
+    { name: "Tanah Wakaf", path: "/sertifikat", icon: <FaCertificate /> },
     { name: "Pemetaan", path: "/pemetaan", icon: <FaMapMarkedAlt /> },
-    { name: "Legalitas", path: "/sertifikat", icon: <FaCertificate /> },
   ];
 
   // Initialize last login time on first load and reset on logout
@@ -132,8 +132,8 @@ const DashboardLayout = ({ children }) => {
             isOpen ? "opacity-100" : "opacity-0 w-0 overflow-hidden"
           }`}
         >
-          <img src={logo} alt="Logo" className="w-8 h-10" />
-          <div className="ml-3">
+          <img src={logo} alt="Logo" className="h-8" /> {/* Hapus mt-5 */}
+          <div className="ml-1">
             <h1 className="text-sm font-bold">
               <span className="text-green-600">Waqf</span>{" "}
               <span className="text-yellow-500">Management</span>

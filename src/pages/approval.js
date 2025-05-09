@@ -513,6 +513,8 @@ const Approval = () => {
     const displayFields = [
       { key: "no_dokumen", label: "No Dokumen" },
       { key: "dokumen", label: "Dokumen" },
+      { key: "jenis_sertifikat", label: "Jenis Sertifikat" },
+      { key: "status_pengajuan", label: "Status Pengajuan" },
       { key: "tanggal_pengajuan", label: "Tanggal Pengajuan" },
     ];
 
