@@ -2,7 +2,13 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import axios from "axios";
-import { FaFilePdf, FaTimes, FaSpinner } from "react-icons/fa";
+import {
+  FaFilePdf,
+  FaTimes,
+  FaSpinner,
+  FaTrash,
+  FaCheck,
+} from "react-icons/fa";
 import Swal from "sweetalert2";
 import config from "../config";
 import { getRoleId } from "../utils/Auth";
@@ -22,12 +28,12 @@ const CreateSertifikat = () => {
 
   const API_URL = config.API_URL;
 
-  const [file, setFile] = useState(null);
+  const [files, setFiles] = useState([]);
+  const [uploadedFiles, setUploadedFiles] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
   const [tanahOptions, setTanahOptions] = useState([]);
   const [isLoadingTanah, setIsLoadingTanah] = useState(false);
-  const [uploadedFileInfo, setUploadedFileInfo] = useState(null);
 
   useEffect(() => {
     if (!idTanah) {
@@ -58,30 +64,77 @@ const CreateSertifikat = () => {
   };
 
   const handleFileChange = (e) => {
-    const selectedFile = e.target.files[0];
-    if (!selectedFile) return;
+    const selectedFiles = Array.from(e.target.files);
 
-    // File validation
-    if (selectedFile.size > 5 * 1024 * 1024) {
-      Swal.fire("Error", "Ukuran file maksimal 5MB", "error");
-      return;
-    }
+    // Filter hanya PDF dan maksimal 5MB
+    const validFiles = selectedFiles.filter((file) => {
+      if (file.size > 5 * 1024 * 1024) {
+        Swal.fire("Error", `File ${file.name} melebihi 5MB`, "error");
+        return false;
+      }
+      if (file.type !== "application/pdf") {
+        Swal.fire("Error", `File ${file.name} bukan PDF`, "error");
+        return false;
+      }
+      return true;
+    });
 
-    if (selectedFile.type !== "application/pdf") {
-      Swal.fire("Error", "Hanya file PDF yang diperbolehkan", "error");
-      return;
-    }
-
-    setFile(selectedFile);
-    setUploadedFileInfo(null); // Reset uploaded file info
+    setFiles((prev) => [...prev, ...validFiles]);
     setErrors((prev) => ({ ...prev, dokumen: undefined }));
   };
 
-  const handleRemoveFile = () => {
-    setFile(null);
-    setUploadedFileInfo(null);
-    const fileInput = document.getElementById("dokumen");
-    if (fileInput) fileInput.value = "";
+  const handleRemoveFile = (index) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleRemoveUploadedFile = async (idDokumen) => {
+    const token = localStorage.getItem("token");
+
+    try {
+      await axios.delete(`${API_URL}/dokumen-legalitas/${idDokumen}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setUploadedFiles((prev) =>
+        prev.filter((file) => file.id_dokumen_legalitas !== idDokumen)
+      );
+      Swal.fire("Sukses", "Dokumen berhasil dihapus", "success");
+    } catch (error) {
+      console.error("Error deleting document:", error);
+      Swal.fire("Error", "Gagal menghapus dokumen", "error");
+    }
+  };
+
+  const uploadFilesToServer = async () => {
+    const token = localStorage.getItem("token");
+    const newUploadedFiles = [];
+
+    for (const file of files) {
+      const formData = new FormData();
+      formData.append("dokumen[]", file);
+
+      try {
+        const response = await axios.post(
+          `${API_URL}/sertifikat/${formData.id_tanah}/upload-dokumen`,
+          formData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
+
+        if (response.data.status === "success") {
+          newUploadedFiles.push(...response.data.data);
+        }
+      } catch (error) {
+        console.error("Upload error:", error);
+        throw error;
+      }
+    }
+
+    return newUploadedFiles;
   };
 
   const validateForm = () => {
@@ -111,8 +164,8 @@ const CreateSertifikat = () => {
       isValid = false;
     }
 
-    if (!uploadedFileInfo && !file) {
-      newErrors.dokumen = "Dokumen wajib diupload";
+    if (files.length === 0 && uploadedFiles.length === 0) {
+      newErrors.dokumen = "Minimal upload satu dokumen";
       isValid = false;
     }
 
@@ -120,35 +173,7 @@ const CreateSertifikat = () => {
     return isValid;
   };
 
-  const uploadFileToMinIO = async () => {
-    const token = localStorage.getItem("token");
-    const uploadForm = new FormData();
-    uploadForm.append("dokumen", file);
-
-    try {
-      const response = await axios.post(
-        `${API_URL}/upload-dokumen`,
-        uploadForm,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-
-      if (response.data.status === "success") {
-        setUploadedFileInfo(response.data.data);
-        return response.data.data;
-      }
-      throw new Error(response.data.message || "Gagal mengupload dokumen");
-    } catch (error) {
-      console.error("Upload error:", error);
-      throw error;
-    }
-  };
-
-  const saveSertifikatData = async (fileInfo) => {
+  const saveSertifikatData = async () => {
     const token = localStorage.getItem("token");
 
     const payload = {
@@ -156,7 +181,6 @@ const CreateSertifikat = () => {
       status_pengajuan: formData.status_pengajuan,
       tanggal_pengajuan: formData.tanggal_pengajuan,
       id_tanah: formData.id_tanah,
-      dokumen_path: fileInfo.filename,
     };
 
     try {
@@ -170,19 +194,6 @@ const CreateSertifikat = () => {
       return response.data;
     } catch (error) {
       console.error("Save error:", error);
-
-      // Hapus file yang sudah terupload jika simpan data gagal
-      if (fileInfo?.filename) {
-        try {
-          await axios.delete(`${API_URL}/delete-dokumen`, {
-            data: { filename: fileInfo.filename },
-            headers: { Authorization: `Bearer ${token}` },
-          });
-        } catch (deleteError) {
-          console.error("Gagal menghapus file:", deleteError);
-        }
-      }
-
       throw error;
     }
   };
@@ -193,16 +204,37 @@ const CreateSertifikat = () => {
     if (!validateForm()) return;
 
     setIsSubmitting(true);
-    let fileInfo = uploadedFileInfo;
+
+    // Create FormData object for submission
+    const submissionFormData = new FormData();
+
+    // Append all form fields
+    submissionFormData.append("jenis_sertifikat", formData.jenis_sertifikat);
+    submissionFormData.append("status_pengajuan", formData.status_pengajuan);
+    submissionFormData.append("tanggal_pengajuan", formData.tanggal_pengajuan);
+    submissionFormData.append("id_tanah", formData.id_tanah);
+
+    // Append all files
+    files.forEach((file) => {
+      submissionFormData.append("dokumen[]", file);
+    });
+
+    // Debug: Log what's being sent
+    for (let [key, value] of submissionFormData.entries()) {
+      console.log(key, value);
+    }
 
     try {
-      // Jika file belum diupload, upload terlebih dahulu
-      if (!uploadedFileInfo && file) {
-        fileInfo = await uploadFileToMinIO();
-      }
-
-      // Simpan data sertifikat
-      const response = await saveSertifikatData(fileInfo);
+      const response = await axios.post(
+        `${API_URL}/sertifikat`,
+        submissionFormData,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
 
       // Handle success response
       let successMessage = "Sertifikat berhasil dibuat";
@@ -226,20 +258,11 @@ const CreateSertifikat = () => {
       let errorDetails = "";
 
       if (error.response) {
-        // Handle validation errors
         if (error.response.status === 422) {
           const backendErrors = error.response.data.errors;
-          setErrors((prev) => ({
-            ...prev,
-            ...Object.fromEntries(
-              Object.entries(backendErrors).map(([key, value]) => [
-                key,
-                value[0],
-              ])
-            ),
-          }));
+          setErrors(backendErrors);
           errorMessage = "Validasi gagal";
-          errorDetails = "Periksa kembali form Anda";
+          errorDetails = Object.values(backendErrors).join("\n");
         } else {
           errorMessage = error.response.data.message || errorMessage;
           errorDetails = error.response.data.error || "";
@@ -338,7 +361,7 @@ const CreateSertifikat = () => {
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        jenis_sertifikat: e.target.value,
+                        jenis_sertifikat: e.target.value, // Make sure this is updating correctly
                       })
                     }
                   >
@@ -419,16 +442,14 @@ const CreateSertifikat = () => {
                     Dokumen Sertifikat (PDF){" "}
                     <span className="text-red-500">*</span>
                   </label>
+
+                  {/* File Input */}
                   <div className="mt-1 flex items-center">
                     <label
                       htmlFor="dokumen"
-                      className={`cursor-pointer bg-white py-2 px-3 border rounded-md shadow-sm text-sm leading-4 font-medium ${
-                        uploadedFileInfo
-                          ? "border-green-500 text-green-700"
-                          : "border-gray-300 text-gray-700 hover:bg-gray-50"
-                      } focus:outline-none`}
+                      className="cursor-pointer bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm leading-4 font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
                     >
-                      {uploadedFileInfo ? "File Sudah Diupload" : "Pilih File"}
+                      Pilih File
                     </label>
                     <input
                       id="dokumen"
@@ -437,41 +458,83 @@ const CreateSertifikat = () => {
                       accept=".pdf"
                       className="sr-only"
                       onChange={handleFileChange}
-                      disabled={!!uploadedFileInfo}
+                      multiple
                     />
-                    {(file || uploadedFileInfo) && (
-                      <div className="ml-4 flex items-center">
-                        <FaFilePdf className="text-red-500 mr-2" />
-                        <span className="text-sm text-gray-700">
-                          {uploadedFileInfo?.filename || file.name} (
-                          {uploadedFileInfo
-                            ? "Terverifikasi"
-                            : `${(file.size / 1024 / 1024).toFixed(2)} MB`}
-                          )
-                        </span>
+                  </div>
+
+                  {/* File List Preview */}
+                  <div className="mt-4 space-y-2">
+                    {/* Files to be uploaded */}
+                    {files.map((file, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-2 bg-gray-50 rounded"
+                      >
+                        <div className="flex items-center">
+                          <FaFilePdf className="text-red-500 mr-2" />
+                          <span className="text-sm text-gray-700">
+                            {file.name} ({(file.size / 1024 / 1024).toFixed(2)}{" "}
+                            MB)
+                          </span>
+                        </div>
                         <button
                           type="button"
-                          onClick={handleRemoveFile}
-                          className="ml-2 text-red-500 hover:text-red-700"
+                          onClick={() => handleRemoveFile(index)}
+                          className="text-red-500 hover:text-red-700"
                         >
                           <FaTimes />
                         </button>
                       </div>
-                    )}
+                    ))}
+
+                    {/* Uploaded files */}
+                    {uploadedFiles.map((file) => (
+                      <div
+                        key={file.id_dokumen_legalitas}
+                        className="flex items-center justify-between p-2 bg-green-50 rounded border border-green-200"
+                      >
+                        <div className="flex items-center">
+                          <FaFilePdf className="text-red-500 mr-2" />
+                          <span className="text-sm text-gray-700">
+                            {file.filename.split("/").pop()}
+                          </span>
+                          <span className="ml-2 text-xs text-green-600 flex items-center">
+                            <FaCheck className="mr-1" /> Terupload
+                          </span>
+                        </div>
+                        <div className="flex space-x-2">
+                          <a
+                            href={`${API_URL}/dokumen-legalitas/${file.id_dokumen_legalitas}/view`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-500 hover:text-blue-700 text-sm"
+                          >
+                            Lihat
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleRemoveUploadedFile(
+                                file.id_dokumen_legalitas
+                              )
+                            }
+                            className="text-red-500 hover:text-red-700 text-sm"
+                          >
+                            Hapus
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
+
                   {errors.dokumen && (
                     <p className="mt-1 text-sm text-red-600">
                       {errors.dokumen}
                     </p>
                   )}
                   <p className="mt-1 text-sm text-gray-500">
-                    Unggah dokumen PDF (maksimal 5MB)
+                    Unggah satu atau lebih dokumen PDF (maksimal 5MB per file)
                   </p>
-                  {uploadedFileInfo && (
-                    <p className="mt-1 text-sm text-green-600">
-                      File sudah berhasil diupload ke server
-                    </p>
-                  )}
                 </div>
               </div>
 

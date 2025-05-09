@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
+import "leaflet/dist/leaflet.css";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import { FaEye, FaMapMarkerAlt } from "react-icons/fa";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import config from "../config";
+import PopupListDokumen from "../components/popup_listdokumen";
 
 // Fix for default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -17,9 +19,11 @@ L.Icon.Default.mergeOptions({
   shadowUrl:
     "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
-import config from "../config";
 
 const DetailTanah = () => {
+  const [showDokumenPopup, setShowDokumenPopup] = useState(false);
+  const [selectedSertifikatId, setSelectedSertifikatId] = useState(null);
+
   const { idTanah } = useParams();
   const [tanah, setTanah] = useState(null);
   const [sertifikatList, setSertifikatList] = useState([]);
@@ -141,6 +145,11 @@ const DetailTanah = () => {
   const position = hasCoordinates
     ? [parseFloat(tanah.latitude), parseFloat(tanah.longitude)]
     : [-7.0425, 107.5861]; // Default ke Banjaran jika tidak ada koordinat
+
+  const handleShowDokumenList = (sertifikatId) => {
+    setSelectedSertifikatId(sertifikatId);
+    setShowDokumenPopup(true);
+  };
 
   return (
     <div className="relative">
@@ -386,32 +395,16 @@ const DetailTanah = () => {
                                 </span>
                               </td>
                               <td className="py-2 px-4 border-b text-center">
-                                <div className="flex justify-center">
-                                  {sertifikat.dokumen ? (
-                                    <a
-                                      href={`${config.API_URL}/sertifikat/${sertifikat.id_sertifikat}/view`}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="group relative p-1 text-blue-500 hover:text-blue-600 transition-colors"
-                                      title="Lihat Dokumen"
-                                      aria-label={`Preview dokumen ${
-                                        sertifikat.jenis_sertifikat || ""
-                                      }`}
-                                    >
-                                      <FaEye className="text-lg" />
-                                      <span className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                                        Lihat Dokumen
-                                      </span>
-                                    </a>
-                                  ) : (
-                                    <span
-                                      className="text-gray-400 text-xs italic"
-                                      title="Dokumen belum diupload"
-                                    >
-                                      Tidak tersedia
-                                    </span>
-                                  )}
-                                </div>
+                                <button
+                                  onClick={() =>
+                                    handleShowDokumenList(
+                                      sertifikat.id_sertifikat
+                                    )
+                                  }
+                                  className="bg-blue-500 text-white px-3 py-1 rounded-md hover:bg-blue-600 text-sm"
+                                >
+                                  Lihat Dokumen
+                                </button>
                               </td>
                               <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                                 {calculateDayDifference(
@@ -438,6 +431,12 @@ const DetailTanah = () => {
             </div>
           </div>
         </div>
+        {showDokumenPopup && (
+          <PopupListDokumen
+            idSertifikat={selectedSertifikatId}
+            onClose={() => setShowDokumenPopup(false)}
+          />
+        )}
       </Sidebar>
     </div>
   );
