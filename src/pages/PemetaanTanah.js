@@ -53,10 +53,8 @@ const PetaTanah = ({ tanahId }) => {
     pemetaanTanahId: null,
   });
 
-  const location = useLocation(); // Add this line
-  const [drawingMode, setDrawingMode] = useState(null);
-
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Konfigurasi Map Tiles
   const MAP_TILES = {
@@ -92,7 +90,6 @@ const PetaTanah = ({ tanahId }) => {
           headers: { Authorization: `Bearer ${token}` },
         }),
         axios.get(`http://127.0.0.1:8000/api/pemetaan-tanah/${tanahId}`, {
-          // Perhatikan perubahan endpoint
           headers: { Authorization: `Bearer ${token}` },
         }),
         axios.get(`http://127.0.0.1:8000/api/sertifikat/tanah/${tanahId}`, {
@@ -478,7 +475,6 @@ const PetaTanah = ({ tanahId }) => {
     const geocoder = L.Control.Geocoder.nominatim();
     
     if (URLSearchParams && location.search) {
-      // parse the query parameters
       const params = new URLSearchParams(location.search);
       const query = params.get('q');
       if (query) {
@@ -490,6 +486,12 @@ const PetaTanah = ({ tanahId }) => {
       }
     }
 
+    // Tambahkan kontrol zoom custom di atas kanan
+    L.control.zoom({
+      position: 'topright'
+    }).addTo(mapInstance);
+
+    // Tambahkan geocoder di bawah kontrol zoom
     L.Control.geocoder({
       defaultMarkGeocode: false,
       position: 'topright',
@@ -511,10 +513,10 @@ const PetaTanah = ({ tanahId }) => {
     if (drawControlRef.current) {
       mapInstance.removeControl(drawControlRef.current);
     }
-  
+
     // Cek apakah sudah ada data pemetaan tanah
     const hasExistingPemetaan = pemetaanData && pemetaanData.length > 0;
-  
+
     const drawOptions = {
       edit: {
         featureGroup:
@@ -537,16 +539,16 @@ const PetaTanah = ({ tanahId }) => {
         },
       },
     };
-  
+
     drawControlRef.current = new L.Control.Draw(drawOptions);
     mapInstance.addControl(drawControlRef.current);
-  
+
     // Handle draw events
     mapInstance.off(L.Draw.Event.CREATED);
     mapInstance.on(L.Draw.Event.CREATED, (e) => {
       const layer = e.layer;
       const geoJSON = layer.toGeoJSON().geometry;
-  
+
       if (mode === "facility") {
         fasilitasLayerRef.current.addLayer(layer);
         setFasilitasFormData((prev) => ({
@@ -592,7 +594,7 @@ const PetaTanah = ({ tanahId }) => {
   useEffect(() => {
     if (tanahId) {
       fetchPemetaanData();
-      fetchSertifikatData(); // Tambahkan ini
+      fetchSertifikatData();
     }
   }, [tanahId]);
 
@@ -649,7 +651,7 @@ const PetaTanah = ({ tanahId }) => {
           try {
             const geoJSONLayer = L.geoJSON(item.geojson, {
               style: {
-                color: "#ff0000", // Red for land mapping
+                color: "#ff0000",
                 weight: 3,
                 opacity: 1,
                 fillOpacity: 0.3,
@@ -783,7 +785,6 @@ const PetaTanah = ({ tanahId }) => {
         // Check if detailData exists and has id_fasilitas
         if (!detailData || typeof detailData.id_fasilitas === "undefined") {
           console.error("Cannot edit: detailData is missing or invalid");
-          // Optionally show an error message to the user
           alert("Data fasilitas tidak valid. Tidak dapat melanjutkan edit.");
           return;
         }
@@ -939,19 +940,18 @@ const PetaTanah = ({ tanahId }) => {
   }, [pemetaanData]);
 
   useEffect(() => {
-    // Hanya inisialisasi peta sekali saja
-    if (loading || mapInstanceRef.current) return;
-    
+    if (loading || !mapRef.current || mapInstanceRef.current) return;
+
     const mapInstance = initializeMap();
-    mapInstanceRef.current = mapInstance;
+    renderMapData(mapInstance);
+
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
   }, [loading]);
-  
-  useEffect(() => {
-    // Update data peta ketika fasilitasData berubah
-    if (loading || !mapInstanceRef.current) return;
-    
-    renderMapData(mapInstanceRef.current);
-  }, [loading, fasilitasData]);
 
   return (
     <div className="relative">
