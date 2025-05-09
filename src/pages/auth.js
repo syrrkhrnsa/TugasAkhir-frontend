@@ -6,7 +6,7 @@ import Navbar from "../components/Navbar";
 import { setAuthData } from "../utils/Auth";
 
 const Login = () => {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const navigate = useNavigate();
@@ -15,7 +15,7 @@ const Login = () => {
     e.preventDefault();
     try {
       const response = await axios.post("http://127.0.0.1:8000/api/login", {
-        email,
+        username,
         password,
       });
 
@@ -101,7 +101,7 @@ const Login = () => {
             }}
           >
             {/* Header */}
-            <h1 className="text-3xl font-bold text-left text-hijau">Login</h1>
+            <h1 className="text-3xl font-bold text-left text-hijau">Masuk</h1>
             <p className="text-left text-xs text-gray-500 mt-1">
               We are very happy to see you back!
             </p>
@@ -113,17 +113,17 @@ const Login = () => {
 
             {/* Login Form */}
             <form onSubmit={handleSubmit} className="mt-3 space-y-2">
-              {/* Email Input */}
+              {/* Username Input */}
               <div>
                 <label className="block text-xs font-medium text-gray-700">
-                  Email
+                  Username
                 </label>
                 <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   className="block w-full px-3 py-1.5 mt-1 border border-gray-300 rounded-lg shadow-sm focus:ring focus:ring-hijaulogin focus:outline-none text-xs"
-                  placeholder="pimpinan@gmail.com"
+                  placeholder="Enter your username"
                   required
                 />
               </div>
@@ -141,20 +141,6 @@ const Login = () => {
                   placeholder="Enter your password"
                   required
                 />
-              </div>
-
-              {/* Remember Me & Forgot Password */}
-              <div className="flex items-center justify-between text-[10px] mt-1">
-                <label className="flex items-center text-fontlogin space-x-1">
-                  <input
-                    type="checkbox"
-                    className="w-3 h-3 rounded border-gray-300"
-                  />
-                  <span>Remember Me</span>
-                </label>
-                <a href="#" className="text-fontlogin hover:underline">
-                  Forgot your password?
-                </a>
               </div>
 
               {/* Login Button */}

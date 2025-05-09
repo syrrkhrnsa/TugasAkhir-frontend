@@ -5,7 +5,7 @@ import axios from "axios";
 import * as wellknown from "wellknown";
 import "leaflet-draw/dist/leaflet.draw.css";
 import "leaflet-draw";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { getTanahPopupHTML } from "../components/PemetaanTanah/PopupTanah";
 import { getMarkerPopupHTML } from "../components/PemetaanTanah/MarkerPopupContent";
 import { getDetailFasilitasHTML } from "../components/PemetaanTanah/GetDetailFasilitas";
@@ -13,6 +13,8 @@ import { getFasilitasPopupHTML } from "../components/PemetaanTanah/FasilitasPopu
 import FasilitasModal from "../components/PemetaanTanah/c_pemetaan_fasilitas";
 import * as turf from "@turf/turf";
 import Swal from "sweetalert2";
+import 'leaflet-control-geocoder/dist/Control.Geocoder.css';
+import 'leaflet-control-geocoder';
 
 // Fix for Leaflet marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -50,6 +52,9 @@ const PetaTanah = ({ tanahId }) => {
     jenis_geometri: "POLYGON",
     pemetaanTanahId: null,
   });
+
+  const location = useLocation(); // Add this line
+  const [drawingMode, setDrawingMode] = useState(null);
 
   const navigate = useNavigate();
 
@@ -470,6 +475,34 @@ const PetaTanah = ({ tanahId }) => {
     // Setup draw control
     setupDrawControl(mapInstance);
 
+    const geocoder = L.Control.Geocoder.nominatim();
+    
+    if (URLSearchParams && location.search) {
+      // parse the query parameters
+      const params = new URLSearchParams(location.search);
+      const query = params.get('q');
+      if (query) {
+        geocoder.geocode(query, function(results) {
+          if (results.length > 0) {
+            mapInstance.fitBounds(results[0].bbox);
+          }
+        });
+      }
+    }
+
+    L.Control.geocoder({
+      defaultMarkGeocode: false,
+      position: 'topright',
+      placeholder: 'Cari lokasi...',
+      errorMessage: 'Lokasi tidak ditemukan',
+      geocoder: geocoder
+    })
+    .on('markgeocode', function(e) {
+      const bbox = e.geocode.bbox;
+      mapInstance.fitBounds(bbox, { padding: [50, 50] });
+    })
+    .addTo(mapInstance);
+
     return mapInstance;
   };
 
@@ -478,7 +511,10 @@ const PetaTanah = ({ tanahId }) => {
     if (drawControlRef.current) {
       mapInstance.removeControl(drawControlRef.current);
     }
-
+  
+    // Cek apakah sudah ada data pemetaan tanah
+    const hasExistingPemetaan = pemetaanData && pemetaanData.length > 0;
+  
     const drawOptions = {
       edit: {
         featureGroup:
@@ -492,23 +528,25 @@ const PetaTanah = ({ tanahId }) => {
         circlemarker: false,
         circle: false,
         polyline: false,
-        rectangle: mode !== "facility",
+        // Nonaktifkan rectangle dan polygon jika sudah ada data pemetaan
+        rectangle: mode !== "facility" && !hasExistingPemetaan,
         polygon: {
           allowIntersection: false,
           showArea: true,
+          allowDrawing: mode === "facility" || !hasExistingPemetaan
         },
       },
     };
-
+  
     drawControlRef.current = new L.Control.Draw(drawOptions);
     mapInstance.addControl(drawControlRef.current);
-
+  
     // Handle draw events
     mapInstance.off(L.Draw.Event.CREATED);
     mapInstance.on(L.Draw.Event.CREATED, (e) => {
       const layer = e.layer;
       const geoJSON = layer.toGeoJSON().geometry;
-
+  
       if (mode === "facility") {
         fasilitasLayerRef.current.addLayer(layer);
         setFasilitasFormData((prev) => ({
@@ -518,8 +556,20 @@ const PetaTanah = ({ tanahId }) => {
         }));
         setShowFasilitasModal(true);
       } else {
-        drawnItemsRef.current.addLayer(layer);
-        savePemetaanData(geoJSON);
+        // Tambahkan pengecekan lagi untuk memastikan
+        if (!hasExistingPemetaan) {
+          drawnItemsRef.current.addLayer(layer);
+          savePemetaanData(geoJSON);
+        } else {
+          // Hapus layer yang baru digambar jika ternyata sudah ada data
+          mapInstance.removeLayer(layer);
+          Swal.fire({
+            icon: 'warning',
+            title: 'Pemetaan Tanah Sudah Ada',
+            text: 'Anda tidak dapat menambahkan pemetaan tanah lagi karena sudah ada data pemetaan.',
+            confirmButtonText: 'OK'
+          });
+        }
       }
     });
   };
@@ -889,18 +939,19 @@ const PetaTanah = ({ tanahId }) => {
   }, [pemetaanData]);
 
   useEffect(() => {
-    if (loading || !mapRef.current || mapInstanceRef.current) return;
-
+    // Hanya inisialisasi peta sekali saja
+    if (loading || mapInstanceRef.current) return;
+    
     const mapInstance = initializeMap();
-    renderMapData(mapInstance);
-
-    return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
-    };
-  }, [loading]); // Hanya tergantung pada loading
+    mapInstanceRef.current = mapInstance;
+  }, [loading]);
+  
+  useEffect(() => {
+    // Update data peta ketika fasilitasData berubah
+    if (loading || !mapInstanceRef.current) return;
+    
+    renderMapData(mapInstanceRef.current);
+  }, [loading, fasilitasData]);
 
   return (
     <div className="relative">
