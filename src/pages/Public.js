@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
 import PublicPetaTanah from "../public/PemetaanPublic";
 import PublicTanah from "../public/TanahPublic";
-import PublicFasilitas from "../public/FasilitasPublic";
 import {
   TbMap,
   TbLayoutGrid,
@@ -30,16 +29,7 @@ const PetaTanahPage = () => {
                 PC Persis Banjaran
               </p>
             </div>
-        <div className="flex items-center">
-          <img src={logo} alt="Logo" className="h-10 mt-5" />
-          <div className="text-left ml-2">
-            <h1 className="text-[14px] font-bold mt-4">
-              <span className="text-hijau">Waqf</span>{" "}
-              <span className="text-kuning">Management</span>
-            </h1>
-            <p className="text-[12px] font-bold text-hijau">PC Persis Banjaran</p>
           </div>
-        </div>
 
           {/* Tabs aligned with logo */}
           <div className="flex items-center space-x-1">

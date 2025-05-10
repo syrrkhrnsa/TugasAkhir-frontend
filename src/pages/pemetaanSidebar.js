@@ -313,14 +313,6 @@ const PemetaanSidebar = () => {
 
     // Base layers
     const baseLayers = {
-      "MapTiler Satellite": L.tileLayer(
-        "https://api.maptiler.com/maps/hybrid/{z}/{x}/{y}.jpg?key=insgtVNzCo53KJvnDTe0",
-        {
-          attribution: "© MapTiler",
-          maxZoom: 22,
-          noWrap: false,
-        }
-      ),
       "Google Satelit": L.tileLayer(
         "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
         {

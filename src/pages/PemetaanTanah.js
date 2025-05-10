@@ -58,10 +58,6 @@ const PetaTanah = ({ tanahId }) => {
 
   // Konfigurasi Map Tiles
   const MAP_TILES = {
-    "MapTiler Satellite": {
-      url: "https://api.maptiler.com/maps/hybrid/{z}/{x}/{y}.jpg?key=insgtVNzCo53KJvnDTe0",
-      attribution: "© MapTiler",
-    },
     "Google Satelit": {
       url: "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
       attribution: "Google Satelit",
