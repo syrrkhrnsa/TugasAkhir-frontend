@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 
-const FasilitasListCard = ({ item, onClick }) => {
+const FasilitasListCard = ({ item, onClick, selectedCategory }) => {
+  // Add selectedCategory to props
   const [imageUrl, setImageUrl] = useState(null);
   const [imageError, setImageError] = useState(false);
   const [detailData, setDetailData] = useState(null);
 
   useEffect(() => {
-    // Fungsi untuk mengambil detail fasilitas
     const fetchDetailData = async () => {
       try {
         const token = localStorage.getItem("token");
@@ -80,7 +80,13 @@ const FasilitasListCard = ({ item, onClick }) => {
           {item.nama_fasilitas}
         </h3>
         <div className="flex items-center gap-2 mt-1">
-          <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full">
+          <span
+            className={`text-xs px-2 py-0.5 rounded-full ${
+              item.kategori_fasilitas === selectedCategory
+                ? "bg-blue-600 text-white"
+                : "bg-blue-100 text-blue-800"
+            }`}
+          >
             {item.kategori_fasilitas || "Tanpa Kategori"}
           </span>
           <span

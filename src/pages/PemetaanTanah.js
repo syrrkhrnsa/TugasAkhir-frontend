@@ -13,8 +13,8 @@ import { getFasilitasPopupHTML } from "../components/PemetaanTanah/FasilitasPopu
 import FasilitasModal from "../components/PemetaanTanah/c_pemetaan_fasilitas";
 import * as turf from "@turf/turf";
 import Swal from "sweetalert2";
-import 'leaflet-control-geocoder/dist/Control.Geocoder.css';
-import 'leaflet-control-geocoder';
+import "leaflet-control-geocoder/dist/Control.Geocoder.css";
+import "leaflet-control-geocoder";
 
 // Fix for Leaflet marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -429,11 +429,25 @@ const PetaTanah = ({ tanahId }) => {
       mapRef.current.removeChild(mapRef.current.firstChild);
     }
 
+    // Default view jika data tanah tidak memiliki koordinat
+    let defaultView = {
+      center: [-7.0456, 107.5886], // Default Bandung coordinates
+      zoom: 16,
+    };
+
+    // Jika tanahData memiliki koordinat, gunakan itu
+    if (tanahData.latitude && tanahData.longitude) {
+      defaultView = {
+        center: [tanahData.latitude, tanahData.longitude],
+        zoom: 18, // Zoom lebih dekat karena kita punya koordinat pasti
+      };
+    }
+
     const mapInstance = L.map(mapRef.current, {
       zoomControl: true,
       maxZoom: 22,
       minZoom: 10,
-    }).setView([-7.0456, 107.5886], 16);
+    }).setView(defaultView.center, defaultView.zoom);
 
     mapInstanceRef.current = mapInstance;
 
@@ -473,12 +487,12 @@ const PetaTanah = ({ tanahId }) => {
     setupDrawControl(mapInstance);
 
     const geocoder = L.Control.Geocoder.nominatim();
-    
+
     if (URLSearchParams && location.search) {
       const params = new URLSearchParams(location.search);
-      const query = params.get('q');
+      const query = params.get("q");
       if (query) {
-        geocoder.geocode(query, function(results) {
+        geocoder.geocode(query, function (results) {
           if (results.length > 0) {
             mapInstance.fitBounds(results[0].bbox);
           }
@@ -487,23 +501,71 @@ const PetaTanah = ({ tanahId }) => {
     }
 
     // Tambahkan kontrol zoom custom di atas kanan
-    L.control.zoom({
-      position: 'topright'
-    }).addTo(mapInstance);
+    L.control
+      .zoom({
+        position: "topright",
+      })
+      .addTo(mapInstance);
 
     // Tambahkan geocoder di bawah kontrol zoom
     L.Control.geocoder({
       defaultMarkGeocode: false,
-      position: 'topright',
-      placeholder: 'Cari lokasi...',
-      errorMessage: 'Lokasi tidak ditemukan',
-      geocoder: geocoder
+      position: "topright",
+      placeholder: "Cari lokasi...",
+      errorMessage: "Lokasi tidak ditemukan",
+      geocoder: geocoder,
     })
-    .on('markgeocode', function(e) {
-      const bbox = e.geocode.bbox;
-      mapInstance.fitBounds(bbox, { padding: [50, 50] });
-    })
-    .addTo(mapInstance);
+      .on("markgeocode", function (e) {
+        const bbox = e.geocode.bbox;
+        mapInstance.fitBounds(bbox, { padding: [50, 50] });
+      })
+      .addTo(mapInstance);
+
+    if (tanahData.latitude && tanahData.longitude) {
+      // Set view ke koordinat tanah dengan zoom lebih dekat
+      mapInstance.setView([tanahData.latitude, tanahData.longitude], 18);
+
+      // Buat marker sementara dengan animasi bounce
+      const temporaryMarker = L.marker(
+        [tanahData.latitude, tanahData.longitude],
+        {
+          icon: new L.Icon({
+            iconUrl:
+              "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowUrl:
+              "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
+            shadowSize: [41, 41],
+          }),
+          bounceOnAdd: true, // Animasi bounce saat pertama muncul
+          bounceOnAddOptions: {
+            duration: 1000,
+            height: 40,
+          },
+        }
+      ).addTo(mapInstance);
+
+      // Buka popup otomatis
+      temporaryMarker
+        .bindPopup(
+          `
+          <div class="p-2">
+            <h3 class="font-bold">${
+              tanahData.NamaPimpinanJamaah || "Lokasi Tanah"
+            }</h3>
+            <p>Koordinat: ${tanahData.latitude}, ${tanahData.longitude}</p>
+          </div>
+        `
+        )
+        .openPopup();
+
+      // Hilangkan marker setelah 5 detik
+      setTimeout(() => {
+        mapInstance.removeLayer(temporaryMarker);
+      }, 5000);
+    }
 
     return mapInstance;
   };
@@ -535,7 +597,7 @@ const PetaTanah = ({ tanahId }) => {
         polygon: {
           allowIntersection: false,
           showArea: true,
-          allowDrawing: mode === "facility" || !hasExistingPemetaan
+          allowDrawing: mode === "facility" || !hasExistingPemetaan,
         },
       },
     };
@@ -566,10 +628,10 @@ const PetaTanah = ({ tanahId }) => {
           // Hapus layer yang baru digambar jika ternyata sudah ada data
           mapInstance.removeLayer(layer);
           Swal.fire({
-            icon: 'warning',
-            title: 'Pemetaan Tanah Sudah Ada',
-            text: 'Anda tidak dapat menambahkan pemetaan tanah lagi karena sudah ada data pemetaan.',
-            confirmButtonText: 'OK'
+            icon: "warning",
+            title: "Pemetaan Tanah Sudah Ada",
+            text: "Anda tidak dapat menambahkan pemetaan tanah lagi karena sudah ada data pemetaan.",
+            confirmButtonText: "OK",
           });
         }
       }

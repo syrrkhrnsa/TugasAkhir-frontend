@@ -12,8 +12,8 @@ import axios from "axios";
 import * as wellknown from "wellknown";
 import { createRoot } from "react-dom/client";
 
-import 'leaflet-control-geocoder/dist/Control.Geocoder.css';
-import 'leaflet-control-geocoder';
+import "leaflet-control-geocoder/dist/Control.Geocoder.css";
+import "leaflet-control-geocoder";
 
 // Fix for Leaflet marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -40,11 +40,43 @@ const PemetaanSidebar = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [facilitySearchTerm, setFacilitySearchTerm] = useState("");
   const location = useLocation();
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const [availableCategories, setAvailableCategories] = useState([]);
 
   // Filter facilities based on search term
-  const filteredFacilities = fasilitasData.filter((facility) =>
-    facility.nama_fasilitas.toLowerCase().includes(facilitySearchTerm.toLowerCase())
-  );
+  const filteredFacilities = fasilitasData.filter((facility) => {
+    const matchesSearch = facility.nama_fasilitas
+      .toLowerCase()
+      .includes(facilitySearchTerm.toLowerCase());
+
+    const matchesCategory =
+      !selectedCategory || facility.kategori_fasilitas === selectedCategory;
+
+    return matchesSearch && matchesCategory;
+  });
+
+  // Add this useEffect to extract unique categories from fasilitasData
+  useEffect(() => {
+    if (fasilitasData.length > 0) {
+      const categories = [
+        ...new Set(fasilitasData.map((f) => f.kategori_fasilitas)),
+      ].filter(Boolean);
+      setAvailableCategories(categories);
+    }
+  }, [fasilitasData]);
+
+  // Add this function to handle category selection
+  const handleCategoryFilter = (category) => {
+    setSelectedCategory(category === selectedCategory ? null : category);
+    setIsCategoryDropdownOpen(false);
+  };
+
+  // Add this function to reset category filter
+  const handleResetCategoryFilter = () => {
+    setSelectedCategory(null);
+    setIsCategoryDropdownOpen(false);
+  };
 
   // Fetch data user untuk dropdown filter
   const fetchUsers = async () => {
@@ -325,12 +357,12 @@ const PemetaanSidebar = () => {
     ).addTo(mapInstance);
 
     const geocoder = L.Control.Geocoder.nominatim();
-    
+
     if (URLSearchParams && location.search) {
       const params = new URLSearchParams(location.search);
-      const query = params.get('q');
+      const query = params.get("q");
       if (query) {
-        geocoder.geocode(query, function(results) {
+        geocoder.geocode(query, function (results) {
           if (results.length > 0) {
             mapInstance.fitBounds(results[0].bbox);
           }
@@ -339,23 +371,25 @@ const PemetaanSidebar = () => {
     }
 
     // Tambahkan kontrol zoom custom di atas kanan
-    L.control.zoom({
-      position: 'topright'
-    }).addTo(mapInstance);
+    L.control
+      .zoom({
+        position: "topright",
+      })
+      .addTo(mapInstance);
 
     // Tambahkan geocoder di bawah kontrol zoom
     L.Control.geocoder({
       defaultMarkGeocode: false,
-      position: 'topright',
-      placeholder: 'Cari lokasi...',
-      errorMessage: 'Lokasi tidak ditemukan',
-      geocoder: geocoder
+      position: "topright",
+      placeholder: "Cari lokasi...",
+      errorMessage: "Lokasi tidak ditemukan",
+      geocoder: geocoder,
     })
-    .on('markgeocode', function(e) {
-      const bbox = e.geocode.bbox;
-      mapInstance.fitBounds(bbox, { padding: [50, 50] });
-    })
-    .addTo(mapInstance);
+      .on("markgeocode", function (e) {
+        const bbox = e.geocode.bbox;
+        mapInstance.fitBounds(bbox, { padding: [50, 50] });
+      })
+      .addTo(mapInstance);
 
     // Layer untuk pemetaan tanah
     const drawnItemsLayer = new L.FeatureGroup();
@@ -781,7 +815,7 @@ const PemetaanSidebar = () => {
                 <div className="p-2 border-b border-gray-200">
                   <input
                     type="text"
-                    placeholder="Cari user..."
+                    placeholder="Cari Pimpinan Jamaah..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -878,6 +912,8 @@ const PemetaanSidebar = () => {
                   </svg>
                 </button>
               </div>
+
+              {/* Search Input */}
               <div className="mt-3 relative">
                 <input
                   type="text"
@@ -903,14 +939,124 @@ const PemetaanSidebar = () => {
                   </svg>
                 </div>
               </div>
+
+              {/* Category Filter Dropdown */}
+              <div className="mt-2 relative">
+                <button
+                  onClick={() =>
+                    setIsCategoryDropdownOpen(!isCategoryDropdownOpen)
+                  }
+                  className="flex items-center gap-2 w-full px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+                    />
+                  </svg>
+                  {selectedCategory
+                    ? `Kategori: ${selectedCategory}`
+                    : "Filter by Kategori"}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className={`h-4 w-4 ml-auto transition-transform duration-200 ${
+                      isCategoryDropdownOpen ? "transform rotate-180" : ""
+                    }`}
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </button>
+
+                {isCategoryDropdownOpen && (
+                  <div className="absolute z-10 mt-1 w-full bg-white rounded-md shadow-lg border border-gray-200">
+                    <div className="max-h-60 overflow-y-auto">
+                      <button
+                        onClick={handleResetCategoryFilter}
+                        className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${
+                          !selectedCategory
+                            ? "bg-blue-50 text-blue-600"
+                            : "hover:bg-gray-50"
+                        }`}
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+                          />
+                        </svg>
+                        Semua Kategori
+                      </button>
+                      {[
+                        "MASJID",
+                        "SEKOLAH",
+                        "PEMAKAMAN",
+                        "RUMAH",
+                        "KANTOR",
+                        "GEDUNG",
+                        "LAINNYA",
+                      ].map((category) => (
+                        <button
+                          key={category}
+                          onClick={() => handleCategoryFilter(category)}
+                          className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${
+                            selectedCategory === category
+                              ? "bg-blue-50 text-blue-600"
+                              : "hover:bg-gray-50"
+                          }`}
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-4 w-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                            />
+                          </svg>
+                          {category}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
+            {/* Rest of the FasilitasListCard component remains the same */}
             <div className="divide-y divide-gray-100">
               {filteredFacilities.length > 0 ? (
                 filteredFacilities.map((item) => (
                   <FasilitasListCard
                     key={item.id_pemetaan_fasilitas}
                     item={item}
+                    selectedCategory={selectedCategory}
                     onClick={() => {
                       if (item.geojson) {
                         const layer = L.geoJSON(item.geojson);
@@ -926,7 +1072,9 @@ const PemetaanSidebar = () => {
                 ))
               ) : (
                 <div className="p-4 text-center text-gray-500">
-                  {loading ? "Memuat data..." : "Tidak ada data fasilitas yang cocok"}
+                  {loading
+                    ? "Memuat data..."
+                    : "Tidak ada data fasilitas yang cocok"}
                 </div>
               )}
             </div>
