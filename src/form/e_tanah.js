@@ -2,9 +2,17 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import axios from "axios";
-import { FaEye, FaPlus, FaEdit, FaTrash, FaHistory } from "react-icons/fa";
+import {
+  FaEye,
+  FaPlus,
+  FaEdit,
+  FaTrash,
+  FaHistory,
+  FaDownload,
+} from "react-icons/fa";
 import { getUserId, getRoleId } from "../utils/Auth";
 import Swal from "sweetalert2";
+import config from "../config";
 import {
   MapContainer,
   TileLayer,
@@ -14,6 +22,7 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import PopupListDokumen from "../components/popup_listdokumen";
 
 // Fix for default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -45,6 +54,9 @@ const LocationPicker = ({ onLocationSelect, initialPosition }) => {
 };
 
 const EditTanah = () => {
+  const [showDokumenPopup, setShowDokumenPopup] = useState(false);
+  const [selectedSertifikatId, setSelectedSertifikatId] = useState(null);
+
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -120,11 +132,6 @@ const EditTanah = () => {
     fetchSertifikat();
     fetchUserRole();
   }, []);
-
-  const findWilayahId = (list, name) => {
-    const found = list.find((item) => item.name === name);
-    return found ? found.id : "";
-  };
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -505,43 +512,6 @@ const EditTanah = () => {
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   };
 
-  const handlePreviewDokumen = async (dokumen) => {
-    if (!dokumen) {
-      Swal.fire({
-        icon: "warning",
-        title: "Dokumen Tidak Tersedia",
-        text: "Dokumen belum diupload",
-        confirmButtonText: "OK",
-      });
-      return;
-    }
-
-    try {
-      const fileUrl = `http://127.0.0.1:8000/storage/${dokumen}`;
-
-      // Cek dulu apakah file ada
-      const response = await fetch(fileUrl, { method: "HEAD" });
-
-      if (!response.ok) {
-        throw new Error("File not found");
-      }
-
-      window.open(fileUrl, "_blank");
-    } catch (error) {
-      console.error("Error accessing document:", error);
-      Swal.fire({
-        icon: "error",
-        title: "Dokumen Tidak Ditemukan",
-        text: "File dokumen tidak ditemukan di server",
-        confirmButtonText: "OK",
-      });
-    }
-  };
-
-  const handleCreateLegalitas = () => {
-    navigate("/sertifikat/create");
-  };
-
   const handleUpdateSertifikat = (sertifikatId) => {
     if (sertifikatId) {
       navigate(`/sertifikat/edit/${sertifikatId}`);
@@ -699,6 +669,11 @@ const EditTanah = () => {
         });
       }
     }
+  };
+
+  const handleShowDokumenList = (sertifikatId) => {
+    setSelectedSertifikatId(sertifikatId);
+    setShowDokumenPopup(true);
   };
 
   return (
@@ -1303,32 +1278,16 @@ const EditTanah = () => {
                                 : "-"}
                             </td>
                             <td className="py-2 px-4 border-b text-center">
-                              <div className="flex justify-center">
-                                {sertifikat.dokumen ? (
-                                  <button
-                                    onClick={() =>
-                                      handlePreviewDokumen(sertifikat.dokumen)
-                                    }
-                                    className="group relative p-1 text-blue-500 hover:text-blue-600 transition-colors"
-                                    title="Lihat Dokumen"
-                                    aria-label={`Preview dokumen ${
-                                      sertifikat.jenis_sertifikat || ""
-                                    }`}
-                                  >
-                                    <FaEye className="text-lg" />
-                                    <span className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                                      Lihat Dokumen
-                                    </span>
-                                  </button>
-                                ) : (
-                                  <span
-                                    className="text-gray-400 text-xs italic"
-                                    title="Dokumen belum diupload"
-                                  >
-                                    Tidak tersedia
-                                  </span>
-                                )}
-                              </div>
+                              <button
+                                onClick={() =>
+                                  handleShowDokumenList(
+                                    sertifikat.id_sertifikat
+                                  )
+                                }
+                                className="bg-blue-500 text-white px-3 py-1 rounded-md hover:bg-blue-600 text-sm"
+                              >
+                                Lihat Dokumen
+                              </button>
                             </td>
                             {isPimpinanJamaah && (
                               <td className="text-xs text-center px-4 py-2 whitespace-nowrap font-semibold border-b">
@@ -1345,6 +1304,11 @@ const EditTanah = () => {
                                 </div>
                               </td>
                             )}
+                            <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                              {calculateDayDifference(
+                                sertifikat.tanggal_pengajuan
+                              )}
+                            </td>
                             <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
                               {calculateDayDifference(
                                 sertifikat.tanggal_pengajuan
@@ -1477,6 +1441,12 @@ const EditTanah = () => {
             )}
           </div>
         </div>
+        {showDokumenPopup && (
+          <PopupListDokumen
+            idSertifikat={selectedSertifikatId}
+            onClose={() => setShowDokumenPopup(false)}
+          />
+        )}
       </Sidebar>
     </div>
   );

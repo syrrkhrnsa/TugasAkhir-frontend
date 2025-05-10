@@ -7,8 +7,8 @@ const NavbarLanding = () => {
     <nav className="w-full bg-white flex justify-between items-center px-20 relative z-10">
       {/* Logo dan Teks di sebelah kiri */}
       <div className="flex items-center">
-        <img src={logo} alt="Logo" className="w-10 h-12 mt-5" /> {/* Ukuran logo diperbesar */}
-        <div className="text-left ml-4">
+        <img src={logo} alt="Logo" className="h-10 mt-5" />
+        <div className="text-left ml-2">
           <h1 className="text-[14px] font-bold mt-4">
             <span className="text-hijau">Waqf</span>{" "}
             <span className="text-kuning">Management</span>
