@@ -2,8 +2,12 @@ import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
 import PublicPetaTanah from "../public/PemetaanPublic";
 import PublicTanah from "../public/TanahPublic";
-import PublicFasilitas from "../public/FasilitasPublic";
-import { TbMap, TbLayoutGrid, TbBuildingWarehouse, TbHome } from "react-icons/tb";
+import {
+  TbMap,
+  TbLayoutGrid,
+  TbBuildingWarehouse,
+  TbHome,
+} from "react-icons/tb";
 import logo from "../assets/logo.png";
 
 const PetaTanahPage = () => {
@@ -14,7 +18,6 @@ const PetaTanahPage = () => {
       <div className="bg-white rounded-lg shadow-md p-4">
         {/* Combined Header with Logo and Tabs in one line */}
         <div className="flex items-center justify-between mb-6">
-          {/* Logo and Title */}
           <div className="flex items-center">
             <img src={logo} alt="Logo" className="w-10 h-12" />
             <div className="text-left ml-4">
@@ -22,7 +25,9 @@ const PetaTanahPage = () => {
                 <span className="text-hijau">Waqf</span>{" "}
                 <span className="text-kuning">Management</span>
               </h1>
-              <p className="text-[12px] font-bold text-hijau">PC Persis Banjaran</p>
+              <p className="text-[12px] font-bold text-hijau">
+                PC Persis Banjaran
+              </p>
             </div>
           </div>
 
@@ -59,18 +64,6 @@ const PetaTanahPage = () => {
               <TbLayoutGrid className="mr-1" size={16} />
               Tanah
             </button>
-
-            <button
-              onClick={() => setActiveTab("fasilitas")}
-              className={`flex items-center py-2 px-4 text-sm rounded-lg transition-colors ${
-                activeTab === "fasilitas"
-                  ? "bg-blue-100 text-blue-600"
-                  : "text-gray-600 hover:bg-gray-100"
-              }`}
-            >
-              <TbBuildingWarehouse className="mr-1" size={16} />
-              Fasilitas
-            </button>
           </div>
         </div>
 
@@ -78,7 +71,6 @@ const PetaTanahPage = () => {
         <div className="tab-content">
           {activeTab === "pemetaan" && <PublicPetaTanah />}
           {activeTab === "tanah" && <PublicTanah />}
-          {activeTab === "fasilitas" && <PublicFasilitas />}
         </div>
       </div>
     </div>
