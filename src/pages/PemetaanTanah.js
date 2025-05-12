@@ -13,8 +13,8 @@ import { getFasilitasPopupHTML } from "../components/PemetaanTanah/FasilitasPopu
 import FasilitasModal from "../components/PemetaanTanah/c_pemetaan_fasilitas";
 import * as turf from "@turf/turf";
 import Swal from "sweetalert2";
-import 'leaflet-control-geocoder/dist/Control.Geocoder.css';
-import 'leaflet-control-geocoder';
+import "leaflet-control-geocoder/dist/Control.Geocoder.css";
+import "leaflet-control-geocoder";
 
 // Fix for Leaflet marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -52,6 +52,7 @@ const PetaTanah = ({ tanahId }) => {
     jenis_geometri: "POLYGON",
     pemetaanTanahId: null,
   });
+  const [tanahData, setTanahData] = useState({});
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -79,12 +80,10 @@ const PetaTanah = ({ tanahId }) => {
       setError(null);
       const token = localStorage.getItem("token");
 
-      // Pastikan tanahId valid
       if (!tanahId) {
         throw new Error("ID Tanah tidak valid");
       }
 
-      // Fetch data secara paralel
       const [tanahRes, pemetaanRes, sertifikatRes] = await Promise.all([
         axios.get(`http://127.0.0.1:8000/api/tanah/${tanahId}`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -97,11 +96,9 @@ const PetaTanah = ({ tanahId }) => {
         }),
       ]);
 
-      // Set data tanah dan sertifikat
       setTanahData(tanahRes.data.data || {});
       setSertifikatData(sertifikatRes.data.data || []);
 
-      // Proses data pemetaan
       if (pemetaanRes.data.data && pemetaanRes.data.data.length > 0) {
         setDataExists(true);
         const processedData = pemetaanRes.data.data.map((item) => ({
@@ -109,8 +106,6 @@ const PetaTanah = ({ tanahId }) => {
           geojson: wkbToGeoJSON(item.geometri),
         }));
         setPemetaanData(processedData);
-
-        // Fetch data fasilitas setelah pemetaan selesai
         await fetchFasilitasData(processedData);
       } else {
         setDataExists(false);
@@ -129,15 +124,12 @@ const PetaTanah = ({ tanahId }) => {
     }
   }, [tanahId]);
 
-  const fetchFasilitasData = async () => {
+  const fetchFasilitasData = async (pemetaanData) => {
     try {
       const token = localStorage.getItem("token");
+      let allFasilitasData = [];
 
-      // First, we need to make separate API calls for each pemetaan tanah
       if (pemetaanData && pemetaanData.length > 0) {
-        let allFasilitasData = [];
-
-        // Create an array of promises for each pemetaan tanah
         const fetchPromises = pemetaanData.map((pemetaanItem) => {
           return axios
             .get(
@@ -161,10 +153,7 @@ const PetaTanah = ({ tanahId }) => {
             });
         });
 
-        // Wait for all API calls to complete
         const results = await Promise.all(fetchPromises);
-
-        // Flatten the array of arrays into a single array
         allFasilitasData = results.flat();
 
         if (allFasilitasData.length > 0) {
@@ -193,7 +182,6 @@ const PetaTanah = ({ tanahId }) => {
     try {
       if (!geometryData) return null;
 
-      // Jika sudah berupa object GeoJSON
       if (typeof geometryData === "object" && geometryData.type) {
         return {
           type: "Feature",
@@ -202,7 +190,6 @@ const PetaTanah = ({ tanahId }) => {
         };
       }
 
-      // Jika berupa string JSON
       if (typeof geometryData === "string") {
         try {
           const parsed = JSON.parse(geometryData);
@@ -214,7 +201,6 @@ const PetaTanah = ({ tanahId }) => {
             };
           }
         } catch (e) {
-          // Jika bukan JSON, coba parse sebagai WKT
           const wkt = wellknown.parse(geometryData);
           if (wkt) {
             return {
@@ -236,8 +222,6 @@ const PetaTanah = ({ tanahId }) => {
   const savePemetaanData = async (geometry) => {
     try {
       const token = localStorage.getItem("token");
-
-      // Calculate area using turf.js
       const area =
         geometry.type === "Polygon"
           ? turf.area(turf.polygon(geometry.coordinates))
@@ -264,7 +248,6 @@ const PetaTanah = ({ tanahId }) => {
 
       await fetchPemetaanData();
 
-      // Show comparison with original area
       if (response.data.calculated_area && tanahData.luasTanah) {
         const diff = Math.abs(
           tanahData.luasTanah - response.data.calculated_area
@@ -316,7 +299,6 @@ const PetaTanah = ({ tanahId }) => {
         geometri: JSON.stringify(fasilitasFormData.geometri),
       };
 
-      // Using pemetaanTanahId from form data for the specific land mapping
       const response = await axios.post(
         `http://127.0.0.1:8000/api/pemetaan/fasilitas/${fasilitasFormData.pemetaanTanahId}`,
         formData,
@@ -330,7 +312,7 @@ const PetaTanah = ({ tanahId }) => {
 
       setShowFasilitasModal(false);
       resetFasilitasForm();
-      await fetchFasilitasData();
+      await fetchFasilitasData(pemetaanData);
       setIsAddingFasilitas(false);
     } catch (err) {
       console.error("Gagal menyimpan data fasilitas:", err);
@@ -345,14 +327,11 @@ const PetaTanah = ({ tanahId }) => {
   const deletePemetaan = async (id) => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.delete(
-        `http://127.0.0.1:8000/api/pemetaan/tanah/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      await axios.delete(`http://127.0.0.1:8000/api/pemetaan/tanah/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       await fetchPemetaanData();
     } catch (err) {
       console.error("Gagal menghapus data pemetaan:", err);
@@ -367,15 +346,12 @@ const PetaTanah = ({ tanahId }) => {
   const deleteFasilitas = async (id) => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.delete(
-        `http://127.0.0.1:8000/api/pemetaan/fasilitas/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      await fetchFasilitasData();
+      await axios.delete(`http://127.0.0.1:8000/api/pemetaan/fasilitas/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      await fetchFasilitasData(pemetaanData);
     } catch (err) {
       console.error("Gagal menghapus data fasilitas:", err);
       alert(
@@ -407,6 +383,7 @@ const PetaTanah = ({ tanahId }) => {
           return item;
         });
         setPemetaanData(dataWithGeoJSON);
+        await fetchFasilitasData(dataWithGeoJSON);
       } else {
         setDataExists(false);
         setPemetaanData([]);
@@ -420,11 +397,40 @@ const PetaTanah = ({ tanahId }) => {
     }
   };
 
+  const fetchTanahData = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `http://127.0.0.1:8000/api/tanah/${tanahId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setTanahData(response.data.data || {});
+    } catch (err) {
+      console.error("Error fetching tanah data:", err);
+    }
+  };
+
+  const fetchSertifikatData = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `http://127.0.0.1:8000/api/sertifikat/tanah/${tanahId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setSertifikatData(response.data.data || []);
+    } catch (err) {
+      console.error("Error fetching sertifikat data:", err);
+    }
+  };
+
   // Inisialisasi peta
   const initializeMap = () => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
-    // Clear existing map
     while (mapRef.current.firstChild) {
       mapRef.current.removeChild(mapRef.current.firstChild);
     }
@@ -473,12 +479,12 @@ const PetaTanah = ({ tanahId }) => {
     setupDrawControl(mapInstance);
 
     const geocoder = L.Control.Geocoder.nominatim();
-    
+
     if (URLSearchParams && location.search) {
       const params = new URLSearchParams(location.search);
-      const query = params.get('q');
+      const query = params.get("q");
       if (query) {
-        geocoder.geocode(query, function(results) {
+        geocoder.geocode(query, function (results) {
           if (results.length > 0) {
             mapInstance.fitBounds(results[0].bbox);
           }
@@ -486,24 +492,24 @@ const PetaTanah = ({ tanahId }) => {
       }
     }
 
-    // Tambahkan kontrol zoom custom di atas kanan
-    L.control.zoom({
-      position: 'topright'
-    }).addTo(mapInstance);
+    L.control
+      .zoom({
+        position: "topright",
+      })
+      .addTo(mapInstance);
 
-    // Tambahkan geocoder di bawah kontrol zoom
     L.Control.geocoder({
       defaultMarkGeocode: false,
-      position: 'topright',
-      placeholder: 'Cari lokasi...',
-      errorMessage: 'Lokasi tidak ditemukan',
-      geocoder: geocoder
+      position: "topright",
+      placeholder: "Cari lokasi...",
+      errorMessage: "Lokasi tidak ditemukan",
+      geocoder: geocoder,
     })
-    .on('markgeocode', function(e) {
-      const bbox = e.geocode.bbox;
-      mapInstance.fitBounds(bbox, { padding: [50, 50] });
-    })
-    .addTo(mapInstance);
+      .on("markgeocode", function (e) {
+        const bbox = e.geocode.bbox;
+        mapInstance.fitBounds(bbox, { padding: [50, 50] });
+      })
+      .addTo(mapInstance);
 
     return mapInstance;
   };
@@ -514,7 +520,6 @@ const PetaTanah = ({ tanahId }) => {
       mapInstance.removeControl(drawControlRef.current);
     }
 
-    // Cek apakah sudah ada data pemetaan tanah
     const hasExistingPemetaan = pemetaanData && pemetaanData.length > 0;
 
     const drawOptions = {
@@ -530,12 +535,11 @@ const PetaTanah = ({ tanahId }) => {
         circlemarker: false,
         circle: false,
         polyline: false,
-        // Nonaktifkan rectangle dan polygon jika sudah ada data pemetaan
         rectangle: mode !== "facility" && !hasExistingPemetaan,
         polygon: {
           allowIntersection: false,
           showArea: true,
-          allowDrawing: mode === "facility" || !hasExistingPemetaan
+          allowDrawing: mode === "facility" || !hasExistingPemetaan,
         },
       },
     };
@@ -543,7 +547,6 @@ const PetaTanah = ({ tanahId }) => {
     drawControlRef.current = new L.Control.Draw(drawOptions);
     mapInstance.addControl(drawControlRef.current);
 
-    // Handle draw events
     mapInstance.off(L.Draw.Event.CREATED);
     mapInstance.on(L.Draw.Event.CREATED, (e) => {
       const layer = e.layer;
@@ -558,78 +561,25 @@ const PetaTanah = ({ tanahId }) => {
         }));
         setShowFasilitasModal(true);
       } else {
-        // Tambahkan pengecekan lagi untuk memastikan
         if (!hasExistingPemetaan) {
           drawnItemsRef.current.addLayer(layer);
           savePemetaanData(geoJSON);
         } else {
-          // Hapus layer yang baru digambar jika ternyata sudah ada data
           mapInstance.removeLayer(layer);
           Swal.fire({
-            icon: 'warning',
-            title: 'Pemetaan Tanah Sudah Ada',
-            text: 'Anda tidak dapat menambahkan pemetaan tanah lagi karena sudah ada data pemetaan.',
-            confirmButtonText: 'OK'
+            icon: "warning",
+            title: "Pemetaan Tanah Sudah Ada",
+            text: "Anda tidak dapat menambahkan pemetaan tanah lagi karena sudah ada data pemetaan.",
+            confirmButtonText: "OK",
           });
         }
       }
     });
   };
 
-  const fetchSertifikatData = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(
-        `http://127.0.0.1:8000/api/sertifikat/tanah/${tanahId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setSertifikatData(response.data.data || []);
-    } catch (err) {
-      console.error("Error fetching sertifikat data:", err);
-    }
-  };
-
-  useEffect(() => {
-    if (tanahId) {
-      fetchPemetaanData();
-      fetchSertifikatData();
-    }
-  }, [tanahId]);
-
-  const [tanahData, setTanahData] = useState({});
-
-  const fetchTanahData = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(
-        `http://127.0.0.1:8000/api/tanah/${tanahId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setTanahData(response.data.data || {});
-    } catch (err) {
-      console.error("Error fetching tanah data:", err);
-    }
-  };
-
-  useEffect(() => {
-    if (tanahId) {
-      const fetchData = async () => {
-        await fetchTanahData();
-        await fetchSertifikatData();
-        await fetchPemetaanData();
-      };
-      fetchData();
-    }
-  }, [tanahId]);
-
   const renderMapData = (mapInstance) => {
     if (!mapInstance) return;
 
-    // Clear existing layers except base tile layer
     if (drawnItemsRef.current) {
       mapInstance.removeLayer(drawnItemsRef.current);
       drawnItemsRef.current = new L.FeatureGroup();
@@ -642,7 +592,6 @@ const PetaTanah = ({ tanahId }) => {
       mapInstance.addLayer(fasilitasLayerRef.current);
     }
 
-    // Render land mappings
     if (dataExists && pemetaanData.length > 0) {
       const geoJSONGroup = L.featureGroup();
 
@@ -668,15 +617,17 @@ const PetaTanah = ({ tanahId }) => {
                 );
 
                 const deleteButton = popupContent.querySelector(".btn-delete");
-                deleteButton.onclick = () => {
-                  if (
-                    window.confirm(
-                      "Apakah Anda yakin ingin menghapus pemetaan ini?"
-                    )
-                  ) {
-                    deletePemetaan(item.id_pemetaan_tanah);
-                  }
-                };
+                if (deleteButton) {
+                  deleteButton.onclick = () => {
+                    if (
+                      window.confirm(
+                        "Apakah Anda yakin ingin menghapus pemetaan ini?"
+                      )
+                    ) {
+                      deletePemetaan(item.id_pemetaan_tanah);
+                    }
+                  };
+                }
 
                 layer.bindPopup(popupContent);
 
@@ -694,31 +645,37 @@ const PetaTanah = ({ tanahId }) => {
 
                 const zoomButton =
                   markerPopupContent.querySelector(".zoom-to-location");
-                zoomButton.onclick = () => {
-                  mapInstance.fitBounds(bounds, { padding: [50, 50] });
-                  marker.closePopup();
-                };
+                if (zoomButton) {
+                  zoomButton.onclick = () => {
+                    mapInstance.fitBounds(bounds, { padding: [50, 50] });
+                    marker.closePopup();
+                  };
+                }
 
                 const deleteMarkerButton =
                   markerPopupContent.querySelector(".btn-delete-marker");
-                deleteMarkerButton.onclick = () => {
-                  if (
-                    window.confirm(
-                      "Apakah Anda yakin ingin menghapus pemetaan ini?"
-                    )
-                  ) {
-                    deletePemetaan(item.id_pemetaan_tanah);
-                  }
-                };
+                if (deleteMarkerButton) {
+                  deleteMarkerButton.onclick = () => {
+                    if (
+                      window.confirm(
+                        "Apakah Anda yakin ingin menghapus pemetaan ini?"
+                      )
+                    ) {
+                      deletePemetaan(item.id_pemetaan_tanah);
+                    }
+                  };
+                }
 
                 const addFasilitasButton =
                   markerPopupContent.querySelector(".add-fasilitas");
-                addFasilitasButton.onclick = () => {
-                  setMode("facility");
-                  setSelectedPemetaanId(item.id_pemetaan_tanah);
-                  setupDrawControl(mapInstance);
-                  marker.closePopup();
-                };
+                if (addFasilitasButton) {
+                  addFasilitasButton.onclick = () => {
+                    setMode("facility");
+                    setSelectedPemetaanId(item.id_pemetaan_tanah);
+                    setupDrawControl(mapInstance);
+                    marker.closePopup();
+                  };
+                }
                 marker.bindPopup(markerPopupContent);
               },
             }).addTo(mapInstance);
@@ -754,63 +711,55 @@ const PetaTanah = ({ tanahId }) => {
       modal.className =
         "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4";
 
-      modal.innerHTML = getDetailFasilitasHTML(detailData, fasilitasData);
+      modal.innerHTML = getDetailFasilitasHTML(detailData, {
+        ...fasilitasData,
+        tanahData,
+      });
 
       document.body.appendChild(modal);
 
-      // Handle tombol Lihat Inventaris
-      const viewInventarisButton = modal.querySelector(".btn-view-inventaris");
-      viewInventarisButton.addEventListener("click", () => {
-        // Pastikan detailData memiliki id_fasilitas
-        if (!detailData || typeof detailData.id_fasilitas === "undefined") {
-          console.error(
-            "Cannot view inventory: detailData is missing or invalid"
-          );
-          alert("Data fasilitas tidak valid. Tidak dapat melihat inventaris.");
-          return;
-        }
-
-        document.body.removeChild(modal);
-        navigate(`/inventaris/fasilitas/${detailData.id_fasilitas}`, {
-          state: {
-            fasilitasData: fasilitasData || {},
-            detailData: detailData || {},
-          },
-        });
-      });
-
-      // Handle edit button
-      const editButton = modal.querySelector(".btn-edit-detail");
-      editButton.addEventListener("click", () => {
-        // Check if detailData exists and has id_fasilitas
-        if (!detailData || typeof detailData.id_fasilitas === "undefined") {
-          console.error("Cannot edit: detailData is missing or invalid");
-          alert("Data fasilitas tidak valid. Tidak dapat melanjutkan edit.");
-          return;
-        }
-
-        document.body.removeChild(modal);
-        navigate(`/fasilitas/edit/${detailData.id_fasilitas}`, {
-          state: {
-            pemetaanFasilitasData: fasilitasData || [],
-            tanahData: tanahData || [],
-            detailData: detailData || {},
-          },
-        });
-      });
-
-      // Handle 360° view button if exists
-      if (detailData.file_360) {
-        const view360Button = modal.querySelector(".btn-view-360");
-        view360Button.addEventListener("click", () => {
-          window.open(
-            `http://127.0.0.1:8000/storage/${detailData.file_360}`,
-            "_blank"
-          );
+      const actionButton = modal.querySelector(".btn-action-fasilitas");
+      if (actionButton) {
+        actionButton.addEventListener("click", () => {
+          if (detailData && detailData.id_fasilitas) {
+            navigate(`/fasilitas/detail/${detailData.id_fasilitas}`, {
+              state: {
+                pemetaanData: fasilitasData,
+                detailData: detailData,
+                tanahData: tanahData,
+              },
+            });
+          } else {
+            navigate(`/fasilitas/create`, {
+              state: {
+                pemetaanFasilitasId: fasilitasData.id_pemetaan_fasilitas,
+                tanahData: tanahData,
+              },
+            });
+          }
+          document.body.removeChild(modal);
         });
       }
 
-      // Handle close buttons
+      const editButton = modal.querySelector(".btn-edit-detail");
+      if (editButton) {
+        if (detailData && detailData.id_fasilitas) {
+          editButton.style.display = "block";
+          editButton.addEventListener("click", () => {
+            document.body.removeChild(modal);
+            navigate(`/fasilitas/edit/${detailData.id_fasilitas}`, {
+              state: {
+                pemetaanFasilitasData: fasilitasData || [],
+                tanahData: tanahData || [],
+                detailData: detailData || {},
+              },
+            });
+          });
+        } else {
+          editButton.style.display = "none";
+        }
+      }
+
       const closeButtons = modal.querySelectorAll(".btn-close-modal");
       closeButtons.forEach((btn) => {
         btn.addEventListener("click", () => {
@@ -819,30 +768,57 @@ const PetaTanah = ({ tanahId }) => {
       });
     };
 
-    // Render fasilitas mappings with different color
     if (fasilitasData.length > 0) {
-      // Pertama, fetch semua detail fasilitas sekaligus
       const fetchAllFacilityDetails = async () => {
         const token = localStorage.getItem("token");
-        const detailsPromises = fasilitasData.map(async (item) => {
+        const detailsPromises = fasilitasData.map(async (pemetaanItem) => {
           try {
+            // First check if we have a corresponding fasilitas record
             const response = await axios.get(
-              `http://127.0.0.1:8000/api/fasilitas/pemetaan/${item.id_pemetaan_fasilitas}`,
+              `http://127.0.0.1:8000/api/fasilitas/pemetaan/${pemetaanItem.id_pemetaan_fasilitas}`,
+              {
+                headers: { Authorization: `Bearer ${token}` },
+                validateStatus: (status) => status === 200 || status === 404,
+              }
+            );
+
+            if (response.status === 404) {
+              return {
+                ...pemetaanItem,
+                hasDetail: false,
+                detailData: null,
+                status: "not_found",
+              };
+            }
+
+            // If we have facility details, fetch the files
+            const fasilitasId = response.data.data.id_fasilitas;
+            const filesResponse = await axios.get(
+              `http://127.0.0.1:8000/api/fasilitas/${fasilitasId}/files`,
               {
                 headers: { Authorization: `Bearer ${token}` },
               }
             );
+
             return {
-              ...item,
-              hasDetail: response.data.data && response.data.data.length > 0,
-              detailData: response.data.data?.[0] || null,
+              ...pemetaanItem,
+              hasDetail: true,
+              detailData: {
+                ...response.data.data,
+                filePendukung: filesResponse.data.data || [],
+              },
+              status: "found",
             };
           } catch (err) {
-            console.error("Error fetching facility details:", err);
+            console.error(
+              `Error fetching fasilitas for pemetaan ${pemetaanItem.id_pemetaan_fasilitas}:`,
+              err
+            );
             return {
-              ...item,
+              ...pemetaanItem,
               hasDetail: false,
               detailData: null,
+              status: "error",
             };
           }
         });
@@ -850,10 +826,21 @@ const PetaTanah = ({ tanahId }) => {
         return Promise.all(detailsPromises);
       };
 
-      // Kemudian render semua fasilitas setelah data lengkap
-      fetchAllFacilityDetails().then((enrichedFacilities) => {
-        enrichedFacilities.forEach((item) => {
-          if (item.geojson && item.geojson.geometry) {
+      fetchAllFacilityDetails()
+        .then((enrichedFacilities) => {
+          enrichedFacilities.forEach((item) => {
+            if (
+              !item.geojson ||
+              !item.geojson.geometry ||
+              !item.geojson.geometry.coordinates
+            ) {
+              console.warn(
+                "Skipping facility with invalid geometry:",
+                item.id_pemetaan_fasilitas
+              );
+              return;
+            }
+
             try {
               const geoJSONLayer = L.geoJSON(item.geojson, {
                 style: {
@@ -862,47 +849,64 @@ const PetaTanah = ({ tanahId }) => {
                   opacity: 1,
                   fillOpacity: 0.3,
                 },
-                onEachFeature: function (feature, layer) {
-                  const popupContent = document.createElement("div");
-                  popupContent.className =
-                    "p-4 min-w-[280px] max-w-[320px] bg-white rounded-lg shadow-md border border-gray-100";
+                onEachFeature: (feature, layer) => {
+                  try {
+                    const popupContent = document.createElement("div");
+                    popupContent.className =
+                      "p-4 min-w-[280px] max-w-[320px] bg-white rounded-lg shadow-md border border-gray-100";
 
-                  popupContent.innerHTML = getFasilitasPopupHTML(item);
+                    popupContent.innerHTML = getFasilitasPopupHTML({
+                      ...item,
+                      lokasi: tanahData.lokasi || "Tidak tersedia",
+                      filePendukung: item.detailData?.filePendukung || [],
+                    });
 
-                  const deleteButton = popupContent.querySelector(
-                    ".btn-delete-fasilitas"
-                  );
-                  deleteButton.onclick = () => {
-                    if (
-                      window.confirm(
-                        "Apakah Anda yakin ingin menghapus fasilitas ini?"
-                      )
-                    ) {
-                      deleteFasilitas(item.id_pemetaan_fasilitas);
+                    const deleteButton = popupContent.querySelector(
+                      ".btn-delete-fasilitas"
+                    );
+                    if (deleteButton) {
+                      deleteButton.onclick = () => {
+                        if (
+                          window.confirm(
+                            "Apakah Anda yakin ingin menghapus fasilitas ini?"
+                          )
+                        ) {
+                          deleteFasilitas(item.id_pemetaan_fasilitas);
+                        }
+                      };
                     }
-                  };
 
-                  if (item.hasDetail) {
-                    const viewDetailButton =
-                      popupContent.querySelector(".btn-view-detail");
-                    viewDetailButton.onclick = () => {
-                      // Tampilkan modal dengan detail fasilitas
-                      showDetailModal(item.detailData, item);
-                    };
+                    if (item.hasDetail) {
+                      const viewDetailButton =
+                        popupContent.querySelector(".btn-view-detail");
+                      if (viewDetailButton) {
+                        viewDetailButton.onclick = () => {
+                          showDetailModal(item.detailData, item);
+                        };
+                      }
+                    }
+
+                    layer.bindPopup(popupContent);
+                  } catch (popupErr) {
+                    console.error("Error creating popup:", popupErr);
+                    layer.bindPopup("Error loading facility details");
                   }
-
-                  layer.bindPopup(popupContent);
                 },
               });
-
               fasilitasLayerRef.current.addLayer(geoJSONLayer);
               mapInstance.addLayer(geoJSONLayer);
-            } catch (err) {
-              console.error("Error displaying facility geometry:", err, item);
+            } catch (geoErr) {
+              console.error(
+                "Error displaying facility geometry:",
+                geoErr,
+                item
+              );
             }
-          }
+          });
+        })
+        .catch((err) => {
+          console.error("Error processing facility details:", err);
         });
-      });
     }
   };
 
@@ -932,12 +936,22 @@ const PetaTanah = ({ tanahId }) => {
     }
   }, [mode, selectedPemetaanId]);
 
-  // Fetch facilities data after land mapping data is loaded
   useEffect(() => {
     if (pemetaanData.length > 0) {
-      fetchFasilitasData();
+      fetchFasilitasData(pemetaanData);
     }
   }, [pemetaanData]);
+
+  useEffect(() => {
+    if (tanahId) {
+      const fetchData = async () => {
+        await fetchTanahData();
+        await fetchSertifikatData();
+        await fetchPemetaanData();
+      };
+      fetchData();
+    }
+  }, [tanahId]);
 
   useEffect(() => {
     if (loading || !mapRef.current || mapInstanceRef.current) return;
@@ -976,7 +990,6 @@ const PetaTanah = ({ tanahId }) => {
         saveFasilitasData={saveFasilitasData}
       />
 
-      {/* Status indicator when adding fasilitas */}
       {isAddingFasilitas && (
         <div className="absolute top-2 right-2 bg-green-100 border border-green-400 text-green-700 px-4 py-2 rounded shadow-sm">
           <p className="font-bold">Mode Pemetaan Fasilitas Aktif</p>
