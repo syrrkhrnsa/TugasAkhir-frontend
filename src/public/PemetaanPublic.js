@@ -3,7 +3,6 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import axios from "axios";
 import * as wellknown from "wellknown";
-
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import 'leaflet-control-geocoder/dist/Control.Geocoder.css';
 import 'leaflet-control-geocoder';
@@ -26,7 +25,7 @@ const PublicPetaTanah = () => {
   const drawnItemsRef = useRef(null);
   const fasilitasLayerRef = useRef(null);
   const [tanahData, setTanahData] = useState({});
-  const [sertifikatData, setSertifikatData] = useState([]);
+  const [sertifikatData, setSertifikatData] = useState({});
   const [detailFasilitas, setDetailFasilitas] = useState(null);
   const sidebarRef = useRef(null);
 
@@ -105,7 +104,6 @@ const PublicPetaTanah = () => {
     }
   };
 
-  // Update the fetchData function to include inventory data
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -139,7 +137,7 @@ const PublicPetaTanah = () => {
       });
       setTanahData(tanahData);
 
-      // Process sertifikat data
+      // Process sertifikat data - group by id_tanah
       const sertifikatData = {};
       (sertifikatRes.data.data || []).forEach((sertifikat) => {
         if (!sertifikatData[sertifikat.id_tanah]) {
@@ -250,7 +248,6 @@ const PublicPetaTanah = () => {
     const geocoder = L.Control.Geocoder.nominatim();
     
     if (URLSearchParams && location.search) {
-      // parse the query parameters
       const params = new URLSearchParams(location.search);
       const query = params.get('q');
       if (query) {
@@ -289,6 +286,10 @@ const PublicPetaTanah = () => {
     pemetaanData.forEach((item) => {
       if (item.geojson && item.geojson.geometry) {
         try {
+          // Get related tanah and sertifikat data for this pemetaan
+          const relatedTanah = tanahData[item.id_tanah] || {};
+          const relatedSertifikat = sertifikatData[item.id_tanah] || [];
+
           const geoJSONLayer = L.geoJSON(item.geojson, {
             style: {
               color: "#ff0000",
@@ -324,7 +325,7 @@ const PublicPetaTanah = () => {
                       <div>
                         <div class="font-medium text-gray-700">Lokasi:</div>
                         <div class="text-xs text-gray-600 mt-1">${
-                          tanahData?.lokasi || "Tidak tersedia"
+                          relatedTanah.lokasi || "Tidak tersedia"
                         }</div>
                       </div>
                     </div>
@@ -336,9 +337,9 @@ const PublicPetaTanah = () => {
                       <span>
                         <span class="font-medium text-gray-700">Luas Tanah:</span> 
                         ${
-                          tanahData?.luasTanah
+                          relatedTanah.luasTanah
                             ? new Intl.NumberFormat("id-ID").format(
-                                tanahData.luasTanah
+                                relatedTanah.luasTanah
                               ) + " m²"
                             : "Tidak tersedia"
                         }
@@ -351,7 +352,7 @@ const PublicPetaTanah = () => {
                       </svg>
                       <span>
                         <span class="font-medium text-gray-700">Nama Wakif:</span> ${
-                          tanahData?.NamaWakif || "Tidak tersedia"
+                          relatedTanah.NamaWakif || "Tidak tersedia"
                         }
                       </span>
                     </div>
@@ -360,8 +361,8 @@ const PublicPetaTanah = () => {
                   <div class="mb-4">
                     <h4 class="font-medium text-sm text-gray-700 mb-2">Legalitas Tanah:</h4>
                     ${
-                      sertifikatData.length > 0
-                        ? sertifikatData
+                      relatedSertifikat.length > 0
+                        ? relatedSertifikat
                             .map(
                               (sertifikat) => `
                         <div class="mb-2 p-2 bg-gray-100 rounded">
@@ -594,7 +595,7 @@ const PublicPetaTanah = () => {
             : "opacity-0 -translate-x-full"
         }`}
         style={{
-          height: "calc(100vh - 2rem)", // Fixed height
+          height: "calc(100vh - 2rem)",
           boxShadow:
             "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
           display: "flex",
@@ -629,7 +630,7 @@ const PublicPetaTanah = () => {
               </button>
             </div>
 
-            {/* Scrollable Content - This is the main scrollable area */}
+            {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto">
               <div className="p-4 space-y-4">
                 <div className="flex items-start gap-3">
@@ -764,216 +765,217 @@ const PublicPetaTanah = () => {
 
                 {/* Documents Section */}
                 <div>
-                  <h3 className="font-semibold text-gray-700 mb-2 text-sm uppercase tracking-wider">
-                    Dokumen
-                  </h3>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-200">
-                      <div className="flex items-center">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-5 w-5 text-gray-500 mr-2"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                          />
-                        </svg>
-                        <span className="text-sm">Dokumen PDF</span>
-                      </div>
-                      {detailFasilitas.detail?.file_pdf ? (
-                        <a
-                          href={`http://127.0.0.1:8000/storage/${detailFasilitas.detail.file_pdf}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 text-sm hover:underline"
-                        >
-                          Lihat
-                        </a>
-                      ) : (
-                        <span className="text-xs text-gray-500">
-                          Tidak tersedia
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Inventory Section */}
-                <div>
-                  <div className="flex justify-between items-center mb-3">
-                    <h3 className="font-semibold text-gray-700 text-sm uppercase tracking-wider">
-                      Daftar Inventaris
-                    </h3>
-                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                      {detailFasilitas.inventaris?.length || 0} Item
-                    </span>
-                  </div>
-
-                  {detailFasilitas.inventaris?.length > 0 ? (
-                    <div className="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
-                      <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                          <thead className="bg-gray-100">
-                            <tr>
-                              <th
-                                scope="col"
-                                className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                              >
-                                Nama Barang
-                              </th>
-                              <th
-                                scope="col"
-                                className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                              >
-                                Jumlah
-                              </th>
-                              <th
-                                scope="col"
-                                className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                              >
-                                Kondisi
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody className="bg-white divide-y divide-gray-200">
-                            {detailFasilitas.inventaris.map((item, index) => (
-                              <tr
-                                key={index}
-                                className={
-                                  index % 2 === 0 ? "bg-white" : "bg-gray-50"
-                                }
-                              >
-                                <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
-                                  {item.nama_barang}
-                                </td>
-                                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
-                                  <div className="flex items-center">
-                                    <span>{item.jumlah}</span>
-                                    <span className="ml-1 text-xs text-gray-400">
-                                      {item.satuan}
+                                  <h3 className="font-semibold text-gray-700 mb-2 text-sm uppercase tracking-wider">
+                                    Dokumen
+                                  </h3>
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-200">
+                                      <div className="flex items-center">
+                                        <svg
+                                          xmlns="http://www.w3.org/2000/svg"
+                                          className="h-5 w-5 text-gray-500 mr-2"
+                                          fill="none"
+                                          viewBox="0 0 24 24"
+                                          stroke="currentColor"
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                                          />
+                                        </svg>
+                                        <span className="text-sm">Dokumen PDF</span>
+                                      </div>
+                                      {detailFasilitas.detail?.file_pdf ? (
+                                        <a
+                                          href={`http://127.0.0.1:8000/storage/${detailFasilitas.detail.file_pdf}`}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-blue-600 text-sm hover:underline"
+                                        >
+                                          Lihat
+                                        </a>
+                                      ) : (
+                                        <span className="text-xs text-gray-500">
+                                          Tidak tersedia
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                
+                                {/* Inventory Section */}
+                                <div>
+                                  <div className="flex justify-between items-center mb-3">
+                                    <h3 className="font-semibold text-gray-700 text-sm uppercase tracking-wider">
+                                      Daftar Inventaris
+                                    </h3>
+                                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                                      {detailFasilitas.inventaris?.length || 0} Item
                                     </span>
                                   </div>
-                                </td>
-                                <td className="px-3 py-2 whitespace-nowrap">
-                                  <span
-                                    className={`px-2 py-1 text-xs font-medium rounded-full ${getConditionBadge(
-                                      item.kondisi
-                                    )}`}
+                
+                                  {detailFasilitas.inventaris?.length > 0 ? (
+                                    <div className="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+                                      <div className="overflow-x-auto">
+                                        <table className="min-w-full divide-y divide-gray-200">
+                                          <thead className="bg-gray-100">
+                                            <tr>
+                                              <th
+                                                scope="col"
+                                                className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                              >
+                                                Nama Barang
+                                              </th>
+                                              <th
+                                                scope="col"
+                                                className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                              >
+                                                Jumlah
+                                              </th>
+                                              <th
+                                                scope="col"
+                                                className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                              >
+                                                Kondisi
+                                              </th>
+                                            </tr>
+                                          </thead>
+                                          <tbody className="bg-white divide-y divide-gray-200">
+                                            {detailFasilitas.inventaris.map((item, index) => (
+                                              <tr
+                                                key={index}
+                                                className={
+                                                  index % 2 === 0 ? "bg-white" : "bg-gray-50"
+                                                }
+                                              >
+                                                <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                  {item.nama_barang}
+                                                </td>
+                                                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                                                  <div className="flex items-center">
+                                                    <span>{item.jumlah}</span>
+                                                    <span className="ml-1 text-xs text-gray-400">
+                                                      {item.satuan}
+                                                    </span>
+                                                  </div>
+                                                </td>
+                                                <td className="px-3 py-2 whitespace-nowrap">
+                                                  <span
+                                                    className={`px-2 py-1 text-xs font-medium rounded-full ${getConditionBadge(
+                                                      item.kondisi
+                                                    )}`}
+                                                  >
+                                                    {getConditionLabel(item.kondisi)}
+                                                  </span>
+                                                </td>
+                                              </tr>
+                                            ))}
+                                          </tbody>
+                                        </table>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="bg-gray-50 rounded-lg p-4 text-center border border-gray-200">
+                                      <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className="h-8 w-8 mx-auto text-gray-400"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                                        />
+                                      </svg>
+                                      <p className="mt-2 text-sm text-gray-500">
+                                        Tidak ada data inventaris untuk fasilitas ini
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                
+                            {/* Action Buttons - Sticky Bottom */}
+                            <div className="sticky bottom-0 bg-white pt-4 pb-2 border-t border-gray-200">
+                              <div className="grid grid-cols-2 gap-2 px-4">
+                                <button
+                                  onClick={() => {
+                                    if (detailFasilitas.detail?.file_360) {
+                                      window.open(
+                                        `http://127.0.0.1:8000/storage/${detailFasilitas.detail.file_360}`,
+                                        "_blank"
+                                      );
+                                    } else {
+                                      alert(
+                                        "Tidak ada tampilan 360° yang tersedia untuk fasilitas ini"
+                                      );
+                                    }
+                                  }}
+                                  className="flex items-center justify-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors"
+                                >
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-4 w-4 mr-1"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
                                   >
-                                    {getConditionLabel(item.kondisi)}
-                                  </span>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"
+                                    />
+                                  </svg>
+                                  View 360°
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    if (mapInstanceRef.current && detailFasilitas.geojson) {
+                                      const layer = L.geoJSON(detailFasilitas.geojson);
+                                      mapInstanceRef.current.fitBounds(layer.getBounds(), {
+                                        padding: [50, 50],
+                                      });
+                                    }
+                                  }}
+                                  className="flex items-center justify-center px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md text-sm font-medium transition-colors"
+                                >
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-4 w-4 mr-1"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                    />
+                                  </svg>
+                                  Navigasi ke Lokasi
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
+                
+                      <div
+                        ref={mapRef}
+                        className="w-full h-full"
+                        style={{ minHeight: "600px" }}
+                      />
                     </div>
-                  ) : (
-                    <div className="bg-gray-50 rounded-lg p-4 text-center border border-gray-200">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-8 w-8 mx-auto text-gray-400"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-                        />
-                      </svg>
-                      <p className="mt-2 text-sm text-gray-500">
-                        Tidak ada data inventaris untuk fasilitas ini
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Action Buttons - Sticky Bottom */}
-            <div className="sticky bottom-0 bg-white pt-4 pb-2 border-t border-gray-200">
-              <div className="grid grid-cols-2 gap-2 px-4">
-                <button
-                  onClick={() => {
-                    if (detailFasilitas.detail?.file_360) {
-                      window.open(
-                        `http://127.0.0.1:8000/storage/${detailFasilitas.detail.file_360}`,
-                        "_blank"
-                      );
-                    } else {
-                      alert(
-                        "Tidak ada tampilan 360° yang tersedia untuk fasilitas ini"
-                      );
-                    }
-                  }}
-                  className="flex items-center justify-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4 mr-1"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"
-                    />
-                  </svg>
-                  View 360°
-                </button>
-                <button
-                  onClick={() => {
-                    if (mapInstanceRef.current && detailFasilitas.geojson) {
-                      const layer = L.geoJSON(detailFasilitas.geojson);
-                      mapInstanceRef.current.fitBounds(layer.getBounds(), {
-                        padding: [50, 50],
-                      });
-                    }
-                  }}
-                  className="flex items-center justify-center px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md text-sm font-medium transition-colors"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4 mr-1"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
-                  </svg>
-                  Navigasi ke Lokasi
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div
-        ref={mapRef}
-        className="w-full h-full"
-        style={{ minHeight: "600px" }}
-      />
-    </div>
-  );
-};
-
-export default PublicPetaTanah;
+                  );
+                };
+                
+                export default PublicPetaTanah;
+                

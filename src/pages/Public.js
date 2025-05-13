@@ -19,8 +19,8 @@ const PetaTanahPage = () => {
         {/* Combined Header with Logo and Tabs in one line */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center">
-            <img src={logo} alt="Logo" className="w-10 h-12" />
-            <div className="text-left ml-4">
+            <img src={logo} alt="Logo" className="w-10 h-8" />
+            <div className="text-left ml-2">
               <h1 className="text-[14px] font-bold">
                 <span className="text-hijau">Waqf</span>{" "}
                 <span className="text-kuning">Management</span>
