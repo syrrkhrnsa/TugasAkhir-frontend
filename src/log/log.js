@@ -23,6 +23,10 @@ const Log = () => {
   const type = queryParams.get("type") || "tanah";
   const id = queryParams.get("id");
   const idTanah = queryParams.get("id_tanah");
+  const idFasilitas = queryParams.get("id_fasilitas");
+  const idInventaris = queryParams.get("id_inventaris");
+  const idPemetaanTanah = queryParams.get("id_pemetaan_tanah");
+  const idPemetaanFasilitas = queryParams.get("id_pemetaan_fasilitas");
 
   useEffect(() => {
     const fetchLogs = async () => {
@@ -39,30 +43,86 @@ const Log = () => {
         let pageTitle = "";
         let pageSubtitle = "";
 
-        if (type === "tanah") {
-          if (id) {
-            endpoint = `/log-tanah/${id}`;
-            pageTitle = `Riwayat Pengelolaan Tanah Wakaf`;
-            pageSubtitle = "Log perubahan untuk tanah ini";
-          } else {
+        switch (type) {
+          case "tanah":
+            if (id) {
+              endpoint = `/log-tanah/${id}`;
+              pageTitle = `Riwayat Pengelolaan Tanah Wakaf`;
+              pageSubtitle = "Log perubahan untuk tanah ini";
+            } else {
+              endpoint = "/log-tanah";
+              pageTitle = "Riwayat Pengelolaan Tanah Wakaf";
+              pageSubtitle = "PC Persis Banjaran";
+            }
+            break;
+          case "sertifikat":
+            if (id) {
+              endpoint = `/log-sertifikat/${id}`;
+              pageTitle = `Riwayat Pengurusan Dokumen`;
+              pageSubtitle = "Log perubahan untuk dokumen ini";
+            } else if (idTanah) {
+              endpoint = `/log-sertifikat-by-tanah/${idTanah}`;
+              pageTitle = `Riwayat Pengurusan Dokumen`;
+              pageSubtitle = "Log perubahan dokumen terkait tanah ini";
+            } else {
+              endpoint = "/log-sertifikat";
+              pageTitle = "Riwayat Pengurusan Dokumen";
+              pageSubtitle = "PC Persis Banjaran";
+            }
+            break;
+          case "fasilitas":
+            if (id) {
+              endpoint = `/log/fasilitas/${id}`;
+              pageTitle = `Riwayat Fasilitas`;
+              pageSubtitle = "Log perubahan untuk fasilitas ini";
+            } else {
+              endpoint = "/log/fasilitas";
+              pageTitle = "Riwayat Fasilitas";
+              pageSubtitle = "PC Persis Banjaran";
+            }
+            break;
+          case "inventaris":
+            if (id) {
+              endpoint = `/log/inventaris/${id}`;
+              pageTitle = `Riwayat Inventaris`;
+              pageSubtitle = "Log perubahan untuk inventaris ini";
+            } else {
+              endpoint = "/log/inventaris";
+              pageTitle = "Riwayat Inventaris";
+              pageSubtitle = "PC Persis Banjaran";
+            }
+            break;
+          case "pemetaan-fasilitas":
+            if (id) {
+              endpoint = `/log/pemetaan-fasilitas/${id}`;
+              pageTitle = `Riwayat Pemetaan Fasilitas`;
+              pageSubtitle = "Log perubahan untuk pemetaan fasilitas ini";
+            } else if (idPemetaanTanah) {
+              endpoint = `/log/pemetaan-fasilitas-by-tanah/${idPemetaanTanah}`;
+              pageTitle = `Riwayat Pemetaan Fasilitas`;
+              pageSubtitle =
+                "Log perubahan pemetaan fasilitas terkait tanah ini";
+            } else {
+              endpoint = "/log/pemetaan-fasilitas";
+              pageTitle = "Riwayat Pemetaan Fasilitas";
+              pageSubtitle = "PC Persis Banjaran";
+            }
+            break;
+          case "pemetaan-tanah":
+            if (id) {
+              endpoint = `/log/pemetaan-tanah/${id}`;
+              pageTitle = `Riwayat Pemetaan Tanah`;
+              pageSubtitle = "Log perubahan untuk pemetaan tanah ini";
+            } else {
+              endpoint = "/log/pemetaan-tanah";
+              pageTitle = "Riwayat Pemetaan Tanah";
+              pageSubtitle = "PC Persis Banjaran";
+            }
+            break;
+          default:
             endpoint = "/log-tanah";
-            pageTitle = "Riwayat Pengelolaan Tanah Wakaf";
+            pageTitle = "Riwayat Aktivitas";
             pageSubtitle = "PC Persis Banjaran";
-          }
-        } else if (type === "sertifikat") {
-          if (id) {
-            endpoint = `/log-sertifikat/${id}`;
-            pageTitle = `Riwayat Pengurusan Dokumen`;
-            pageSubtitle = "Log perubahan untuk dokumen ini";
-          } else if (idTanah) {
-            endpoint = `/log-sertifikat-by-tanah/${idTanah}`;
-            pageTitle = `Riwayat Pengurusan Dokumen`;
-            pageSubtitle = "Log perubahan dokumen terkait tanah ini";
-          } else {
-            endpoint = "/log-sertifikat";
-            pageTitle = "Riwayat Pengurusan Dokumen";
-            pageSubtitle = "PC Persis Banjaran";
-          }
         }
 
         setTitle(pageTitle);
@@ -111,7 +171,16 @@ const Log = () => {
     };
 
     fetchLogs();
-  }, [type, id, idTanah, navigate]);
+  }, [
+    type,
+    id,
+    idTanah,
+    idFasilitas,
+    idInventaris,
+    idPemetaanTanah,
+    idPemetaanFasilitas,
+    navigate,
+  ]);
 
   const filteredLogs = logs.filter((log) => {
     const searchTerm = search.toLowerCase();
