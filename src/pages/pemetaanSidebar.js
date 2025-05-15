@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import Sidebar from "../components/Sidebar.js";
-import FasilitasPopupCard from "../components/PemetaanSidebar/FasilitasPopupCard";
-import { getFasilitasModalHTML } from "../components/PemetaanSidebar/GetDetailFasilitas.js";
-import { getPopupTanahHTML } from "../components/PemetaanSidebar/PopupTanah";
+import { default as FasilitasPopupCard } from "../components/PemetaanSidebar/FasilitasPopupCard";
+import { getDetailFasilitasHTML as getFasilitasModalHTML } from "../components/PemetaanSidebar/GetDetailFasilitas.js";
+import { getPopupTanahHTML as getPopupTanahHTML } from "../components/PemetaanSidebar/PopupTanah";
 import { getMarkerPopupHTML } from "../components/PemetaanSidebar/MarkerPopupContent";
 import FasilitasListCard from "../components/PemetaanSidebar/FasilitasListCard";
 import L from "leaflet";
@@ -11,6 +11,7 @@ import "leaflet/dist/leaflet.css";
 import axios from "axios";
 import * as wellknown from "wellknown";
 import { createRoot } from "react-dom/client";
+import Swal from "sweetalert2";
 
 import "leaflet-control-geocoder/dist/Control.Geocoder.css";
 import "leaflet-control-geocoder";
@@ -56,7 +57,6 @@ const PemetaanSidebar = () => {
     return matchesSearch && matchesCategory;
   });
 
-  // Add this useEffect to extract unique categories from fasilitasData
   useEffect(() => {
     if (fasilitasData.length > 0) {
       const categories = [
@@ -66,19 +66,16 @@ const PemetaanSidebar = () => {
     }
   }, [fasilitasData]);
 
-  // Add this function to handle category selection
   const handleCategoryFilter = (category) => {
     setSelectedCategory(category === selectedCategory ? null : category);
     setIsCategoryDropdownOpen(false);
   };
 
-  // Add this function to reset category filter
   const handleResetCategoryFilter = () => {
     setSelectedCategory(null);
     setIsCategoryDropdownOpen(false);
   };
 
-  // Fetch data user untuk dropdown filter
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -92,7 +89,6 @@ const PemetaanSidebar = () => {
     }
   };
 
-  // Modifikasi fetchPemetaanData untuk menerima parameter userId
   const fetchPemetaanData = async (userId = null) => {
     try {
       setLoading(true);
@@ -108,22 +104,11 @@ const PemetaanSidebar = () => {
       });
 
       if (response.data.data && response.data.data.length > 0) {
-        const enrichedData = await Promise.all(
-          response.data.data.map(async (item) => {
-            const tanah = await fetchTanahData(item.id_tanah);
-            const sertifikat = await fetchSertifikatData(item.id_tanah);
-            const geojson = item.geometri ? wkbToGeoJSON(item.geometri) : null;
-
-            return {
-              ...item,
-              geojson,
-              tanahData: tanah,
-              sertifikatData: sertifikat,
-            };
-          })
-        );
-
-        setPemetaanData(enrichedData);
+        const processedData = response.data.data.map((item) => ({
+          ...item,
+          geojson: wkbToGeoJSON(item.geometri),
+        }));
+        setPemetaanData(processedData);
       } else {
         setPemetaanData([]);
       }
@@ -136,7 +121,6 @@ const PemetaanSidebar = () => {
     }
   };
 
-  // Modifikasi fetchFasilitasData untuk menerima parameter userId
   const fetchFasilitasData = async (userId = null) => {
     try {
       const token = localStorage.getItem("token");
@@ -151,14 +135,45 @@ const PemetaanSidebar = () => {
       });
 
       if (response.data.data && response.data.data.length > 0) {
-        const dataWithGeoJSON = response.data.data.map((item) => {
-          if (item.geometri) {
-            const geojson = wkbToGeoJSON(item.geometri);
-            return { ...item, geojson };
-          }
-          return item;
-        });
-        setFasilitasData(dataWithGeoJSON);
+        const enrichedFacilities = await Promise.all(
+          response.data.data.map(async (item) => {
+            try {
+              const detailResponse = await axios.get(
+                `http://127.0.0.1:8000/api/fasilitas/pemetaan/${item.id_pemetaan_fasilitas}`,
+                {
+                  headers: { Authorization: `Bearer ${token}` },
+                  validateStatus: (status) => status === 200 || status === 404,
+                }
+              );
+
+              if (detailResponse.status === 404) {
+                return {
+                  ...item,
+                  geojson: wkbToGeoJSON(item.geometri),
+                  hasDetail: false,
+                  detailData: null,
+                };
+              }
+
+              return {
+                ...item,
+                geojson: wkbToGeoJSON(item.geometri),
+                hasDetail: true,
+                detailData: detailResponse.data.data || null,
+              };
+            } catch (err) {
+              console.error("Error fetching facility details:", err);
+              return {
+                ...item,
+                geojson: wkbToGeoJSON(item.geometri),
+                hasDetail: false,
+                detailData: null,
+              };
+            }
+          })
+        );
+
+        setFasilitasData(enrichedFacilities);
       } else {
         setFasilitasData([]);
       }
@@ -168,32 +183,6 @@ const PemetaanSidebar = () => {
     }
   };
 
-  // Handler untuk filter berdasarkan user
-  const handleFilterByUser = (userId) => {
-    setSelectedUserId(userId);
-    setIsDropdownOpen(false);
-    setSearchTerm("");
-    setFacilitySearchTerm(""); // Reset facility search when changing user filter
-    fetchPemetaanData(userId);
-    fetchFasilitasData(userId);
-  };
-
-  // Handler untuk reset filter
-  const handleResetFilter = () => {
-    setSelectedUserId(null);
-    setIsDropdownOpen(false);
-    setSearchTerm("");
-    setFacilitySearchTerm(""); // Reset facility search when resetting all filters
-    fetchPemetaanData();
-    fetchFasilitasData();
-  };
-
-  // Filter users berdasarkan search term
-  const filteredUsers = users.filter((user) =>
-    user.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // Fungsi untuk konversi WKB ke GeoJSON
   const wkbToGeoJSON = (geometryData) => {
     try {
       if (typeof geometryData === "object" && geometryData.type) {
@@ -231,7 +220,6 @@ const PemetaanSidebar = () => {
     }
   };
 
-  // Fungsi untuk fetch detail tanah
   const fetchTanahData = async (tanahId) => {
     try {
       const token = localStorage.getItem("token");
@@ -248,7 +236,6 @@ const PemetaanSidebar = () => {
     }
   };
 
-  // Fungsi untuk fetch sertifikat
   const fetchSertifikatData = async (tanahId) => {
     try {
       const token = localStorage.getItem("token");
@@ -265,7 +252,6 @@ const PemetaanSidebar = () => {
     }
   };
 
-  // Fungsi untuk fetch detail fasilitas
   const fetchFasilitasDetailData = async (id_pemetaan_fasilitas) => {
     if (!id_pemetaan_fasilitas) {
       console.error("ID Pemetaan Fasilitas tidak valid");
@@ -278,31 +264,89 @@ const PemetaanSidebar = () => {
         `http://127.0.0.1:8000/api/fasilitas/pemetaan/${id_pemetaan_fasilitas}`,
         {
           headers: { Authorization: `Bearer ${token}` },
+          validateStatus: (status) => status === 200 || status === 404,
         }
       );
 
-      if (response.data && response.data.data) {
-        return response.data.data;
-      } else {
-        console.warn("No detail data found in response", response);
+      if (response.status === 404) {
         return null;
       }
+
+      return response.data.data || null;
     } catch (err) {
       console.error("Error fetching fasilitas detail data:", err);
       return null;
     }
   };
 
-  // Fungsi untuk inisialisasi peta
+  const deletePemetaan = async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(`http://127.0.0.1:8000/api/pemetaan/tanah/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      await fetchPemetaanData(selectedUserId);
+      await fetchFasilitasData(selectedUserId);
+    } catch (err) {
+      console.error("Gagal menghapus data pemetaan:", err);
+      Swal.fire({
+        icon: "error",
+        title: "Gagal menghapus data",
+        text: err.response?.data?.message || err.message,
+      });
+    }
+  };
+
+  const deleteFasilitas = async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(`http://127.0.0.1:8000/api/pemetaan/fasilitas/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      await fetchFasilitasData(selectedUserId);
+    } catch (err) {
+      console.error("Gagal menghapus data fasilitas:", err);
+      Swal.fire({
+        icon: "error",
+        title: "Gagal menghapus data",
+        text: err.response?.data?.message || err.message,
+      });
+    }
+  };
+
+  const handleFilterByUser = (userId) => {
+    setSelectedUserId(userId);
+    setIsDropdownOpen(false);
+    setSearchTerm("");
+    setFacilitySearchTerm("");
+    fetchPemetaanData(userId);
+    fetchFasilitasData(userId);
+  };
+
+  const handleResetFilter = () => {
+    setSelectedUserId(null);
+    setIsDropdownOpen(false);
+    setSearchTerm("");
+    setFacilitySearchTerm("");
+    fetchPemetaanData();
+    fetchFasilitasData();
+  };
+
+  const filteredUsers = users.filter((user) =>
+    user.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   const initializeMap = () => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
-    // Clear existing map
     while (mapRef.current.firstChild) {
       mapRef.current.removeChild(mapRef.current.firstChild);
     }
 
-    // Initialize map with higher zoom level
     const mapInstance = L.map(mapRef.current, {
       zoomControl: false,
       maxZoom: 22,
@@ -311,7 +355,6 @@ const PemetaanSidebar = () => {
 
     mapInstanceRef.current = mapInstance;
 
-    // Base layers
     const baseLayers = {
       "Google Satelit": L.tileLayer(
         "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
@@ -330,15 +373,11 @@ const PemetaanSidebar = () => {
       ),
     };
 
-    // Add default layer
     baseLayers["Google Satelit"].addTo(mapInstance);
-
-    // Add layer control
     L.control
       .layers(baseLayers, null, { position: "topright" })
       .addTo(mapInstance);
 
-    // Add labels layer
     L.tileLayer(
       "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
       {
@@ -362,14 +401,12 @@ const PemetaanSidebar = () => {
       }
     }
 
-    // Tambahkan kontrol zoom custom di atas kanan
     L.control
       .zoom({
         position: "topright",
       })
       .addTo(mapInstance);
 
-    // Tambahkan geocoder di bawah kontrol zoom
     L.Control.geocoder({
       defaultMarkGeocode: false,
       position: "topright",
@@ -383,24 +420,18 @@ const PemetaanSidebar = () => {
       })
       .addTo(mapInstance);
 
-    // Layer untuk pemetaan tanah
-    const drawnItemsLayer = new L.FeatureGroup();
-    mapInstance.addLayer(drawnItemsLayer);
-    drawnItemsRef.current = drawnItemsLayer;
+    drawnItemsRef.current = new L.FeatureGroup();
+    mapInstance.addLayer(drawnItemsRef.current);
 
-    // Layer untuk fasilitas
-    const fasilitasLayer = new L.FeatureGroup();
-    mapInstance.addLayer(fasilitasLayer);
-    fasilitasLayerRef.current = fasilitasLayer;
+    fasilitasLayerRef.current = new L.FeatureGroup();
+    mapInstance.addLayer(fasilitasLayerRef.current);
 
     return mapInstance;
   };
 
-  // Fungsi untuk render data ke peta
   const renderMapData = (mapInstance) => {
     if (!mapInstance) return;
 
-    // Clear existing layers except base tile layer
     if (drawnItemsRef.current) {
       mapInstance.removeLayer(drawnItemsRef.current);
       drawnItemsRef.current = new L.FeatureGroup();
@@ -413,7 +444,6 @@ const PemetaanSidebar = () => {
       mapInstance.addLayer(fasilitasLayerRef.current);
     }
 
-    // Render land mappings
     if (pemetaanData.length > 0) {
       const geoJSONGroup = L.featureGroup();
 
@@ -436,13 +466,19 @@ const PemetaanSidebar = () => {
 
                 const deleteButton = popupContent.querySelector(".btn-delete");
                 deleteButton.onclick = () => {
-                  if (
-                    window.confirm(
-                      "Apakah Anda yakin ingin menghapus pemetaan ini?"
-                    )
-                  ) {
-                    deletePemetaan(item.id_pemetaan_tanah);
-                  }
+                  Swal.fire({
+                    title: "Hapus Pemetaan?",
+                    text: "Apakah Anda yakin ingin menghapus pemetaan ini?",
+                    icon: "warning",
+                    showCancelButton: true,
+                    confirmButtonColor: "#3085d6",
+                    cancelButtonColor: "#d33",
+                    confirmButtonText: "Ya, Hapus!",
+                  }).then((result) => {
+                    if (result.isConfirmed) {
+                      deletePemetaan(item.id_pemetaan_tanah);
+                    }
+                  });
                 };
 
                 layer.bindPopup(popupContent);
@@ -469,13 +505,19 @@ const PemetaanSidebar = () => {
                 const deleteMarkerButton =
                   markerPopupContent.querySelector(".btn-delete-marker");
                 deleteMarkerButton.onclick = () => {
-                  if (
-                    window.confirm(
-                      "Apakah Anda yakin ingin menghapus pemetaan ini?"
-                    )
-                  ) {
-                    deletePemetaan(item.id_pemetaan_tanah);
-                  }
+                  Swal.fire({
+                    title: "Hapus Pemetaan?",
+                    text: "Apakah Anda yakin ingin menghapus pemetaan ini?",
+                    icon: "warning",
+                    showCancelButton: true,
+                    confirmButtonColor: "#3085d6",
+                    cancelButtonColor: "#d33",
+                    confirmButtonText: "Ya, Hapus!",
+                  }).then((result) => {
+                    if (result.isConfirmed) {
+                      deletePemetaan(item.id_pemetaan_tanah);
+                    }
+                  });
                 };
 
                 marker.bindPopup(markerPopupContent);
@@ -507,74 +549,42 @@ const PemetaanSidebar = () => {
       noDataNotice.addTo(mapInstance);
     }
 
-    // Render fasilitas mappings
     if (fasilitasData.length > 0) {
-      const fetchAllFacilityDetails = async () => {
-        const token = localStorage.getItem("token");
-        const detailsPromises = fasilitasData.map(async (item) => {
+      fasilitasData.forEach((item) => {
+        if (item.geojson && item.geojson.geometry) {
           try {
-            const response = await axios.get(
-              `http://127.0.0.1:8000/api/fasilitas/pemetaan/${item.id_pemetaan_fasilitas}`,
-              {
-                headers: { Authorization: `Bearer ${token}` },
-              }
-            );
-            return {
-              ...item,
-              hasDetail: response.data.data && response.data.data.length > 0,
-              detailData: response.data.data?.[0] || null,
-            };
+            const geoJSONLayer = L.geoJSON(item.geojson, {
+              style: {
+                color: "#FECC23",
+                weight: 3,
+                opacity: 1,
+                fillOpacity: 0.3,
+              },
+              onEachFeature: function (feature, layer) {
+                const popupContent = document.createElement("div");
+                const root = createRoot(popupContent);
+
+                root.render(
+                  <PopupContent
+                    item={item}
+                    onDelete={deleteFasilitas}
+                    navigate={navigate}
+                  />
+                );
+
+                layer.bindPopup(popupContent);
+              },
+            }).addTo(mapInstance);
+
+            fasilitasLayerRef.current.addLayer(geoJSONLayer);
           } catch (err) {
-            console.error("Error fetching facility details:", err);
-            return {
-              ...item,
-              hasDetail: false,
-              detailData: null,
-            };
+            console.error("Error displaying facility geometry:", err, item);
           }
-        });
-
-        return Promise.all(detailsPromises);
-      };
-
-      fetchAllFacilityDetails().then((enrichedFacilities) => {
-        enrichedFacilities.forEach((item) => {
-          if (item.geojson && item.geojson.geometry) {
-            try {
-              const geoJSONLayer = L.geoJSON(item.geojson, {
-                style: {
-                  color: "#FECC23",
-                  weight: 3,
-                  opacity: 1,
-                  fillOpacity: 0.3,
-                },
-                onEachFeature: function (feature, layer) {
-                  const popupContent = document.createElement("div");
-                  const root = createRoot(popupContent);
-
-                  root.render(
-                    <PopupContent
-                      item={item}
-                      onDelete={deleteFasilitas}
-                      navigate={navigate}
-                    />
-                  );
-
-                  layer.bindPopup(popupContent);
-                },
-              }).addTo(mapInstance);
-
-              fasilitasLayerRef.current.addLayer(geoJSONLayer);
-            } catch (err) {
-              console.error("Error displaying facility geometry:", err, item);
-            }
-          }
-        });
+        }
       });
     }
   };
 
-  // Komponen PopupContent untuk fasilitas
   const PopupContent = ({ item, onDelete, navigate }) => {
     const [detailData, setDetailData] = useState(null);
     const popupRef = useRef(null);
@@ -595,11 +605,7 @@ const PemetaanSidebar = () => {
       if (detailData) {
         showDetailModal(detailData, item);
       } else {
-        navigate(`/fasilitas/create/${item.id_pemetaan_fasilitas}`, {
-          state: {
-            fasilitas: item,
-          },
-        });
+        navigate(`/fasilitas/create/${item.id_pemetaan_fasilitas}`);
       }
     };
 
@@ -614,11 +620,14 @@ const PemetaanSidebar = () => {
     );
   };
 
-  // Fungsi untuk menampilkan modal detail
   const showDetailModal = (detailData, fasilitasData) => {
     if (!detailData) {
       console.error("Detail data is missing or invalid");
-      alert("Error: Data detail fasilitas tidak ditemukan.");
+      Swal.fire({
+        icon: "error",
+        title: "Data tidak ditemukan",
+        text: "Data detail fasilitas tidak ditemukan",
+      });
       return;
     }
 
@@ -630,108 +639,28 @@ const PemetaanSidebar = () => {
 
     document.body.appendChild(modal);
 
-    // Handle tombol Lihat Inventaris
     const viewInventarisButton = modal.querySelector(".btn-view-inventaris");
-    viewInventarisButton.addEventListener("click", () => {
-      if (!detailData || typeof detailData[0].id_fasilitas === "undefined") {
-        console.error(
-          "Cannot view inventory: detailData is missing or invalid",
-          detailData
-        );
-        alert("Data fasilitas tidak valid. Tidak dapat melihat inventaris.");
-        return;
-      }
-
-      document.body.removeChild(modal);
-      navigate(`/inventaris/fasilitas/${detailData[0].id_fasilitas}`, {
-        state: {
-          fasilitasData: fasilitasData || {},
-          detailData: detailData || {},
-        },
+    if (viewInventarisButton && detailData.id_fasilitas) {
+      viewInventarisButton.addEventListener("click", () => {
+        document.body.removeChild(modal);
+        navigate(`/inventaris/fasilitas/${detailData.id_fasilitas}`);
       });
-    });
-
-    // Handle edit button
-    const editButton = modal.querySelector(".btn-edit-detail");
-    editButton.addEventListener("click", () => {
-      if (!detailData || typeof detailData[0].id_fasilitas === "undefined") {
-        console.error(
-          "Cannot edit: detailData is missing or invalid",
-          detailData
-        );
-        alert("Data fasilitas tidak valid. Tidak dapat melanjutkan edit.");
-        return;
-      }
-
-      document.body.removeChild(modal);
-      navigate(`/fasilitas/edit/${detailData[0].id_fasilitas}`, {
-        state: {
-          pemetaanFasilitasData: fasilitasData || [],
-          detailData: detailData || {},
-        },
-      });
-    });
-
-    // Handle 360° view button if exists
-    if (detailData.file_360) {
-      const view360Button = modal.querySelector(".btn-view-360");
-      if (view360Button) {
-        view360Button.addEventListener("click", () => {
-          window.open(
-            `http://127.0.0.1:8000/storage/${detailData.file_360}`,
-            "_blank"
-          );
-        });
-      }
     }
 
-    // Handle close buttons
+    const editButton = modal.querySelector(".btn-edit-detail");
+    if (editButton && detailData.id_fasilitas) {
+      editButton.addEventListener("click", () => {
+        document.body.removeChild(modal);
+        navigate(`/fasilitas/edit/${detailData.id_fasilitas}`);
+      });
+    }
+
     const closeButtons = modal.querySelectorAll(".btn-close-modal");
     closeButtons.forEach((btn) => {
       btn.addEventListener("click", () => {
         document.body.removeChild(modal);
       });
     });
-  };
-
-  // Fungsi untuk menghapus pemetaan
-  const deletePemetaan = async (id) => {
-    try {
-      const token = localStorage.getItem("token");
-      await axios.delete(`http://127.0.0.1:8000/api/pemetaan/tanah/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      await fetchPemetaanData(selectedUserId);
-    } catch (err) {
-      console.error("Gagal menghapus data pemetaan:", err);
-      alert(
-        `Gagal menghapus data pemetaan: ${
-          err.response?.data?.message || err.message
-        }`
-      );
-    }
-  };
-
-  // Fungsi untuk menghapus fasilitas
-  const deleteFasilitas = async (id) => {
-    try {
-      const token = localStorage.getItem("token");
-      await axios.delete(`http://127.0.0.1:8000/api/pemetaan/fasilitas/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      await fetchFasilitasData(selectedUserId);
-    } catch (err) {
-      console.error("Gagal menghapus data fasilitas:", err);
-      alert(
-        `Gagal menghapus data fasilitas: ${
-          err.response?.data?.message || err.message
-        }`
-      );
-    }
   };
 
   useEffect(() => {
