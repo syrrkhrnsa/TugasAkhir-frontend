@@ -2,13 +2,13 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
-import { FaArrowLeft, FaEdit, FaTrash } from "react-icons/fa";
+import { FaArrowLeft, FaEdit, FaTrash, FaHistory } from "react-icons/fa";
 import Swal from "sweetalert2";
 
 const DetailInventaris = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  
+
   const [inventaris, setInventaris] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -16,8 +16,8 @@ const DetailInventaris = () => {
   // Format tanggal untuk tampilan
   const formatDate = (dateString) => {
     if (!dateString) return "-";
-    const options = { year: 'numeric', month: 'long', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString('id-ID', options);
+    const options = { year: "numeric", month: "long", day: "numeric" };
+    return new Date(dateString).toLocaleDateString("id-ID", options);
   };
 
   // Fetch data inventaris dari API
@@ -29,7 +29,7 @@ const DetailInventaris = () => {
         setLoading(false);
         return;
       }
-  
+
       try {
         const response = await axios.get(
           `http://127.0.0.1:8000/api/inventaris/${id}`,
@@ -37,18 +37,17 @@ const DetailInventaris = () => {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-        
+
         // Handle both response formats
         const data = response.data.data || response.data;
         if (!data) {
           throw new Error("Data inventaris tidak ditemukan");
         }
-        
+
         setInventaris(data);
-        
       } catch (error) {
         console.error("Gagal mengambil data:", error);
-        
+
         let errorMessage = "Gagal memuat data inventaris";
         if (error.response) {
           if (error.response.status === 404) {
@@ -57,13 +56,13 @@ const DetailInventaris = () => {
             errorMessage = "Server error - silakan coba lagi nanti";
           }
         }
-        
+
         setError(errorMessage);
       } finally {
         setLoading(false);
       }
     };
-  
+
     fetchData();
   }, [id]);
 
@@ -182,18 +181,36 @@ const DetailInventaris = () => {
             </button>
             <h2 className="text-xl font-semibold text-gray-800">
               Detail Inventaris
-              <p className="text-sm text-gray-500 font-normal">{inventaris.nama_barang}</p>
+              <p className="text-sm text-gray-500 font-normal">
+                {inventaris.nama_barang}
+              </p>
             </h2>
           </div>
 
           <div className="flex items-center space-x-3">
+            {/* Edit Button */}
             <button
               className="p-2 text-white bg-yellow-500 rounded-md hover:bg-yellow-600 transition-colors"
-              onClick={() => navigate(`/inventaris/edit/${inventaris.id_inventaris}`)}
+              onClick={() =>
+                navigate(`/inventaris/edit/${inventaris.id_inventaris}`)
+              }
               title="Edit"
             >
               <FaEdit />
             </button>
+
+            {/* Log Activity Button */}
+            <button
+              className="p-2 text-white bg-green-500 rounded-md hover:bg-green-600 transition-colors"
+              onClick={() =>
+                navigate(`/log?type=inventaris&id=${inventaris.id_inventaris}`)
+              }
+              title="Lihat Log Aktivitas"
+            >
+              <FaHistory />
+            </button>
+
+            {/* Delete Button */}
             <button
               className="p-2 text-white bg-red-500 rounded-md hover:bg-red-600 transition-colors"
               onClick={handleDelete}
@@ -213,25 +230,27 @@ const DetailInventaris = () => {
                 <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">
                   Informasi Utama
                 </h3>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-500">Nama Barang</p>
                     <p className="font-medium">{inventaris.nama_barang}</p>
                   </div>
-                  
+
                   <div>
                     <p className="text-sm text-gray-500">Kode Barang</p>
-                    <p className="font-medium">{inventaris.kode_barang || "-"}</p>
+                    <p className="font-medium">
+                      {inventaris.kode_barang || "-"}
+                    </p>
                   </div>
-                  
+
                   <div>
                     <p className="text-sm text-gray-500">Jumlah</p>
                     <p className="font-medium">
                       {inventaris.jumlah} {inventaris.satuan}
                     </p>
                   </div>
-                  
+
                   <div>
                     <p className="text-sm text-gray-500">Kondisi</p>
                     <span
@@ -250,18 +269,20 @@ const DetailInventaris = () => {
                 <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">
                   Informasi Tambahan
                 </h3>
-                
+
                 <div className="space-y-4">
                   <div>
                     <p className="text-sm text-gray-500">Waktu Perolehan</p>
-                    <p className="font-medium">{formatDate(inventaris.waktu_perolehan)}</p>
+                    <p className="font-medium">
+                      {formatDate(inventaris.waktu_perolehan)}
+                    </p>
                   </div>
-                  
+
                   <div>
                     <p className="text-sm text-gray-500">Detail</p>
                     <p className="font-medium">{inventaris.detail || "-"}</p>
                   </div>
-                  
+
                   <div>
                     <p className="text-sm text-gray-500">Catatan</p>
                     <p className="font-medium">{inventaris.catatan || "-"}</p>
@@ -275,7 +296,7 @@ const DetailInventaris = () => {
                   <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">
                     Riwayat Perubahan
                   </h3>
-                  
+
                   <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
@@ -315,7 +336,9 @@ const DetailInventaris = () => {
             {/* Footer */}
             <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end">
               <button
-                onClick={() => navigate(`/inventaris/fasilitas/${inventaris.id_fasilitas}`)}
+                onClick={() =>
+                  navigate(`/inventaris/fasilitas/${inventaris.id_fasilitas}`)
+                }
                 className="px-4 py-2 bg-[#187556] text-white rounded-md hover:bg-[#146347] transition-colors"
               >
                 Kembali ke Daftar Inventaris
