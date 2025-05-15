@@ -2,18 +2,25 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
-import { FaPlus, FaEdit, FaTrash, FaArrowLeft, FaEye } from "react-icons/fa";
+import {
+  FaPlus,
+  FaEdit,
+  FaTrash,
+  FaArrowLeft,
+  FaEye,
+  FaHistory,
+} from "react-icons/fa";
 import Swal from "sweetalert2";
 
 const ListInventaris = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  
+
   // State untuk data inventaris
   const [inventarisData, setInventarisData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // State untuk search dan pagination
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -22,8 +29,8 @@ const ListInventaris = () => {
   // Format tanggal untuk tampilan
   const formatDate = (dateString) => {
     if (!dateString) return "-";
-    const options = { year: 'numeric', month: 'long', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString('id-ID', options);
+    const options = { year: "numeric", month: "long", day: "numeric" };
+    return new Date(dateString).toLocaleDateString("id-ID", options);
   };
 
   // Fetch data inventaris dari API
@@ -35,7 +42,7 @@ const ListInventaris = () => {
         setLoading(false);
         return;
       }
-  
+
       try {
         const response = await axios.get(
           `http://127.0.0.1:8000/api/inventaris/fasilitas/${id}`,
@@ -43,14 +50,13 @@ const ListInventaris = () => {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-        
+
         // Handle both response formats
         const data = response.data.data || response.data;
         setInventarisData(data || []);
-        
       } catch (error) {
         console.error("Gagal mengambil data:", error);
-        
+
         let errorMessage = "Gagal memuat data inventaris";
         if (error.response) {
           if (error.response.status === 404) {
@@ -61,13 +67,13 @@ const ListInventaris = () => {
             errorMessage = "Server error - silakan coba lagi nanti";
           }
         }
-        
+
         setError(errorMessage);
       } finally {
         setLoading(false);
       }
     };
-  
+
     fetchData();
   }, [id]);
 
@@ -88,11 +94,16 @@ const ListInventaris = () => {
 
     const token = localStorage.getItem("token");
     try {
-      await axios.delete(`http://127.0.0.1:8000/api/inventaris/${idInventaris}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.delete(
+        `http://127.0.0.1:8000/api/inventaris/${idInventaris}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
-      setInventarisData(prev => prev.filter(item => item.id_inventaris !== idInventaris));
+      setInventarisData((prev) =>
+        prev.filter((item) => item.id_inventaris !== idInventaris)
+      );
       Swal.fire("Berhasil!", "Data inventaris telah dihapus.", "success");
     } catch (error) {
       console.error("Gagal menghapus data:", error);
@@ -101,11 +112,15 @@ const ListInventaris = () => {
   };
 
   // Filter data berdasarkan search
-  const filteredData = inventarisData.filter(item =>
-    item.nama_barang.toLowerCase().includes(search.toLowerCase()) ||
-    item.kode_barang?.toLowerCase().includes(search.toLowerCase()) ||
-    item.kondisi.toLowerCase().includes(search.toLowerCase()) ||
-    (item.waktu_perolehan && formatDate(item.waktu_perolehan).toLowerCase().includes(search.toLowerCase()))
+  const filteredData = inventarisData.filter(
+    (item) =>
+      item.nama_barang.toLowerCase().includes(search.toLowerCase()) ||
+      item.kode_barang?.toLowerCase().includes(search.toLowerCase()) ||
+      item.kondisi.toLowerCase().includes(search.toLowerCase()) ||
+      (item.waktu_perolehan &&
+        formatDate(item.waktu_perolehan)
+          .toLowerCase()
+          .includes(search.toLowerCase()))
   );
 
   // Pagination logic
@@ -175,7 +190,9 @@ const ListInventaris = () => {
             </button>
             <h2 className="text-xl font-semibold text-gray-800">
               Daftar Inventaris
-              <p className="text-sm text-gray-500 font-normal">PC Persis Banjaran</p>
+              <p className="text-sm text-gray-500 font-normal">
+                PC Persis Banjaran
+              </p>
             </h2>
           </div>
 
@@ -191,6 +208,16 @@ const ListInventaris = () => {
               }}
             />
 
+            {/* Log Inventaris Button */}
+            <button
+              className="p-2 text-white bg-[#146347] rounded-md hover:bg-[#0e4a32] transition-colors"
+              onClick={() => navigate("/log?type=inventaris")}
+              title="Lihat Log Inventaris"
+            >
+              <FaHistory />
+            </button>
+
+            {/* Add Inventaris Button */}
             <button
               className="p-2 text-white bg-[#187556] rounded-md hover:bg-[#146347] transition-colors"
               onClick={() => navigate(`/inventaris/create/${id}`)}
@@ -255,7 +282,10 @@ const ListInventaris = () => {
                     <tbody className="bg-white divide-y divide-gray-200">
                       {paginatedData.length > 0 ? (
                         paginatedData.map((item, index) => (
-                          <tr key={item.id_inventaris} className="hover:bg-gray-50">
+                          <tr
+                            key={item.id_inventaris}
+                            className="hover:bg-gray-50"
+                          >
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                               {(currentPage - 1) * itemsPerPage + index + 1}
                             </td>
@@ -285,26 +315,50 @@ const ListInventaris = () => {
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                               <div className="flex space-x-2">
+                                {/* Detail Button */}
                                 <button
                                   onClick={() =>
-                                    navigate(`/inventaris/detail/${item.id_inventaris}`)
+                                    navigate(
+                                      `/inventaris/detail/${item.id_inventaris}`
+                                    )
                                   }
                                   className="p-1 text-gray-400 hover:text-blue-600"
                                   title="Detail"
                                 >
                                   <FaEye />
                                 </button>
+
+                                {/* Edit Button */}
                                 <button
                                   onClick={() =>
-                                    navigate(`/inventaris/edit/${item.id_inventaris}`)
+                                    navigate(
+                                      `/inventaris/edit/${item.id_inventaris}`
+                                    )
                                   }
                                   className="p-1 text-gray-400 hover:text-yellow-600"
                                   title="Edit"
                                 >
                                   <FaEdit />
                                 </button>
+
+                                {/* Log Activity Button */}
                                 <button
-                                  onClick={() => handleDelete(item.id_inventaris)}
+                                  onClick={() =>
+                                    navigate(
+                                      `/log?type=inventaris&id=${item.id_inventaris}`
+                                    )
+                                  }
+                                  className="p-1 text-gray-400 hover:text-green-600"
+                                  title="Lihat Log Aktivitas"
+                                >
+                                  <FaHistory />
+                                </button>
+
+                                {/* Delete Button */}
+                                <button
+                                  onClick={() =>
+                                    handleDelete(item.id_inventaris)
+                                  }
                                   className="p-1 text-gray-400 hover:text-red-600"
                                   title="Hapus"
                                 >
