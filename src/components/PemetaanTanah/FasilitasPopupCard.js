@@ -24,7 +24,7 @@ export const getFasilitasPopupHTML = (item) => {
     <div class="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
       <h4 class="text-xs font-bold text-gray-700 mb-1">CATATAN</h4>
       <p class="text-sm text-gray-700">${
-        item.catatan || "Tidak ada catatan"
+        item.keterangan || "Tidak ada catatan"
       }</p>
     </div>
   

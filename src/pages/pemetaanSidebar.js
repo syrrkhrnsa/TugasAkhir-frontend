@@ -173,6 +173,7 @@ const PemetaanSidebar = () => {
           })
         );
 
+        console.log("Enriched Facilities Data:", enrichedFacilities);
         setFasilitasData(enrichedFacilities);
       } else {
         setFasilitasData([]);
