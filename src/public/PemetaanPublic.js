@@ -104,96 +104,107 @@ const PublicPetaTanah = () => {
     }
   };
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
+const fetchData = async () => {
+  try {
+    setLoading(true);
 
-      // Fetch all data in parallel
-      const [
-        pemetaanRes,
-        fasilitasRes,
-        tanahRes,
-        sertifikatRes,
-        fasilitasDetailRes,
-      ] = await Promise.all([
-        axios.get("http://127.0.0.1:8000/api/pemetaan/public"),
-        axios.get("http://127.0.0.1:8000/api/fasilitas/public"),
-        axios.get("http://127.0.0.1:8000/api/tanah/public"),
-        axios.get("http://127.0.0.1:8000/api/sertifikat/public"),
-        axios.get("http://127.0.0.1:8000/api/fasilitas/detail/public"),
-      ]);
+    const [
+      pemetaanRes,
+      fasilitasRes,
+      tanahRes,
+      sertifikatRes,
+      fasilitasDetailRes,
+    ] = await Promise.all([
+      axios.get("http://127.0.0.1:8000/api/pemetaan/public"),
+      axios.get("http://127.0.0.1:8000/api/fasilitas/public"),
+      axios.get("http://127.0.0.1:8000/api/tanah/public"),
+      axios.get("http://127.0.0.1:8000/api/sertifikat/public"),
+      axios.get("http://127.0.0.1:8000/api/fasilitas/detail/public"),
+    ]);
 
-      // Process pemetaan data
-      const pemetaan = (pemetaanRes.data.data || []).map((item) => ({
-        ...item,
-        geojson: item.geometri ? wkbToGeoJSON(item.geometri) : null,
-      }));
-      setPemetaanData(pemetaan);
+    // Process pemetaan data
+    const pemetaan = (pemetaanRes.data.data || []).map((item) => ({
+      ...item,
+      geojson: item.geometri ? wkbToGeoJSON(item.geometri) : null,
+    }));
+    setPemetaanData(pemetaan);
 
-      // Process tanah data
-      const tanahData = {};
-      (tanahRes.data.data || []).forEach((tanah) => {
-        tanahData[tanah.id_tanah] = tanah;
-      });
-      setTanahData(tanahData);
+    // Process tanah data
+    const tanahData = {};
+    (tanahRes.data.data || []).forEach((tanah) => {
+      tanahData[tanah.id_tanah] = tanah;
+    });
+    setTanahData(tanahData);
 
-      // Process sertifikat data - group by id_tanah
-      const sertifikatData = {};
-      (sertifikatRes.data.data || []).forEach((sertifikat) => {
-        if (!sertifikatData[sertifikat.id_tanah]) {
-          sertifikatData[sertifikat.id_tanah] = [];
-        }
-        sertifikatData[sertifikat.id_tanah].push(sertifikat);
-      });
-      setSertifikatData(sertifikatData);
+    // Process sertifikat data
+    const sertifikatData = {};
+    (sertifikatRes.data.data || []).forEach((sertifikat) => {
+      if (!sertifikatData[sertifikat.id_tanah]) {
+        sertifikatData[sertifikat.id_tanah] = [];
+      }
+      sertifikatData[sertifikat.id_tanah].push(sertifikat);
+    });
+    setSertifikatData(sertifikatData);
 
-      // Process fasilitas data
-      const fasilitas = (fasilitasRes.data.data || []).map((item) => ({
-        ...item,
-        geojson: item.geometri ? wkbToGeoJSON(item.geometri) : null,
-      }));
+    // Process fasilitas data
+    const fasilitas = (fasilitasRes.data.data || []).map((item) => ({
+      ...item,
+      geojson: item.geometri ? wkbToGeoJSON(item.geometri) : null,
+    }));
 
-      // Process fasilitas details and get inventaris data
-      const fasilitasDetails = {};
-      const inventarisData = {};
+    // Process fasilitas details and get inventaris data
+    const fasilitasDetails = {};
+    const inventarisData = {};
 
-      // Group fasilitas details by id_pemetaan_fasilitas
-      (fasilitasDetailRes.data.data || []).forEach((detail) => {
-        fasilitasDetails[detail.id_pemetaan_fasilitas] = detail;
-      });
+    // Group fasilitas details by id_pemetaan_fasilitas
+    (fasilitasDetailRes.data.data || []).forEach((detail) => {
+      fasilitasDetails[detail.id_pemetaan_fasilitas] = detail;
+    });
 
-      // Fetch inventaris for each fasilitas
-      const inventarisPromises = Object.values(fasilitasDetails).map((detail) =>
+    // Fetch inventaris and files for each fasilitas
+    const promises = Object.values(fasilitasDetails).map(async (detail) => {
+      const [inventarisRes, filesRes] = await Promise.all([
         axios.get(
           `http://127.0.0.1:8000/api/inventaris/fasilitas/${detail.id_fasilitas}/public`
+        ),
+        axios.get(
+          `http://127.0.0.1:8000/api/fasilitas/files/${detail.id_fasilitas}`
         )
-      );
+      ]);
+      
+      return {
+        id_fasilitas: detail.id_fasilitas,
+        inventaris: inventarisRes.data.data || [],
+        files: filesRes.data.data || []
+      };
+    });
 
-      const inventarisResponses = await Promise.all(inventarisPromises);
+    const results = await Promise.all(promises);
+    
+    results.forEach(result => {
+      inventarisData[result.id_fasilitas] = result.inventaris;
+      // You might want to add files data here if needed
+    });
 
-      inventarisResponses.forEach((res, index) => {
-        const fasilitasId = Object.values(fasilitasDetails)[index].id_fasilitas;
-        inventarisData[fasilitasId] = res.data.data || [];
-      });
-
-      // Combine fasilitas with their details and inventaris
-      const combinedFasilitas = fasilitas.map((item) => ({
+    // Combine fasilitas with their details, inventaris and files
+    const combinedFasilitas = fasilitas.map((item) => {
+      const detail = fasilitasDetails[item.id_pemetaan_fasilitas] || null;
+      return {
         ...item,
-        detail: fasilitasDetails[item.id_pemetaan_fasilitas] || null,
-        inventaris:
-          inventarisData[
-            fasilitasDetails[item.id_pemetaan_fasilitas]?.id_fasilitas
-          ] || [],
-      }));
+        detail,
+        inventaris: detail ? inventarisData[detail.id_fasilitas] || [] : [],
+        filePendukung: detail ? results.find(r => r.id_fasilitas === detail.id_fasilitas)?.files || [] : []
+      };
+    });
 
-      setFasilitasData(combinedFasilitas);
-    } catch (err) {
-      console.error("Gagal ambil data:", err);
-      setError("Gagal memuat data pemetaan. Silakan coba lagi nanti.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    setFasilitasData(combinedFasilitas);
+  } catch (err) {
+    console.error("Gagal ambil data:", err);
+    setError("Gagal memuat data pemetaan. Silakan coba lagi nanti.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const initializeMap = () => {
     if (!mapRef.current || mapInstanceRef.current) return;
@@ -290,6 +301,32 @@ const PublicPetaTanah = () => {
           const relatedTanah = tanahData[item.id_tanah] || {};
           const relatedSertifikat = sertifikatData[item.id_tanah] || [];
 
+          // Prepare comparison info if both luasTanah and luas_tanah exist
+          const comparisonInfo =
+            relatedTanah.luasTanah && item.luas_tanah
+              ? `
+                  <div class="mt-3 p-3 bg-gray-50 rounded-md space-y-3">
+                      <h4 class="font-medium text-sm text-blue-800 mb-1">Perbandingan Luas:</h4>
+                      <div class="grid grid-cols-2 gap-2 text-xs">
+                          <div class="bg-white p-2 rounded">
+                              <div class="font-medium">Asli</div>
+                              <div>${new Intl.NumberFormat("id-ID").format(relatedTanah.luasTanah)} m²</div>
+                          </div>
+                          <div class="bg-white p-2 rounded">
+                              <div class="font-medium">Pemetaan</div>
+                              <div>${new Intl.NumberFormat("id-ID").format(item.luas_tanah)} m²</div>
+                          </div>
+                          <div class="col-span-2 bg-white p-2 rounded">
+                              <div class="font-medium">Selisih</div>
+                              <div>${new Intl.NumberFormat("id-ID").format(
+                                Math.abs(relatedTanah.luasTanah - item.luas_tanah)
+                              )} m²</div>
+                          </div>
+                      </div>
+                  </div>
+              `
+              : "";
+
           const geoJSONLayer = L.geoJSON(item.geojson, {
             style: {
               color: "#ff0000",
@@ -357,6 +394,8 @@ const PublicPetaTanah = () => {
                       </span>
                     </div>
                   </div>
+                  
+                  ${comparisonInfo}
               
                   <div class="mb-4">
                     <h4 class="font-medium text-sm text-gray-700 mb-2">Legalitas Tanah:</h4>
@@ -365,37 +404,37 @@ const PublicPetaTanah = () => {
                         ? relatedSertifikat
                             .map(
                               (sertifikat) => `
-                        <div class="mb-2 p-2 bg-gray-100 rounded">
-                          <div class="flex justify-between items-center">
-                            <span class="font-medium text-sm">${
-                              sertifikat.jenis_sertifikat || "Tidak diketahui"
-                            }</span>
-                            <span class="text-xs ${
-                              sertifikat.status_pengajuan === "Terbit"
-                                ? "bg-green-100 text-green-800"
-                                : sertifikat.status_pengajuan === "Ditolak"
-                                ? "bg-red-100 text-red-800"
-                                : "bg-yellow-100 text-yellow-800"
-                            } px-2 py-1 rounded-full">
-                              ${sertifikat.status_pengajuan || "Proses"}
-                            </span>
-                          </div>
-                          <div class="text-xs text-gray-500 mt-2 space-y-1">
-                            <div class="flex items-center">
-                              No: ${sertifikat.no_dokumen || "Belum Tersedia"}
+                          <div class="mb-2 p-2 bg-gray-100 rounded">
+                            <div class="flex justify-between items-center">
+                              <span class="font-medium text-sm">${
+                                sertifikat.jenis_sertifikat || "Tidak diketahui"
+                              }</span>
+                              <span class="text-xs ${
+                                sertifikat.status_pengajuan === "Terbit"
+                                  ? "bg-green-100 text-green-800"
+                                  : sertifikat.status_pengajuan === "Ditolak"
+                                  ? "bg-red-100 text-red-800"
+                                  : "bg-yellow-100 text-yellow-800"
+                              } px-2 py-1 rounded-full">
+                                ${sertifikat.status_pengajuan || "Proses"}
+                              </span>
                             </div>
-                            <div class="flex items-center">
-                              Tanggal Pengajuan: ${
-                                sertifikat.tanggal_pengajuan
-                                  ? new Date(
-                                      sertifikat.tanggal_pengajuan
-                                    ).toLocaleDateString()
-                                  : "-"
-                              }
+                            <div class="text-xs text-gray-500 mt-2 space-y-1">
+                              <div class="flex items-center">
+                                No: ${sertifikat.no_dokumen || "Belum Tersedia"}
+                              </div>
+                              <div class="flex items-center">
+                                Tanggal Pengajuan: ${
+                                  sertifikat.tanggal_pengajuan
+                                    ? new Date(
+                                        sertifikat.tanggal_pengajuan
+                                      ).toLocaleDateString()
+                                    : "-"
+                                }
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      `
+                        `
                             )
                             .join("")
                         : '<p class="text-sm text-gray-500 italic">Belum ada data legalitas</p>'
@@ -702,61 +741,45 @@ const PublicPetaTanah = () => {
                   <h3 className="font-semibold text-gray-700 mb-2 text-sm uppercase tracking-wider">
                     Gambar Fasilitas
                   </h3>
-                  <div className="grid grid-cols-3 gap-2">
-                    {detailFasilitas.detail?.file_gambar ? (
-                      <a
-                        href={`http://127.0.0.1:8000/storage/${detailFasilitas.detail.file_gambar}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="bg-gray-200 rounded-md aspect-square flex items-center justify-center overflow-hidden"
+                  {detailFasilitas.filePendukung && detailFasilitas.filePendukung.length > 0 ? (
+                    <div className="grid grid-cols-3 gap-2">
+                      {detailFasilitas.filePendukung
+                        .filter(file => file.jenis_file === 'gambar')
+                        .map((file, index) => (
+                          <a
+                            key={index}
+                            href={`http://127.0.0.1:8000/api/fasilitas/files/${file.id_file_pendukung}/view`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="bg-gray-200 rounded-md aspect-square flex items-center justify-center overflow-hidden"
+                          >
+                            <img
+                              src={`http://127.0.0.1:8000/api/fasilitas/files/${file.id_file_pendukung}/view`}
+                              alt={`Gambar fasilitas ${index + 1}`}
+                              className="object-cover w-full h-full"
+                            />
+                          </a>
+                        ))}
+                    </div>
+                  ) : (
+                    <div className="bg-gray-200 rounded-md aspect-square flex items-center justify-center">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-8 w-8 text-gray-400"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
                       >
-                        <img
-                          src={`http://127.0.0.1:8000/storage/${detailFasilitas.detail.file_gambar}`}
-                          alt="Fasilitas"
-                          className="object-cover w-full h-full"
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
                         />
-                      </a>
-                    ) : (
-                      <div className="bg-gray-200 rounded-md aspect-square flex items-center justify-center">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-8 w-8 text-gray-400"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                          />
-                        </svg>
-                      </div>
-                    )}
-                    {[1, 2].map((i) => (
-                      <div
-                        key={i}
-                        className="bg-gray-200 rounded-md aspect-square flex items-center justify-center"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-8 w-8 text-gray-400"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                          />
-                        </svg>
-                      </div>
-                    ))}
-                  </div>
-                  {!detailFasilitas.detail?.file_gambar && (
+                      </svg>
+                    </div>
+                  )}
+                  {(!detailFasilitas.filePendukung || detailFasilitas.filePendukung.length === 0) && (
                     <p className="text-xs text-gray-500 mt-2">
                       Belum ada gambar fasilitas
                     </p>
@@ -765,44 +788,126 @@ const PublicPetaTanah = () => {
 
                 {/* Documents Section */}
                 <div>
+                  <h3 className="font-semibold text-gray-700 mb-2 text-sm uppercase tracking-wider">
+                    Dokumen
+                  </h3>
+                  <div className="space-y-2">
+                    {/* PDF Documents */}
+                    {detailFasilitas.filePendukung && 
+                    detailFasilitas.filePendukung.some(file => file.jenis_file === 'dokumen') ? (
+                      detailFasilitas.filePendukung
+                        .filter(file => file.jenis_file === 'dokumen')
+                        .map((file, index) => (
+                          <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-200">
+                            <div className="flex items-center">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-5 w-5 text-gray-500 mr-2"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                                />
+                              </svg>
+                              <span className="text-sm truncate max-w-[180px]">
+                                {file.nama_asli}
+                              </span>
+                            </div>
+                            <div className="flex space-x-2">
+                              <a
+                                href={`http://127.0.0.1:8000/api/fasilitas/files/${file.id_file_pendukung}/view`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 text-sm hover:underline"
+                              >
+                                Lihat
+                              </a>
+                              <a
+                                href={`http://127.0.0.1:8000/api/fasilitas/files/${file.id_file_pendukung}/view`}
+                                download={file.nama_asli}
+                                className="text-gray-600 text-sm hover:underline"
+                              >
+                                Unduh
+                              </a>
+                            </div>
+                          </div>
+                        ))
+                    ) : (
+                      <div className="p-3 bg-gray-50 rounded-lg text-center border border-gray-200">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5 mx-auto text-gray-400"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"
+                          />
+                        </svg>
+                        <p className="mt-1 text-sm text-gray-500">
+                          Tidak ada dokumen tersedia
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                                {/* 360° View Section - simplified version */}
+                                <div className="mt-4">
                                   <h3 className="font-semibold text-gray-700 mb-2 text-sm uppercase tracking-wider">
-                                    Dokumen
+                                    Tampilan 360°
                                   </h3>
-                                  <div className="space-y-2">
-                                    <div className="flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-200">
-                                      <div className="flex items-center">
-                                        <svg
-                                          xmlns="http://www.w3.org/2000/svg"
-                                          className="h-5 w-5 text-gray-500 mr-2"
-                                          fill="none"
-                                          viewBox="0 0 24 24"
-                                          stroke="currentColor"
-                                        >
-                                          <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                                          />
-                                        </svg>
-                                        <span className="text-sm">Dokumen PDF</span>
-                                      </div>
-                                      {detailFasilitas.detail?.file_pdf ? (
-                                        <a
-                                          href={`http://127.0.0.1:8000/storage/${detailFasilitas.detail.file_pdf}`}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="text-blue-600 text-sm hover:underline"
-                                        >
-                                          Lihat
-                                        </a>
-                                      ) : (
-                                        <span className="text-xs text-gray-500">
-                                          Tidak tersedia
-                                        </span>
-                                      )}
+                                  {detailFasilitas.filePendukung && 
+                                  detailFasilitas.filePendukung.some(file => file.jenis_file === '360') ? (
+                                    <div className="bg-gray-200 rounded-md aspect-video flex items-center justify-center overflow-hidden">
+                                      {detailFasilitas.filePendukung
+                                        .filter(file => file.jenis_file === '360')
+                                        .map((file, index) => (
+                                          <a
+                                            key={index}
+                                            href={`http://127.0.0.1:8000/api/fasilitas/files/${file.id_file_pendukung}/view`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="w-full h-full flex items-center justify-center"
+                                          >
+                                            <div className="text-center">
+                                              <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                className="h-12 w-12 mx-auto text-blue-500"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                              >
+                                                <path
+                                                  strokeLinecap="round"
+                                                  strokeLinejoin="round"
+                                                  strokeWidth={2}
+                                                  d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"
+                                                />
+                                              </svg>
+                                              <span className="mt-2 text-sm font-medium text-blue-600">
+                                                Klik untuk melihat tampilan 360°
+                                              </span>
+                                            </div>
+                                          </a>
+                                        ))}
                                     </div>
-                                  </div>
+                                  ) : (
+                                    <div className="bg-gray-100 rounded-md p-4 text-center">
+                                      <p className="text-sm text-gray-500">
+                                        Tidak ada tampilan 360° yang tersedia
+                                      </p>
+                                    </div>
+                                  )}
                                 </div>
                 
                                 {/* Inventory Section */}
@@ -903,38 +1008,7 @@ const PublicPetaTanah = () => {
                 
                             {/* Action Buttons - Sticky Bottom */}
                             <div className="sticky bottom-0 bg-white pt-4 pb-2 border-t border-gray-200">
-                              <div className="grid grid-cols-2 gap-2 px-4">
-                                <button
-                                  onClick={() => {
-                                    if (detailFasilitas.detail?.file_360) {
-                                      window.open(
-                                        `http://127.0.0.1:8000/storage/${detailFasilitas.detail.file_360}`,
-                                        "_blank"
-                                      );
-                                    } else {
-                                      alert(
-                                        "Tidak ada tampilan 360° yang tersedia untuk fasilitas ini"
-                                      );
-                                    }
-                                  }}
-                                  className="flex items-center justify-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors"
-                                >
-                                  <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    className="h-4 w-4 mr-1"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"
-                                    />
-                                  </svg>
-                                  View 360°
-                                </button>
+                              <div className="px-4">
                                 <button
                                   onClick={() => {
                                     if (mapInstanceRef.current && detailFasilitas.geojson) {
@@ -944,11 +1018,11 @@ const PublicPetaTanah = () => {
                                       });
                                     }
                                   }}
-                                  className="flex items-center justify-center px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md text-sm font-medium transition-colors"
+                                  className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium transition-colors"
                                 >
                                   <svg
                                     xmlns="http://www.w3.org/2000/svg"
-                                    className="h-4 w-4 mr-1"
+                                    className="h-4 w-4 mr-2"
                                     fill="none"
                                     viewBox="0 0 24 24"
                                     stroke="currentColor"
@@ -957,7 +1031,13 @@ const PublicPetaTanah = () => {
                                       strokeLinecap="round"
                                       strokeLinejoin="round"
                                       strokeWidth={2}
-                                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                                    />
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
                                     />
                                   </svg>
                                   Navigasi ke Lokasi
