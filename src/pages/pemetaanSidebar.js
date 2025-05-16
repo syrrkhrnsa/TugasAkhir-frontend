@@ -12,7 +12,6 @@ import axios from "axios";
 import * as wellknown from "wellknown";
 import { createRoot } from "react-dom/client";
 import Swal from "sweetalert2";
-
 import "leaflet-control-geocoder/dist/Control.Geocoder.css";
 import "leaflet-control-geocoder";
 
@@ -139,7 +138,7 @@ const PemetaanSidebar = () => {
           response.data.data.map(async (item) => {
             try {
               const detailResponse = await axios.get(
-                `http://127.0.0.1:8000/api/fasilitas/pemetaan/${item.id_pemetaan_fasilitas}`,
+                `http://127.0.0.1:8000/api/fasilitas/by-pemetaan/${item.id_pemetaan_fasilitas}`,
                 {
                   headers: { Authorization: `Bearer ${token}` },
                   validateStatus: (status) => status === 200 || status === 404,
@@ -155,11 +154,23 @@ const PemetaanSidebar = () => {
                 };
               }
 
+              // If we have facility details, fetch the files
+              const fasilitasId = detailResponse.data.data.id_fasilitas;
+              const filesResponse = await axios.get(
+                `http://127.0.0.1:8000/api/fasilitas/${fasilitasId}/files`,
+                {
+                  headers: { Authorization: `Bearer ${token}` },
+                }
+              );
+
               return {
                 ...item,
                 geojson: wkbToGeoJSON(item.geometri),
                 hasDetail: true,
-                detailData: detailResponse.data.data || null,
+                detailData: {
+                  ...detailResponse.data.data,
+                  filePendukung: filesResponse.data.data || [],
+                },
               };
             } catch (err) {
               console.error("Error fetching facility details:", err);
@@ -261,7 +272,7 @@ const PemetaanSidebar = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.get(
-        `http://127.0.0.1:8000/api/fasilitas/pemetaan/${id_pemetaan_fasilitas}`,
+        `http://127.0.0.1:8000/api/fasilitas/by-pemetaan/${id_pemetaan_fasilitas}`,
         {
           headers: { Authorization: `Bearer ${token}` },
           validateStatus: (status) => status === 200 || status === 404,
@@ -289,6 +300,11 @@ const PemetaanSidebar = () => {
       });
       await fetchPemetaanData(selectedUserId);
       await fetchFasilitasData(selectedUserId);
+      Swal.fire({
+        icon: "success",
+        title: "Berhasil",
+        text: "Pemetaan tanah berhasil dihapus",
+      });
     } catch (err) {
       console.error("Gagal menghapus data pemetaan:", err);
       Swal.fire({
@@ -308,6 +324,11 @@ const PemetaanSidebar = () => {
         },
       });
       await fetchFasilitasData(selectedUserId);
+      Swal.fire({
+        icon: "success",
+        title: "Berhasil",
+        text: "Fasilitas berhasil dihapus",
+      });
     } catch (err) {
       console.error("Gagal menghapus data fasilitas:", err);
       Swal.fire({
@@ -1015,7 +1036,6 @@ const PemetaanSidebar = () => {
               </div>
             </div>
 
-            {/* Rest of the FasilitasListCard component remains the same */}
             <div className="divide-y divide-gray-100">
               {filteredFacilities.length > 0 ? (
                 filteredFacilities.map((item) => (
