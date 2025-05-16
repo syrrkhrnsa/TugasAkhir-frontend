@@ -512,18 +512,6 @@ const EditFasilitas = () => {
                         <option value="LAINNYA">Lainnya</option>
                       </select>
                     </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Lokasi Tanah
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full px-3 py-2 border rounded-md bg-gray-50"
-                        value={formData.lokasi}
-                        readOnly
-                      />
-                    </div>
                   </div>
 
                   <div>
