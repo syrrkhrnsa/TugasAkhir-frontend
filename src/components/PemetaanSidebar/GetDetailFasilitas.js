@@ -1,6 +1,9 @@
 export const getDetailFasilitasHTML = (detailData, pemetaanData) => {
   // Check if we have valid detail data
   const hasDetail = detailData && detailData.detailData.id_fasilitas;
+  console.log("Detail Data :", detailData);
+  console.log("pemetaan data :", pemetaanData);
+  console.log("has detail:", hasDetail);
 
   // Extract files by type from detailData or fallback to empty arrays
   const files360 = hasDetail
@@ -24,6 +27,7 @@ export const getDetailFasilitasHTML = (detailData, pemetaanData) => {
     const isImage = file.mime_type.startsWith("image/");
     const isPDF = file.mime_type === "application/pdf";
     const fileUrl = `http://127.0.0.1:8000/api/fasilitas/files/${file.id_file_pendukung}/view`;
+    console.log("file:", file);
 
     if (isImage) {
       return `
@@ -183,7 +187,7 @@ export const getDetailFasilitasHTML = (detailData, pemetaanData) => {
                   <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Catatan</p>
                   <div class="mt-1 p-2 bg-white rounded border border-gray-200 text-sm">
                     <p class="text-gray-700">${
-                      detailData.catatan || "Tidak ada catatan"
+                      detailData.detailData.catatan || "Tidak ada catatan"
                     }</p>
                   </div>
                 </div>
@@ -286,7 +290,7 @@ export const getDetailFasilitasHTML = (detailData, pemetaanData) => {
             hasDetail
               ? `
             <!-- Log Activity Button - Added with purple color scheme -->
-            <a href="/log?type=fasilitas&id=${detailData.id_fasilitas}" 
+            <a href="/log?type=fasilitas&id=${detailData.detailData.id_fasilitas}" 
               class="btn-view-log px-4 py-2 bg-purple-600 rounded-lg text-white hover:bg-purple-700 text-sm font-medium flex items-center">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -294,13 +298,13 @@ export const getDetailFasilitasHTML = (detailData, pemetaanData) => {
               Aktivitas
             </a>
             
-            <a href="/inventaris/fasilitas/${detailData.id_fasilitas}" class="btn-view-inventaris px-4 py-2 bg-green-600 rounded-lg text-white hover:bg-green-700 text-sm font-medium flex items-center">
+            <a href="/inventaris/fasilitas/${detailData.detailData.id_fasilitas}" class="btn-view-inventaris px-4 py-2 bg-green-600 rounded-lg text-white hover:bg-green-700 text-sm font-medium flex items-center">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
               Inventaris
             </a>
-            <a href="/fasilitas/edit/${detailData.id_fasilitas}" class="btn-edit-detail px-4 py-2 bg-blue-600 rounded-lg text-white hover:bg-blue-700 text-sm font-medium flex items-center">
+            <a href="/fasilitas/edit/${detailData.detailData.id_fasilitas}" class="btn-edit-detail px-4 py-2 bg-blue-600 rounded-lg text-white hover:bg-blue-700 text-sm font-medium flex items-center">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
