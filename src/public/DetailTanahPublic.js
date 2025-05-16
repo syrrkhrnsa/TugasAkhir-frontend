@@ -303,27 +303,32 @@ const DetailTanahPublic = () => {
           {/* Right Column - Legalitas Table */}
           <div className="w-full lg:w-3/5">
             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="p-4 bg-gray-50 border-b">
+                <h3 className="text-lg font-semibold text-gray-800">
+                  Dokumen Legalitas
+                </h3>
+              </div>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200 text-sm">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         No
                       </th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         No Dokumen
                       </th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Legalitas
                       </th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Status
                       </th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Dokumen
                       </th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Keterangan
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Lama Proses
                       </th>
                     </tr>
                   </thead>
@@ -331,18 +336,18 @@ const DetailTanahPublic = () => {
                     {sertifikatList.length > 0 ? (
                       sertifikatList.map((sertifikat, index) => (
                         <tr key={sertifikat.id_sertifikat}>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                             {index + 1}
                           </td>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 font-medium">
                             {sertifikat.no_dokumen || "-"}
                           </td>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-700">
-                            {sertifikat.jenis_sertifikat}
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                            {sertifikat.jenis_sertifikat || "-"}
                           </td>
-                          <td className="px-3 py-2 whitespace-nowrap">
+                          <td className="px-4 py-3 whitespace-nowrap">
                             <span
-                              className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                              className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
                                 sertifikat.status === "disetujui"
                                   ? "bg-green-100 text-green-800"
                                   : sertifikat.status === "ditolak"
@@ -350,24 +355,21 @@ const DetailTanahPublic = () => {
                                   : "bg-yellow-100 text-yellow-800"
                               }`}
                             >
-                              {sertifikat.status}
+                              {sertifikat.status || "-"}
                             </span>
                           </td>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                             <button
-                              onClick={() =>
-                                handlePreviewDokumen(sertifikat.dokumen)
-                              }
-                              className="text-blue-500 hover:text-blue-700"
+                              onClick={() => handlePreviewDokumen(sertifikat.dokumen)}
+                              className="text-blue-500 hover:text-blue-700 flex items-center"
                               disabled={!sertifikat.dokumen}
                             >
-                              <FaEye className="inline" />
+                              <FaEye className="mr-1" />
+                              {sertifikat.dokumen ? "Lihat" : "Tidak Ada"}
                             </button>
                           </td>
-                          <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
-                            {calculateDayDifference(
-                              sertifikat.tanggal_pengajuan
-                            )}
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                            {calculateDayDifference(sertifikat.tanggal_pengajuan)}
                           </td>
                         </tr>
                       ))
@@ -375,9 +377,9 @@ const DetailTanahPublic = () => {
                       <tr>
                         <td
                           colSpan="6"
-                          className="px-3 py-4 text-center text-sm text-gray-500"
+                          className="px-4 py-4 text-center text-sm text-gray-500"
                         >
-                          Belum ada data sertifikat untuk tanah ini
+                          Belum ada data dokumen untuk tanah ini
                         </td>
                       </tr>
                     )}
