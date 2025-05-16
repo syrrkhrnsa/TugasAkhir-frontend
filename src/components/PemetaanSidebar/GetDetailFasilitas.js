@@ -1,16 +1,22 @@
 export const getDetailFasilitasHTML = (detailData, pemetaanData) => {
   // Check if we have valid detail data
-  const hasDetail = detailData && detailData.id_fasilitas;
+  const hasDetail = detailData && detailData.detailData.id_fasilitas;
 
   // Extract files by type from detailData or fallback to empty arrays
   const files360 = hasDetail
-    ? (detailData.filePendukung || []).filter((f) => f.jenis_file === "360")
+    ? (detailData.detailData.file_pendukung || []).filter(
+        (f) => f.jenis_file === "360"
+      )
     : [];
   const filesGambar = hasDetail
-    ? (detailData.filePendukung || []).filter((f) => f.jenis_file === "gambar")
+    ? (detailData.detailData.file_pendukung || []).filter(
+        (f) => f.jenis_file === "gambar"
+      )
     : [];
   const filesDokumen = hasDetail
-    ? (detailData.filePendukung || []).filter((f) => f.jenis_file === "dokumen")
+    ? (detailData.detailData.file_pendukung || []).filter(
+        (f) => f.jenis_file === "dokumen"
+      )
     : [];
 
   // Function to generate file display HTML (ukuran lebih kecil)
@@ -113,13 +119,13 @@ export const getDetailFasilitasHTML = (detailData, pemetaanData) => {
                 <div>
                   <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</p>
                   <p class="font-medium text-sm mt-1">${
-                    pemetaanData.nama_fasilitas
+                    detailData.nama_fasilitas
                   }</p>
                 </div>
                 <div>
                   <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Kategori</p>
                   <p class="font-medium text-sm mt-1">${
-                    pemetaanData.kategori_fasilitas
+                    detailData.kategori_fasilitas
                   }</p>
                 </div>
               </div>
@@ -127,7 +133,7 @@ export const getDetailFasilitasHTML = (detailData, pemetaanData) => {
               <div>
                 <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Keterangan</p>
                 <p class="text-gray-700 text-sm mt-1">${
-                  pemetaanData.keterangan || "Tidak ada keterangan"
+                  detailData.keterangan || "Tidak ada keterangan"
                 }</p>
               </div>
               

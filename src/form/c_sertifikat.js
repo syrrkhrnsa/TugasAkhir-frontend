@@ -164,11 +164,6 @@ const CreateSertifikat = () => {
       isValid = false;
     }
 
-    if (files.length === 0 && uploadedFiles.length === 0) {
-      newErrors.dokumen = "Minimal upload satu dokumen";
-      isValid = false;
-    }
-
     setErrors(newErrors);
     return isValid;
   };
