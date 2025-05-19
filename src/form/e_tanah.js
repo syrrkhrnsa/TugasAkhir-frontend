@@ -1205,7 +1205,7 @@ const EditTanah = () => {
                         className="bg-[#3B82F6] text-white px-2 py-2 text-xs rounded-md hover:bg-[#2563EB] flex items-center"
                       >
                         <FaPlus className="mr-2 text-xs" />
-                        Tambah Dokumen
+                        Tambah Dokumen Persyaratan
                       </button>
                     </div>
                   </div>
@@ -1284,8 +1284,9 @@ const EditTanah = () => {
                                     sertifikat.id_sertifikat
                                   )
                                 }
-                                className="bg-blue-500 text-white px-3 py-1 rounded-md hover:bg-blue-600 text-sm"
+                               className="text-blue-500 hover:text-blue-700 flex items-center"
                               >
+                              <FaEye className="mr-1" />
                                 Lihat Dokumen
                               </button>
                             </td>
