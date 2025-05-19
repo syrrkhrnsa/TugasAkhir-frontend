@@ -401,8 +401,9 @@ const DetailTanah = () => {
                                       sertifikat.id_sertifikat
                                     )
                                   }
-                                  className="bg-blue-500 text-white px-3 py-1 rounded-md hover:bg-blue-600 text-sm"
-                                >
+                                    className="text-blue-500 hover:text-blue-700 flex items-center"
+                                  >
+                                    <FaEye className="mr-1" />
                                   Lihat Dokumen
                                 </button>
                               </td>

@@ -10,6 +10,7 @@ import {
   FaFileAlt,
   FaUser,
 } from "react-icons/fa";
+import PopupListDokumenPublic from "../components/popup_listdokumenpublic";
 
 const DetailTanahPublic = () => {
   const { id } = useParams();
@@ -19,9 +20,16 @@ const DetailTanahPublic = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showMap, setShowMap] = useState(false);
+  const [showDokumenPopup, setShowDokumenPopup] = useState(false);
+  const [selectedSertifikat, setSelectedSertifikat] = useState(null);
 
   const toggleMap = () => {
     setShowMap(!showMap);
+  };
+
+  const handleViewDocuments = (sertifikatId) => {
+    setSelectedSertifikat(sertifikatId);
+    setShowDokumenPopup(true);
   };
 
   useEffect(() => {
@@ -62,17 +70,6 @@ const DetailTanahPublic = () => {
 
     fetchData();
   }, [id]);
-
-  const handlePreviewDokumen = (dokumenPath) => {
-    if (dokumenPath) {
-      const fullUrl = dokumenPath.startsWith("http")
-        ? dokumenPath
-        : `http://127.0.0.1:8000/storage/${dokumenPath}`;
-      window.open(fullUrl, "_blank");
-    } else {
-      alert("Dokumen tidak tersedia.");
-    }
-  };
 
   const calculateDayDifference = (dateString) => {
     if (!dateString) return "-";
@@ -360,12 +357,11 @@ const DetailTanahPublic = () => {
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                             <button
-                              onClick={() => handlePreviewDokumen(sertifikat.dokumen)}
+                              onClick={() => handleViewDocuments(sertifikat.id_sertifikat)}
                               className="text-blue-500 hover:text-blue-700 flex items-center"
-                              disabled={!sertifikat.dokumen}
                             >
                               <FaEye className="mr-1" />
-                              {sertifikat.dokumen ? "Lihat" : "Tidak Ada"}
+                              Lihat
                             </button>
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
@@ -403,6 +399,14 @@ const DetailTanahPublic = () => {
           </div>
         </div>
       </div>
+
+      {/* Dokumen Popup */}
+      {showDokumenPopup && (
+        <PopupListDokumenPublic 
+          sertifikatId={selectedSertifikat} 
+          onClose={() => setShowDokumenPopup(false)} 
+        />
+      )}
     </div>
   );
 };

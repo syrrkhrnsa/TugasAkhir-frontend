@@ -3,6 +3,10 @@ import Sidebar from "../components/Sidebar";
 import axios from "axios";
 import { getRoleId } from "../utils/Auth";
 import Swal from "sweetalert2";
+import PopupListDokumen from "../components/popup_listdokumen";
+import {
+  FaEye,
+} from "react-icons/fa";
 
 const Approval = () => {
   const [search, setSearch] = useState("");
@@ -12,6 +16,8 @@ const Approval = () => {
   const [approvalStatus, setApprovalStatus] = useState({});
   const roleId = getRoleId();
   const isPimpinanJamaah = roleId === "326f0dde-2851-4e47-ac5a-de6923447317";
+  const [showDokumenPopup, setShowDokumenPopup] = useState(false);
+  const [selectedSertifikatId, setSelectedSertifikatId] = useState(null);
 
   const getMessageType = (message) => {
     if (!message?.data?.details) return null;
@@ -98,6 +104,16 @@ const Approval = () => {
       return updated;
     });
   };
+
+const handleShowDokumenList = (idSertifikat) => {
+  console.log('ID Sertifikat yang akan ditampilkan:', idSertifikat); // Debugging
+  if (!idSertifikat) {
+    console.error('ID Sertifikat tidak valid');
+    return;
+  }
+  setSelectedSertifikatId(idSertifikat);
+  setShowDokumenPopup(true);
+};
 
   const handleApprove = async () => {
     if (!selectedMessage) return;
@@ -305,32 +321,9 @@ const Approval = () => {
     }
   };
 
-  const handlePreviewDokumen = async (dokumen) => {
-    if (!dokumen) {
-      Swal.fire({
-        icon: "warning",
-        title: "Dokumen Tidak Tersedia",
-        text: "Dokumen belum diupload",
-        confirmButtonText: "OK",
-      });
-      return;
-    }
-
-    try {
-      const fileUrl = `http://127.0.0.1:8000/storage/${dokumen}`;
-
-      // Coba akses file langsung tanpa pengecekan HEAD terlebih dahulu
-      // Karena masalah CORS mungkin menghalangi pengecekan HEAD
-      window.open(fileUrl, "_blank");
-    } catch (error) {
-      console.error("Error accessing document:", error);
-      Swal.fire({
-        icon: "error",
-        title: "Gagal Membuka Dokumen",
-        text: "Tidak dapat membuka dokumen. Pastikan server berjalan dan konfigurasi CORS sudah benar.",
-        confirmButtonText: "OK",
-      });
-    }
+  const handleCloseDokumenPopup = () => {
+    setShowDokumenPopup(false);
+    setSelectedSertifikatId(null);
   };
 
   const renderTanahData = (data, title) => {
@@ -354,7 +347,6 @@ const Approval = () => {
       koordinat: "Koordinat",
       latitude: "Latitude",
       longitude: "Longitude",
-      // Add other field mappings as needed
     };
 
     const formatValue = (key, value) => {
@@ -470,7 +462,7 @@ const Approval = () => {
     );
   };
 
-  const renderSertifikatData = (data, title, handlePreviewDokumen) => {
+  const renderSertifikatData = (data, title) => {
     const excludedFields = [
       "id_sertifikat",
       "user_id",
@@ -482,10 +474,10 @@ const Approval = () => {
       "approval_status",
       "id_tanah",
       "jenis_sertifikat",
-      "status_pengajuan",
+      "status_pengajuan"
     ];
 
-    if (!data)
+    if (!data) {
       return (
         <div className="bg-red-50 border-l-4 border-red-400 p-4">
           <div className="flex">
@@ -509,14 +501,7 @@ const Approval = () => {
           </div>
         </div>
       );
-
-    const displayFields = [
-      { key: "no_dokumen", label: "No Dokumen" },
-      { key: "dokumen", label: "Dokumen" },
-      { key: "jenis_sertifikat", label: "Jenis Sertifikat" },
-      { key: "status_pengajuan", label: "Status Pengajuan" },
-      { key: "tanggal_pengajuan", label: "Tanggal Pengajuan" },
-    ];
+    }
 
     return (
       <div className="mb-8">
@@ -550,45 +535,86 @@ const Approval = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {displayFields.map(({ key, label }) => (
-                <tr key={key} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      {label}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">
-                      {key === "tanggal_pengajuan" && data[key] ? (
-                        new Date(data[key]).toLocaleDateString("id-ID", {
-                          day: "2-digit",
-                          month: "long",
-                          year: "numeric",
-                        })
-                      ) : key === "dokumen" ? (
-                        data[key] ? (
-                          <button
-                            onClick={() => handlePreviewDokumen(data[key])}
-                            className="text-blue-600 hover:underline"
-                          >
-                            Lihat Dokumen
-                          </button>
-                        ) : (
-                          <span className="text-gray-400 italic">
-                            Belum diupload
-                          </span>
-                        )
-                      ) : (
-                        data[key] || (
-                          <span className="text-gray-400 italic">
-                            Belum diisi
-                          </span>
-                        )
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              <tr className="hover:bg-gray-50 transition-colors">
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm font-medium text-gray-900">
+                    No Dokumen
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-500">
+                    {data.no_dokumen || (
+                      <span className="text-gray-400 italic">Belum diisi</span>
+                    )}
+                  </div>
+                </td>
+              </tr>
+              <tr className="hover:bg-gray-50 transition-colors">
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm font-medium text-gray-900">
+                    Jenis Sertifikat
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-500">
+                    {data.jenis_sertifikat || (
+                      <span className="text-gray-400 italic">Belum diisi</span>
+                    )}
+                  </div>
+                </td>
+              </tr>
+              <tr className="hover:bg-gray-50 transition-colors">
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm font-medium text-gray-900">
+                    Status Pengajuan
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-500">
+                    {data.status_pengajuan || (
+                      <span className="text-gray-400 italic">Belum diisi</span>
+                    )}
+                  </div>
+                </td>
+              </tr>
+              <tr className="hover:bg-gray-50 transition-colors">
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm font-medium text-gray-900">
+                    Tanggal Pengajuan
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-500">
+                    {data.tanggal_pengajuan ? (
+                      new Date(data.tanggal_pengajuan).toLocaleDateString("id-ID", {
+                        day: "2-digit",
+                        month: "long",
+                        year: "numeric",
+                      })
+                    ) : (
+                      <span className="text-gray-400 italic">Belum diisi</span>
+                    )}
+                  </div>
+                </td>
+              </tr>
+              <tr className="hover:bg-gray-50 transition-colors">
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm font-medium text-gray-900">
+                    Dokumen Legalitas
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-500">
+                    <button
+                      onClick={() => handleShowDokumenList(data.id_sertifikat)}
+                      className="text-blue-500 hover:text-blue-700 flex items-center"
+                    >
+                      <FaEye className="mr-1" />
+                      Lihat Dokumen
+                    </button>
+                  </div>
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -731,20 +757,17 @@ const Approval = () => {
                     isCreating ? (
                       renderSertifikatData(
                         selectedMessage.data.details,
-                        "Detail Sertifikat",
-                        handlePreviewDokumen
+                        "Detail Sertifikat"
                       )
                     ) : (
                       <div className="space-y-8">
                         {renderSertifikatData(
                           selectedMessage.data.details.previous_data,
-                          "Data Sebelumnya",
-                          handlePreviewDokumen
+                          "Data Sebelumnya"
                         )}
                         {renderSertifikatData(
                           selectedMessage.data.details.updated_data,
-                          "Data Terbaru",
-                          handlePreviewDokumen
+                          "Data Terbaru"
                         )}
                       </div>
                     )
@@ -929,6 +952,13 @@ const Approval = () => {
           </div>
         </div>
       </Sidebar>
+
+      {showDokumenPopup && (
+        <PopupListDokumen
+          idSertifikat={selectedSertifikatId}
+          onClose={handleCloseDokumenPopup}
+        />
+      )}
     </div>
   );
 };
