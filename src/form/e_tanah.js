@@ -120,8 +120,8 @@ const EditTanah = () => {
     "Sertifikat ditolak",
   ]);
 
-  const API_KEY =
-    "231b062a5d2c75a9f68a41107079fb6bba17c1251089b912ad92d9f572dd974d";
+  // Dibaca dari .env (REACT_APP_BINDERBYTE_API_KEY), jangan ditulis di kode.
+  const API_KEY = process.env.REACT_APP_BINDERBYTE_API_KEY;
 
   const handleLocationSelect = (latlng) => {
     setSelectedLocation(latlng);

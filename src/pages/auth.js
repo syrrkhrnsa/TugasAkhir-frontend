@@ -19,7 +19,6 @@ const Login = () => {
         password,
       });
 
-      console.log("Token dari server:", response.data.token);
 
       // Simpan token ke localStorage
       localStorage.setItem("token", response.data.token);
@@ -28,7 +27,6 @@ const Login = () => {
       storeUserData(response.data);
 
       // Cek di console log
-      console.log("Data lengkap dari server:", response.data);
 
       navigate("/dashboard");
     } catch (err) {
@@ -45,17 +43,14 @@ const Login = () => {
 
       if (userId) {
         localStorage.setItem("user_id", userId);
-        console.log("User ID:", userId);
       }
 
       if (roleId) {
         localStorage.setItem("role_id", roleId);
-        console.log("Role ID:", roleId);
       }
 
       if (userName) {
         localStorage.setItem("user_name", userName); // Simpan nama pengguna
-        console.log("User Name:", userName);
       }
 
       // Simpan di variabel statis

@@ -14,6 +14,9 @@ import {
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
+// API key wilayah (binderbyte) dibaca dari .env, jangan ditulis di kode.
+const BINDERBYTE_API_KEY = process.env.REACT_APP_BINDERBYTE_API_KEY;
+
 // Fix for default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -126,7 +129,7 @@ const CreateTanah = () => {
     const fetchProvinsi = async () => {
       try {
         const response = await axios.get(
-          "https://api.binderbyte.com/wilayah/provinsi?api_key=231b062a5d2c75a9f68a41107079fb6bba17c1251089b912ad92d9f572dd974d"
+          `https://api.binderbyte.com/wilayah/provinsi?api_key=${BINDERBYTE_API_KEY}`
         );
         setProvinsiList(response.data.value);
       } catch (error) {
@@ -141,7 +144,7 @@ const CreateTanah = () => {
       const fetchKota = async () => {
         try {
           const response = await axios.get(
-            `https://api.binderbyte.com/wilayah/kabupaten?api_key=231b062a5d2c75a9f68a41107079fb6bba17c1251089b912ad92d9f572dd974d&id_provinsi=${provinsi}`
+            `https://api.binderbyte.com/wilayah/kabupaten?api_key=${BINDERBYTE_API_KEY}&id_provinsi=${provinsi}`
           );
           setKotaList(response.data.value);
         } catch (error) {
@@ -157,7 +160,7 @@ const CreateTanah = () => {
       const fetchKecamatan = async () => {
         try {
           const response = await axios.get(
-            `https://api.binderbyte.com/wilayah/kecamatan?api_key=231b062a5d2c75a9f68a41107079fb6bba17c1251089b912ad92d9f572dd974d&id_kabupaten=${kota}`
+            `https://api.binderbyte.com/wilayah/kecamatan?api_key=${BINDERBYTE_API_KEY}&id_kabupaten=${kota}`
           );
           setKecamatanList(response.data.value || []);
         } catch (error) {
@@ -173,7 +176,7 @@ const CreateTanah = () => {
       const fetchKelurahan = async () => {
         try {
           const response = await axios.get(
-            `https://api.binderbyte.com/wilayah/kelurahan?api_key=231b062a5d2c75a9f68a41107079fb6bba17c1251089b912ad92d9f572dd974d&id_kecamatan=${kecamatan}`
+            `https://api.binderbyte.com/wilayah/kelurahan?api_key=${BINDERBYTE_API_KEY}&id_kecamatan=${kecamatan}`
           );
           setKelurahanList(response.data.value || []);
         } catch (error) {
